@@ -106,18 +106,6 @@
   .required-mark{color:var(--red);font-weight:700;font-size:11px;}
   .field-error{display:none;color:var(--red);font-size:11.5px;margin-top:6px;}
   .tbd-checkbox{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text-muted);margin-bottom:8px;cursor:pointer;user-select:none;}
-  .addr-autocomplete{position:relative;}
-  .addr-suggestions{
-    display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:30;
-    background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;
-    box-shadow:0 8px 24px rgba(20,20,45,.12);max-height:230px;overflow-y:auto;
-  }
-  .addr-suggestions.show{display:block;}
-  .addr-suggestion-item{padding:10px 14px;font-size:13px;cursor:pointer;border-bottom:1px solid #f1f2f8;line-height:1.4;}
-  .addr-suggestion-item:last-child{border-bottom:none;}
-  .addr-suggestion-item:hover, .addr-suggestion-item.active{background:var(--row-hi);}
-  .addr-suggestion-main{font-weight:600;color:var(--text);}
-  .addr-suggestion-sub{font-size:11.5px;color:var(--text-faint);margin-top:1px;}
   .floor-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;}
   .field-mini-label{font-size:12px;color:var(--text-muted);margin-bottom:6px;}
   select.text-input{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' stroke='%239aa0b4' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;cursor:pointer;}
@@ -210,6 +198,11 @@
 
   /* ---------- Invoice (Step 3) ---------- */
   .invoice-toolbar{display:flex;justify-content:space-between;gap:14px;margin-bottom:20px;}
+  .invoice-toolbar-bottom{max-width:900px;margin:20px auto 0;}
+  .accept-panel{max-width:900px;margin:20px auto 0;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px 24px;}
+  .accept-panel.confirmed{background:#e8f8ee;border-color:#bceccb;}
+  .accept-confirmed-msg{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;color:var(--green-deep);}
+  .accept-confirmed-sub{font-size:12.5px;color:var(--text-muted);margin-top:4px;font-weight:400;}
   .customer-card{max-width:640px;margin:0 auto;}
   .customer-fields{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
   .pdf-status{max-width:900px;margin:0 auto 14px;padding:12px 16px;border-radius:8px;font-size:13px;display:none;}
@@ -249,12 +242,13 @@
   .inv-legal b{color:#1a1a1a;}
   .inv-accept{border:1px solid #ccc;border-radius:6px;padding:14px 16px;margin-top:20px;font-size:11.5px;}
   .inv-sign-row{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:36px;}
+  .inv-accept-note{font-size:10px;color:#888;margin-top:8px;}
   .inv-sign-line{border-top:1px solid #999;padding-top:6px;font-size:10.5px;color:#666;}
   .inv-footer{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;border-top:1px solid #ccc;margin-top:28px;padding-top:12px;font-size:9.5px;color:#666;}
 
   @media print {
     body{background:#fff;}
-    .topbar, .steps, .invoice-toolbar, .pdf-status{display:none !important;}
+    .topbar, .steps, .invoice-toolbar, .pdf-status, .accept-panel{display:none !important;}
     .page{max-width:none;padding:0;}
     .invoice-paper{box-shadow:none;border-radius:0;max-width:none;margin:0;padding:0;}
     @page{size:A4;margin:16mm 14mm;}
@@ -349,7 +343,7 @@
     <div class="layout">
       <div class="card">
         <h1>Step 1: Volume Calculation</h1>
-        <p class="desc">항목과 수량을 선택하세요. 용량에 따라 차량의 종류가 자동으로 추천됩니다.</p>
+        <p class="desc">항목과 수량을 선택하십시오. 용량에 따라 차량의 종류가 자동으로 추천됩니다.</p>
         <hr class="sep">
         <div class="section-label">가구 및 대형 가전</div>
         <div id="itemList"></div>
@@ -364,7 +358,7 @@
     <div class="layout">
       <div class="card">
         <h1>Step 2: 경로 및 옵션</h1>
-        <p class="desc">장소와 옵션을 입력해주세요.</p>
+        <p class="desc">장소와 옵션을 입력해 주십시오.</p>
         <hr class="sep">
 
         <div class="section-block">
@@ -372,11 +366,8 @@
           <div class="addr-grid">
             <div>
               <div class="field-title">출발지 주소 <span class="required-mark">*필수</span></div>
-              <div class="addr-autocomplete">
-                <input class="text-input" id="originAddr" type="text" placeholder="예: Musterstr. 1, 12345 Berlin" autocomplete="off">
-                <div class="addr-suggestions" id="originAddrSuggestions"></div>
-              </div>
-              <div class="field-error" id="originAddrError">출발지 주소를 입력해주세요.</div>
+              <input class="text-input" id="originAddr" type="text" placeholder="예: Musterstr. 1, 12345 Berlin">
+              <div class="field-error" id="originAddrError">출발지 주소를 입력해 주십시오.</div>
               <div class="floor-row">
                 <div><div class="field-mini-label">층수</div><select class="text-input" id="originFloor"></select></div>
                 <div><div class="field-mini-label">엘리베이터</div><div class="elevator-btn" id="originElevator"></div></div>
@@ -384,11 +375,8 @@
             </div>
             <div>
               <div class="field-title">목적지 주소</div>
-              <label class="tbd-checkbox"><input type="checkbox" id="destTBD"> 아직 목적지가 확정되지 않았어요</label>
-              <div class="addr-autocomplete">
-                <input class="text-input" id="destAddr" type="text" placeholder="예: Friedrichstr. 1, 12345 Berlin" autocomplete="off">
-                <div class="addr-suggestions" id="destAddrSuggestions"></div>
-              </div>
+              <label class="tbd-checkbox"><input type="checkbox" id="destTBD"> 아직 목적지가 확정되지 않았습니다</label>
+              <input class="text-input" id="destAddr" type="text" placeholder="예: Friedrichstr. 1, 12345 Berlin">
               <div class="floor-row">
                 <div><div class="field-mini-label">층수</div><select class="text-input" id="destFloor"></select></div>
                 <div><div class="field-mini-label">엘리베이터</div><div class="elevator-btn" id="destElevator"></div></div>
@@ -402,7 +390,7 @@
           <div class="toggle-row">
             <div>
               <div class="toggle-row-title">주차 허가구역 신청</div>
-              <div class="toggle-row-sub">트럭 정차 공간 확보를 위한 임시 주정차금지 표지판 신청을 대행해드려요</div>
+              <div class="toggle-row-sub">트럭 정차 공간 확보를 위한 임시 주정차금지 표지판 신청을 대행해 드립니다</div>
             </div>
             <div class="switch" id="permitSwitch"></div>
           </div>
@@ -414,7 +402,7 @@
 
         <div class="section-block">
           <div class="section-label">특수 취급 품목</div>
-          <div class="section-hint">해당하는 품목이 있다면 선택해주세요. 전용 장비나 추가 인력이 필요할 수 있어요.</div>
+          <div class="section-hint">해당하는 품목이 있다면 선택해 주십시오. 전용 장비나 추가 인력이 필요할 수 있습니다.</div>
           <div class="chip-grid" id="specialItems">
             <div class="chip" data-item="piano">🎹 피아노</div>
             <div class="chip" data-item="safe">🔒 금고</div>
@@ -424,7 +412,7 @@
           </div>
           <div class="special-note" id="specialNote" style="display:none;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-            <span>전용 장비·추가 인력 배정을 위해 상담원이 이사 전 별도로 연락드려요. 아래 금액은 예상 추가 비용이에요.</span>
+            <span>전용 장비·추가 인력 배정을 위해 상담원이 이사 전 별도로 연락드립니다. 아래 금액은 예상 추가 비용입니다.</span>
           </div>
         </div>
 
@@ -475,7 +463,7 @@
       </div>
       <div class="card customer-card">
         <h1>고객 정보 입력</h1>
-        <p class="desc">견적서에 표시될 고객 정보를 입력해주세요.</p>
+        <p class="desc">견적서에 표시될 고객 정보를 입력해 주십시오.</p>
         <hr class="sep">
         <div class="customer-fields">
           <div>
@@ -491,7 +479,7 @@
             <input class="text-input" id="custEmail" type="email" placeholder="예: max.mustermann@example.de">
           </div>
         </div>
-        <div class="field-error" id="customerInfoError">이름과 연락처를 입력해주세요.</div>
+        <div class="field-error" id="customerInfoError">이름과 연락처를 입력해 주십시오.</div>
         <button class="btn btn-primary" style="width:100%;margin-top:20px;" id="toInvoicePreviewBtn">견적서 미리보기 →</button>
       </div>
     </div>
@@ -500,10 +488,15 @@
     <div id="invoicePreviewView" style="display:none;">
       <div class="invoice-toolbar">
         <button class="btn btn-secondary" id="backToCustomerInfoBtn">← 고객 정보 수정</button>
-        <button class="btn btn-primary" id="printInvoiceBtn">📄 PDF 다운로드</button>
       </div>
-      <div class="pdf-status" id="pdfStatus"></div>
       <div class="invoice-paper" id="invoicePaper"></div>
+
+      <div class="accept-panel" id="acceptPanel"></div>
+
+      <div class="pdf-status" id="pdfStatus"></div>
+      <div class="invoice-toolbar invoice-toolbar-bottom">
+        <button class="btn btn-primary" id="printInvoiceBtn" style="width:100%;">📄 PDF 다운로드</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1035,21 +1028,23 @@ const VAN_RANK = { M:0, L:1, XL:2, XXL:2 };
 const ITEMS = [
   { id:'bed_dq',   name:'더블/ 퀸 침대 (프레임 + 매트)', volumeAssembled:2.0, volumeDisassembled:0.9, assembly:true,  qty:0,
     minVan: () => 'L' },
-  { id:'bed_s',    name:'싱글 침대 (프레임 + 매트)',       volumeAssembled:1.3, volumeDisassembled:0.6, assembly:true,  qty:1,
+  { id:'bed_s',    name:'싱글 침대 (프레임 + 매트)',       volumeAssembled:1.3, volumeDisassembled:0.6, assembly:true,  qty:0,
     minVan: (st) => st === 'disassembled' ? 'M' : 'L' },
   { id:'wardrobe', name:'대형 장롱/옷장',                  volume:2.5, assembly:false, qty:0,
     minVan: () => 'L' },
-  { id:'sofa',     name:'소파베드 (3인용)',                 volumeAssembled:2.3, volumeDisassembled:1.1, assembly:true,  qty:1,
+  { id:'sofa',     name:'소파베드 (3인용)',                 volumeAssembled:2.3, volumeDisassembled:1.1, assembly:true,  qty:0,
     minVan: () => 'L' },
-  { id:'shelf',    name:'책장 / 선반형 수납장',              volumeAssembled:1.6, volumeDisassembled:0.5, assembly:true,  qty:1,
+  { id:'shelf',    name:'책장 / 선반형 수납장',              volumeAssembled:1.6, volumeDisassembled:0.5, assembly:true,  qty:0,
     minVan: (st) => st === 'disassembled' ? 'M' : 'L' },
   { id:'desk',     name:'책상',                            volumeAssembled:0.9, volumeDisassembled:0.3, assembly:true,  qty:0,
     minVan: (st) => st === 'disassembled' ? 'M' : 'L' },
   { id:'washer',   name:'세탁기/건조기',                     volume:1.4, assembly:false, qty:0,
     minVan: () => 'L' },
-  { id:'table',    name:'식탁',                            volumeAssembled:1.0, volumeDisassembled:0.35, assembly:true, qty:1,
+  { id:'table',    name:'식탁',                            volumeAssembled:1.0, volumeDisassembled:0.35, assembly:true, qty:0,
     minVan: (st) => st === 'disassembled' ? 'M' : 'L' },
-  { id:'chairs',   name:'의자 세트 (4개)',                   volume:0.6, assembly:false, qty:1,
+  { id:'chair_dining', name:'식탁 의자',                    volume:0.15, assembly:false, qty:0,
+    minVan: () => 'M' },
+  { id:'chair_office', name:'사무용 팔걸이 의자',            volume:0.35, assembly:false, qty:0,
     minVan: () => 'M' },
 ];
 
@@ -1078,6 +1073,10 @@ function makeInvoiceNo(){
 }
 function makeCustomerNo(){
   return `KD-${new Date().getFullYear()}-${Math.floor(1000 + Math.random()*9000)}`;
+}
+function formatDateTime(d){
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}.${p(d.getMonth()+1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
 /* ================================================================
@@ -1137,7 +1136,7 @@ document.querySelectorAll('.sidebar-card').forEach(el => el.innerHTML = SIDEBAR_
 const state = {
   screen: 1,
   items: ITEMS.map(i => ({...i})),
-  team: 3,
+  team: 2,
   duration: 2,
   selectedVanIndex: 2,
   autoVan: true,
@@ -1149,6 +1148,7 @@ const state = {
   invoiceNo: makeInvoiceNo(),   // 견적서 번호: 화면을 새로고침하기 전까지는 고정됩니다
   customerNo: makeCustomerNo(),
   customer: { name: '', phone: '', email: '' },
+  accepted: { at: null, place: '' },   // 디지털 동의(서명) 여부. 1/2단계로 돌아가 내용을 바꾸면 자동으로 무효화됩니다.
 };
 state.items.forEach(i => { if (i.assembly && i.qty > 0) i.assemblyState = 'disassembled'; });
 
@@ -1156,6 +1156,9 @@ state.items.forEach(i => { if (i.assembly && i.qty > 0) i.assemblyState = 'disas
    Screen navigation
    ================================================================ */
 function goToScreen(n){
+  // 1·2단계로 돌아가 품목/옵션을 바꾸면 견적 내용이 달라질 수 있으므로,
+  // 예전 시점에 동의(서명)한 것은 자동으로 무효화하고 재동의를 받습니다.
+  if ((n === 1 || n === 2) && state.accepted.at) state.accepted.at = null;
   state.screen = n;
   document.getElementById('screen1').classList.toggle('active', n === 1);
   document.getElementById('screen2').classList.toggle('active', n === 2);
@@ -1221,7 +1224,41 @@ document.getElementById('toInvoicePreviewBtn').onclick = () => {
   renderInvoice();
   showInvoicePreviewView();
 };
-document.getElementById('backToCustomerInfoBtn').onclick = () => showCustomerInfoView();
+document.getElementById('backToCustomerInfoBtn').onclick = () => {
+  // 고객 정보(이름 등)도 견적서에 표시되는 내용이라, 수정하러 돌아가면 이전 동의를 무효화합니다.
+  state.accepted.at = null;
+  showCustomerInfoView();
+};
+
+/* ================================================================
+   Step 3: 견적서 디지털 동의(서명) — 종이 서명 대신 클릭 시점의 날짜·시간을
+   시스템이 직접 기록합니다. 고객이 날짜를 직접 적게 하면 실제 서명 시점과
+   다르게 적을 수 있어서, 오래된 견적서에 뒤늦게 서명하고 금액이 달라졌다고
+   다투는 상황을 방지하기 위함입니다. 1·2단계나 고객 정보로 돌아가면 위
+   goToScreen()/backToCustomerInfoBtn에서 자동으로 무효화됩니다.
+   ================================================================ */
+function renderAcceptPanel(){
+  const panel = document.getElementById('acceptPanel');
+  if (state.accepted.at) {
+    panel.classList.add('confirmed');
+    panel.innerHTML = `
+      <div class="accept-confirmed-msg">✅ 동의 완료
+        <span class="accept-confirmed-sub">${state.accepted.place || '장소 미입력'} · ${formatDateTime(state.accepted.at)}에 확정되었습니다.</span>
+      </div>`;
+  } else {
+    panel.classList.remove('confirmed');
+    panel.innerHTML = `
+      <div class="field-title">서명 장소 (선택)</div>
+      <input class="text-input" id="acceptPlace" type="text" placeholder="예: Berlin" value="${state.accepted.place}">
+      <button class="btn btn-primary" style="width:100%;margin-top:12px;" id="acceptBtn">이 견적서 내용에 동의 및 확정</button>`;
+    document.getElementById('acceptBtn').onclick = () => {
+      state.accepted.place = document.getElementById('acceptPlace').value.trim();
+      state.accepted.at = new Date();
+      renderInvoice();
+      renderAcceptPanel();
+    };
+  }
+}
 
 /* ================================================================
    Step 3: 실제 PDF 파일 다운로드
@@ -1263,7 +1300,11 @@ async function generateAndSaveInvoicePdf(){
     // 위해 html2canvas로 견적서를 통째로 이미지로 캡처한 뒤, A4 페이지 높이에 맞게
     // 잘라서 순수 이미지로 PDF에 삽입합니다(선택 가능한 텍스트는 없지만 항상 화면과
     // 동일하게 정확히 렌더링됩니다).
-    const canvas = await html2canvas(paper, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+    // windowWidth를 모바일 반응형 breakpoint(860px)보다 넓게 강제해서, 실제로는
+    // 좁은 모바일 화면에서 버튼을 눌러도 항상 데스크톱 레이아웃 기준으로 캡처되게
+    // 합니다 — 그렇지 않으면 모바일에서 찍은 PDF가 화면을 그대로 스크린샷한 것처럼
+    // 표 칸이 세로로 무너지는 문제가 있었습니다.
+    const canvas = await html2canvas(paper, { scale: 2, backgroundColor: '#ffffff', useCORS: true, windowWidth: 1024 });
     const doc = new jspdf.jsPDF({ unit: 'pt', format: 'a4' });
     const margin = 24;
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -1299,7 +1340,7 @@ async function generateAndSaveInvoicePdf(){
     if (err && err.code === 'declined') {
       showPdfStatus('저장이 취소되었습니다.', 'info');
     } else {
-      showPdfStatus('PDF 생성 중 문제가 발생했어요. 다시 시도해주세요.', 'error');
+      showPdfStatus('PDF 생성 중 문제가 발생했습니다. 다시 시도해 주십시오.', 'error');
     }
   } finally {
     btn.disabled = false;
@@ -1430,69 +1471,12 @@ document.getElementById('destElevator').onclick = () => { if (state.destTBD) ret
 document.getElementById('destTBD').onchange = (e) => {
   state.destTBD = e.target.checked;
   const destAddr = document.getElementById('destAddr');
-  destAddr.placeholder = state.destTBD ? '예: München (도시명만이라도 입력해주세요)' : '예: Friedrichstr. 1, 12345 Berlin';
+  destAddr.placeholder = state.destTBD ? '예: München (도시명만이라도 입력해 주십시오)' : '예: Friedrichstr. 1, 12345 Berlin';
   if (state.destTBD) state.destElevator = 'unknown';
   renderAll();
 };
 document.getElementById('permitSwitch').onclick = () => { state.permitOn = !state.permitOn; renderAll(); };
 
-/* ================================================================
-   Step 2: 독일 주소 자동완성 (OpenStreetMap Nominatim 무료 공개 API)
-   4글자 이상 입력하면 도로명+건물번호+우편번호+도시 형태로 후보를 보여줘서
-   우편번호를 빠뜨리는 실수를 줄여줍니다.
-   ⚠️ 외부 API를 호출하기 때문에 인터넷 연결이 필요하고, Claude 아티팩트로
-   배포된 데모 페이지에서는 보안 정책상 외부 네트워크 요청이 차단되어 있어
-   자동완성 없이 일반 텍스트 입력으로만 동작합니다 (로컬 파일/실제 운영
-   도메인에서는 정상 동작). 실제 트래픽 규모가 커지면 Google Places, HERE
-   등 유료 주소 API로 교체하는 것을 권장합니다.
-   ================================================================ */
-function formatAddressSuggestion(item){
-  const a = item.address || {};
-  const street = [a.road, a.house_number].filter(Boolean).join(' ');
-  const city = a.city || a.town || a.village || a.municipality || '';
-  const cityLine = [a.postcode, city].filter(Boolean).join(' ');
-  return [street, cityLine].filter(Boolean).join(', ') || item.display_name;
-}
-function setupAddressAutocomplete(inputId, listId){
-  const input = document.getElementById(inputId);
-  const list = document.getElementById(listId);
-  let debounceTimer = null;
-  let activeController = null;
-  const hideList = () => { list.classList.remove('show'); list.innerHTML = ''; };
-
-  input.addEventListener('input', () => {
-    const q = input.value.trim();
-    clearTimeout(debounceTimer);
-    if (q.length < 4) { hideList(); return; }
-    debounceTimer = setTimeout(async () => {
-      if (activeController) activeController.abort();
-      activeController = new AbortController();
-      try {
-        const url = 'https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&countrycodes=de&limit=5&q=' + encodeURIComponent(q);
-        const res = await fetch(url, { signal: activeController.signal, headers: { 'Accept-Language': 'de' } });
-        if (!res.ok) throw new Error('lookup failed');
-        const results = await res.json();
-        if (!results.length) { hideList(); return; }
-        list.innerHTML = '';
-        results.forEach(item => {
-          const row = document.createElement('div');
-          row.className = 'addr-suggestion-item';
-          const main = formatAddressSuggestion(item);
-          row.innerHTML = '<div class="addr-suggestion-main">' + main + '</div><div class="addr-suggestion-sub">' + item.display_name + '</div>';
-          row.onclick = () => { input.value = main; hideList(); };
-          list.appendChild(row);
-        });
-        list.classList.add('show');
-      } catch (err) {
-        hideList(); // 외부 요청이 막힌 환경(예: 아티팩트 샌드박스)에서는 조용히 무시
-      }
-    }, 400);
-  });
-
-  document.addEventListener('click', (e) => { if (!input.parentElement.contains(e.target)) hideList(); });
-}
-setupAddressAutocomplete('originAddr', 'originAddrSuggestions');
-setupAddressAutocomplete('destAddr', 'destAddrSuggestions');
 document.querySelectorAll('#specialItems .chip').forEach(chip => {
   chip.onclick = () => {
     const key = chip.dataset.item;
@@ -1551,8 +1535,8 @@ function renderVan(){
   document.querySelectorAll('.js-over-warning').forEach(el => {
     el.style.display = overloaded ? 'flex' : 'none';
     el.textContent = tooSmall
-      ? '⚠️ 이 차량에는 물리적으로 실릴 수 없는 품목이 있습니다. 더 큰 차량을 선택하세요'
-      : '⚠️ 초과 적재! 더 큰 차량을 선택하세요';
+      ? '⚠️ 이 차량에는 물리적으로 실릴 수 없는 품목이 있습니다. 더 큰 차량을 선택하십시오'
+      : '⚠️ 초과 적재! 더 큰 차량을 선택하십시오';
   });
 }
 
@@ -1784,10 +1768,18 @@ function renderInvoice(){
     <div class="inv-accept">
       본인은 견적서 <b>${state.invoiceNo}</b> (총액 €${b.total.toFixed(2)}, MwSt 포함)의 내용에 동의하며, 상기 조건 및 AGB에 따라 ${COMPANY_INFO.name}에 이사 작업을 위임합니다.
     </div>
+    ${state.accepted.at ? `
+    <div class="inv-sign-row">
+      <div class="inv-sign-line">${state.accepted.place || '(장소 미입력)'}, ${formatDateTime(state.accepted.at)}</div>
+      <div class="inv-sign-line">✔ 디지털 동의 완료 — ${state.customer.name || '고객'}</div>
+    </div>
+    <p class="inv-accept-note">이 동의는 위 시점에 명시된 품목·옵션·금액을 기준으로 합니다. 이후 1·2단계 내용이 수정되면 재동의가 필요합니다.</p>
+    ` : `
     <div class="inv-sign-row">
       <div class="inv-sign-line">장소, 날짜</div>
       <div class="inv-sign-line">고객 서명 (법적 효력)</div>
     </div>
+    `}
 
     <div class="inv-footer">
       <div>${COMPANY_INFO.name}<br>${COMPANY_INFO.addressLine}</div>
@@ -1796,6 +1788,7 @@ function renderInvoice(){
       <div>Tel: ${COMPANY_INFO.phone}<br>${COMPANY_INFO.email}<br>${COMPANY_INFO.bankName} · ${COMPANY_INFO.iban}</div>
     </div>
   `;
+  renderAcceptPanel();
 }
 
 fillFloorSelect(document.getElementById('originFloor'), state.originFloor);
