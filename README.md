@@ -8,6 +8,10 @@
 실제로 동작하는 견적 계산기로 옮기는 단계입니다. 추후 실제 웹사이트(백엔드 포함)로
 전환할 때의 기준선(baseline) 역할을 합니다.
 
+**[여기에서 바로 사용해 볼 수 있습니다 →](https://brotherpeople.github.io/Dokgodali-service/)**
+(GitHub Pages로 배포된 실제 페이지라 주소 자동완성과 PDF 다운로드까지 전부 정상 동작합니다.
+저장소 설정에서 Pages를 켜야 링크가 열립니다 — 아래 "GitHub Pages 켜기" 참고)
+
 ## 지금 되는 것
 
 - **Step 1 — 부피 계산**: 가구/가전 품목과 수량, 조립 여부를 선택하면 부피가 계산되고
@@ -38,6 +42,13 @@ reference/                     독일 이사업체 견적서 양식 참고 자�
 # Windows
 start dokgodali-quote-flow.html
 ```
+
+## GitHub Pages 켜기 (최초 1회만)
+
+1. 저장소 **Settings → Pages**로 이동
+2. **Source**를 `Deploy from a branch`로, **Branch**를 `main` / `/ (root)`로 설정 후 저장
+3. 1~2분 뒤 `https://brotherpeople.github.io/Dokgodali-service/` 에서 바로 접속 가능
+   (루트의 `index.html`이 `dokgodali-quote-flow.html`로 자동 이동시켜줍니다)
 
 ## 공유용(Artifact) 빌드 만들기
 
