@@ -1,0 +1,6 @@
+# 빌드 산출물 (scripts/build-artifact.py로 재생성 가능, 이미지 base64가 인라인되어 diff가 무의미함)
+dokgodali-quote-flow.artifact.html
+
+# OS 잡파일
+Thumbs.db
+.DS_Store
