@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Dokgodali Schedule</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="dokgodali-schedule.css">
+</head>
+<body>
+
+<!-- Top Role Switcher Bar -->
+<div class="role-switcher-bar">
+  <div class="role-buttons" id="role-buttons-container">
+    <button class="role-btn active" data-role="admin" onclick="switchRole('admin')">Admin</button>
+  </div>
+  <div style="display: flex; gap: 10px; align-items: center;">
+    <span class="sync-status"><span class="sync-dot"></span> Live sync</span>
+    <button class="btn btn-secondary btn-sm" onclick="copyInviteCode()">Copy Invite Code</button>
+  </div>
+</div>
+
+<!-- Header -->
+<header>
+  <div class="header-inner">
+    <div class="brand-area">
+      <div class="brand-logo">D</div>
+      <div class="brand-name">Dokgodali Schedule</div>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <span id="current-user-badge" class="badge badge-navy">Admin</span>
+      <button id="btn-open-new-schedule" class="btn btn-primary btn-sm" onclick="openCreateScheduleModal()">+ New Schedule</button>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- CREW VIEW: One-Touch Today's Job Card -->
+  <div id="crew-today-section" class="hidden">
+    <div class="today-hero-card">
+      <div class="today-hero-top">
+        <div>
+          <span class="badge badge-blue">Today's Job</span>
+          <h2 id="crew-today-title" style="font-size: 16px; font-weight: 700; margin-top: 4px;"></h2>
+        </div>
+        <div style="text-align: right;">
+          <div id="crew-today-time" class="today-time-badge"></div>
+          <div id="crew-today-overall-time" style="font-size: 11px; color: var(--text-muted);"></div>
+        </div>
+      </div>
+
+      <!-- Single-line Duty Alert -->
+      <div id="crew-duty-box" class="duty-line">
+        <span id="crew-duty-text"></span>
+        <span class="badge badge-warning">Rental</span>
+      </div>
+
+      <!-- Arrow Route -->
+      <div class="arrow-route-card">
+        <div>
+          <div id="crew-origin-addr" class="route-point-title"></div>
+          <div id="crew-origin-spec" class="route-point-sub"></div>
+          <a id="crew-origin-map-link" class="btn-map" href="#" target="_blank">Google Maps</a>
+        </div>
+        <div class="route-arrow-icon">➔</div>
+        <div>
+          <div id="crew-dest-addr" class="route-point-title"></div>
+          <div id="crew-dest-spec" class="route-point-sub"></div>
+          <a id="crew-dest-map-link" class="btn-map" href="#" target="_blank">Google Maps</a>
+        </div>
+      </div>
+
+      <!-- 2-Column: Crew & Field Notes -->
+      <div class="grid-2col">
+        <div class="sub-box">
+          <div class="sub-box-title">Crew Members</div>
+          <div id="crew-members-list" class="crew-tag-list"></div>
+        </div>
+        <div class="sub-box">
+          <div class="sub-box-title">Site Notes</div>
+          <div id="crew-notes-text" style="font-size: 12.5px; color: var(--text-secondary);"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CREW VIEW: Minimal Availability Calendar -->
+  <div id="crew-calendar-section" class="calendar-container hidden">
+    <div class="calendar-header">
+      <button class="calendar-nav-btn" onclick="changeMonth(-1)">Prev</button>
+      <div id="crew-cal-title" class="calendar-month-title"></div>
+      <button class="calendar-nav-btn" onclick="changeMonth(1)">Next</button>
+    </div>
+    <div class="calendar-grid">
+      <div class="cal-weekday">Mon</div>
+      <div class="cal-weekday">Tue</div>
+      <div class="cal-weekday">Wed</div>
+      <div class="cal-weekday">Thu</div>
+      <div class="cal-weekday">Fri</div>
+      <div class="cal-weekday sat">Sat</div>
+      <div class="cal-weekday sun">Sun</div>
+    </div>
+    <div id="crew-cal-days" class="calendar-grid"></div>
+  </div>
+
+  <!-- ADMIN VIEW -->
+  <div id="admin-section">
+    <div class="admin-layout">
+      
+      <!-- Left: Monthly Calendar -->
+      <div class="calendar-container">
+        <div class="calendar-header">
+          <button class="calendar-nav-btn" onclick="changeMonth(-1)">Prev</button>
+          <div id="admin-cal-title" class="calendar-month-title"></div>
+          <button class="calendar-nav-btn" onclick="changeMonth(1)">Next</button>
+        </div>
+        <div class="calendar-grid">
+          <div class="cal-weekday">Mon</div>
+          <div class="cal-weekday">Tue</div>
+          <div class="cal-weekday">Wed</div>
+          <div class="cal-weekday">Thu</div>
+          <div class="cal-weekday">Fri</div>
+          <div class="cal-weekday sat">Sat</div>
+          <div class="cal-weekday sun">Sun</div>
+        </div>
+        <div id="admin-cal-days" class="calendar-grid"></div>
+      </div>
+
+      <!-- Right: Selected Date & Dispatch Panel -->
+      <div class="card" style="padding: 14px;">
+        <div class="card-header" style="margin-bottom: 10px; padding-bottom: 8px;">
+          <div class="card-title" id="admin-selected-date-title"></div>
+          <div id="admin-crew-avail-summary" style="font-size: 11.5px; color: var(--text-secondary);"></div>
+        </div>
+        <div id="admin-schedules-list"></div>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+<!-- MODAL: Create Schedule -->
+<div id="schedule-modal" class="modal-overlay hidden">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <div class="card-title" id="modal-title">New Schedule</div>
+      <button class="btn btn-secondary btn-sm" onclick="closeScheduleModal()">Close</button>
+    </div>
+    <form id="schedule-form" onsubmit="handleSaveSchedule(event)">
+      <div class="modal-body">
+        
+        <div class="form-row" style="background: #f8fafc; border: 1px solid var(--border); padding: 8px 10px; border-radius: 4px; margin-bottom: 12px;">
+          <div>
+            <label class="form-label">Quote No. (admin use)</label>
+            <input type="text" id="f-quote-no" class="form-control" placeholder="ANG-20260826-93">
+          </div>
+          <div>
+            <label class="form-label">Quote Amount (€)</label>
+            <input type="number" step="0.01" id="f-quote-price" class="form-control" placeholder="277.51">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Customer Name</label>
+            <input type="text" id="f-customer-name" class="form-control" placeholder="Max Mustermann" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone Number</label>
+            <input type="text" id="f-customer-phone" class="form-control" placeholder="+49 170 1234567">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Job Date</label>
+            <input type="date" id="f-job-date" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Job Time</label>
+            <input type="text" id="f-time-range" class="form-control" placeholder="08:00 ~ 13:00" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Pickup Address / Floor &amp; Elevator</label>
+          <div class="form-row">
+            <input type="text" id="f-origin-addr" class="form-control" placeholder="Musterstr. 1, 12345 Berlin" required>
+            <input type="text" id="f-origin-spec" class="form-control" placeholder="2nd floor · Elevator available">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Drop-off Address / Floor &amp; Elevator</label>
+          <div class="form-row">
+            <input type="text" id="f-dest-addr" class="form-control" placeholder="Kantstr. 45, 10625 Berlin" required>
+            <input type="text" id="f-dest-spec" class="form-control" placeholder="4th floor · No elevator">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Required Crew</label>
+            <input type="number" id="f-required-workers" class="form-control" min="1" max="10" value="3" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Vehicle Type</label>
+            <select id="f-vehicle-type" class="form-control">
+              <option value="Miles L / XL 밴">Miles L / XL van</option>
+              <option value="Miles L 사이즈 밴">Miles L size van</option>
+              <option value="Miles XL 사이즈 밴">Miles XL size van</option>
+              <option value="3.5t 트럭">3.5t truck</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Site Notes</label>
+          <input type="text" id="f-notes" class="form-control" placeholder="No ladder lift, mind the stairs, bed disassembly needed">
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeScheduleModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary btn-sm">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: WhatsApp Text -->
+<div id="whatsapp-modal" class="modal-overlay hidden">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <div class="card-title">WhatsApp Briefing</div>
+      <button class="btn btn-secondary btn-sm" onclick="closeWhatsappModal()">Close</button>
+    </div>
+    <div class="modal-body">
+      <textarea id="whatsapp-text-content" class="form-control" rows="10" style="font-family: monospace; font-size: 12px;" readonly></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" onclick="copyWhatsappText()">Copy</button>
+      <a id="btn-open-wa" class="btn btn-whatsapp btn-sm" href="#" target="_blank">Open WhatsApp</a>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast">Saved.</div>
+
+<script>
+// --- Supabase Client Initialization ---
+const SUPABASE_URL = "https://wxfqakwnbqapatclybiz.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4ZnFha3duYnFhcGF0Y2x5Yml6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3NTQ5NjQsImV4cCI6MjEwMzMzMDk2NH0._YGTlvj8y2gkIMdrzArKXbwAer1ZMwQCgRN1vz7wiPc";
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Multi-tab BroadcastChannel for 0.01s local tab sync
+const localSyncChannel = ('BroadcastChannel' in window) ? new BroadcastChannel('dokgodali_local_sync') : null;
+let realtimeChannel = null;
+
+const CREW_USERS = [
+  { id: 'crew1', name: 'Hong Gil-dong', phone: '+49 171 1111111', canDrive: true },
+  { id: 'crew2', name: 'Kim Chul-su', phone: '+49 172 2222222', canDrive: false },
+  { id: 'crew3', name: 'Lee Young-hee', phone: '+49 173 3333333', canDrive: true },
+  { id: 'crew4', name: 'Park Min-su', phone: '+49 174 4444444', canDrive: false }
+];
+
+// 데모용 "오늘" 날짜 고정값 — 실제 서비스 전환 시 new Date() 기반으로 교체
+const TODAY_DATE = '2026-09-01';
+
+const INVITE_CODE = 'DKGD-2026-BERLIN';
+
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+const VEHICLE_DUTIES = [
+  { value: 'none', label: 'No rental' },
+  { value: 'miles_l', label: 'Miles L' },
+  { value: 'miles_xl', label: 'Miles XL' }
+];
+
+function vehicleDutyLabel(value) {
+  const duty = VEHICLE_DUTIES.find(d => d.value === value);
+  return duty ? duty.label : '';
+}
+
+let state = {
+  currentRole: 'admin',
+  currentYear: 2026,
+  currentMonth: 8,
+  selectedDate: '2026-09-01',
+  schedules: [],
+  availability: {}
+};
+
+async function init() {
+  await loadDataFromSupabase();
+  setupRealtime();
+  setupBroadcastListener();
+  renderApp();
+
+  // Polling fallback every 4 seconds
+  setInterval(async () => {
+    await loadDataFromSupabase(true);
+  }, 4000);
+}
+
+async function loadDataFromSupabase(isBackground = false) {
+  try {
+    // 1. Fetch schedules
+    const { data: schedulesData } = await sb.from('schedules').select('*');
+    if (schedulesData) {
+      state.schedules = schedulesData.map(mapScheduleFromDB);
+    }
+
+    // 2. Fetch availability
+    const { data: availData } = await sb.from('availability').select('*');
+    if (availData) {
+      const newAvail = {};
+      availData.forEach(a => {
+        newAvail[`${a.user_id}_${a.job_date}`] = a.is_available;
+      });
+      state.availability = newAvail;
+    }
+
+    if (isBackground) {
+      renderApp();
+    }
+  } catch (e) {
+    console.error('DB fetch exception:', e);
+  }
+}
+
+function mapScheduleFromDB(s) {
+  return {
+    id: s.id,
+    quoteNo: s.quote_no,
+    quotePrice: s.quote_price,
+    customerName: s.customer_name,
+    customerPhone: s.customer_phone,
+    jobDate: s.job_date,
+    overallTimeRange: s.overall_time_range,
+    originAddress: s.origin_address,
+    originSpec: s.origin_spec,
+    destAddress: s.dest_address,
+    destSpec: s.dest_spec,
+    vehicleType: s.vehicle_type,
+    requiredWorkers: s.required_workers,
+    notes: s.notes,
+    assignments: s.assignments || []
+  };
+}
+
+function setupRealtime() {
+  realtimeChannel = sb.channel('dokgodali_realtime_room')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'schedules' }, async () => {
+      await loadDataFromSupabase();
+      renderApp();
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'availability' }, async () => {
+      await loadDataFromSupabase();
+      renderApp();
+    })
+    .on('broadcast', { event: 'state_changed' }, async () => {
+      await loadDataFromSupabase();
+      renderApp();
+    })
+    .subscribe();
+}
+
+function setupBroadcastListener() {
+  if (localSyncChannel) {
+    localSyncChannel.onmessage = async () => {
+      await loadDataFromSupabase();
+      renderApp();
+    };
+  }
+}
+
+// Notify all other tabs and remote devices instantly
+function broadcastChange() {
+  if (localSyncChannel) {
+    localSyncChannel.postMessage({ type: 'SYNC' });
+  }
+  if (realtimeChannel) {
+    realtimeChannel.send({
+      type: 'broadcast',
+      event: 'state_changed',
+      payload: { time: Date.now() }
+    });
+  }
+}
+
+function switchRole(roleKey) {
+  state.currentRole = roleKey;
+
+  const badge = document.getElementById('current-user-badge');
+  const btnNew = document.getElementById('btn-open-new-schedule');
+
+  if (roleKey === 'admin') {
+    badge.className = 'badge badge-navy';
+    badge.textContent = 'Admin';
+    btnNew.classList.remove('hidden');
+  } else {
+    const crew = CREW_USERS.find(c => c.id === roleKey);
+    badge.className = 'badge badge-blue';
+    badge.textContent = `${crew.name} (${crew.canDrive ? 'Can drive' : 'No license'})`;
+    btnNew.classList.add('hidden');
+  }
+
+  renderApp();
+}
+
+function renderRoleSwitcherButtons() {
+  const container = document.getElementById('role-buttons-container');
+  container.querySelectorAll('.crew-role-btn').forEach(btn => btn.remove());
+
+  CREW_USERS.forEach(u => {
+    const todayJob = state.schedules.find(s => s.jobDate === TODAY_DATE && (s.assignments || []).some(a => a.userId === u.id));
+    const myAssign = todayJob ? todayJob.assignments.find(a => a.userId === u.id) : null;
+    const dutyLabel = myAssign && myAssign.vehicleDuty !== 'none' ? ` · ${vehicleDutyLabel(myAssign.vehicleDuty)}` : '';
+    const label = myAssign ? `${u.name} (${myAssign.startTime}${dutyLabel})` : `${u.name} (Unassigned)`;
+
+    const btn = document.createElement('button');
+    btn.className = 'role-btn crew-role-btn';
+    btn.dataset.role = u.id;
+    btn.textContent = label;
+    btn.onclick = () => switchRole(u.id);
+    container.appendChild(btn);
+  });
+
+  container.querySelectorAll('.role-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.role === state.currentRole);
+  });
+}
+
+function renderApp() {
+  renderRoleSwitcherButtons();
+
+  const isAdmin = state.currentRole === 'admin';
+  document.getElementById('admin-section').classList.toggle('hidden', !isAdmin);
+  document.getElementById('crew-today-section').classList.toggle('hidden', isAdmin);
+  document.getElementById('crew-calendar-section').classList.toggle('hidden', isAdmin);
+
+  if (isAdmin) {
+    renderAdminCalendar();
+    renderAdminSelectedDateSchedules();
+  } else {
+    renderCrewDashboard();
+  }
+}
+
+function renderAdminCalendar() {
+  document.getElementById('admin-cal-title').textContent = `${MONTH_NAMES[state.currentMonth]} ${state.currentYear}`;
+  const container = document.getElementById('admin-cal-days');
+  container.innerHTML = '';
+
+  const daysInMonth = new Date(state.currentYear, state.currentMonth + 1, 0).getDate();
+  // getDay()는 일요일=0 기준이라, 월요일 시작 그리드에 맞게 (일=0 -> 6, 월=1 -> 0, ...)로 보정합니다.
+  const firstDayIndex = (new Date(state.currentYear, state.currentMonth, 1).getDay() + 6) % 7;
+
+  for (let i = 0; i < firstDayIndex; i++) {
+    const blank = document.createElement('div');
+    blank.className = 'cal-day other-month';
+    container.appendChild(blank);
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${state.currentYear}-${String(state.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dayEl = document.createElement('div');
+    dayEl.className = 'cal-day';
+    if (dateStr === state.selectedDate) dayEl.classList.add('selected');
+    if (dateStr === TODAY_DATE) dayEl.classList.add('today');
+
+    const dayNum = document.createElement('div');
+    dayNum.className = 'cal-day-num';
+    dayNum.textContent = day;
+    dayEl.appendChild(dayNum);
+
+    const daySchedules = state.schedules.filter(s => s.jobDate === dateStr);
+    daySchedules.forEach(sch => {
+      const pill = document.createElement('div');
+      const assignedCount = sch.assignments ? sch.assignments.length : 0;
+      const isDeficit = assignedCount < sch.requiredWorkers;
+      pill.className = `cal-event-pill ${isDeficit ? 'deficit' : ''}`;
+      pill.textContent = `${sch.customerName} (${assignedCount}/${sch.requiredWorkers})`;
+      dayEl.appendChild(pill);
+    });
+
+    let availCount = 0;
+    CREW_USERS.forEach(u => {
+      if (state.availability[`${u.id}_${dateStr}`] !== false) availCount++;
+    });
+    const availSummary = document.createElement('div');
+    availSummary.style.fontSize = '9px';
+    availSummary.style.color = '#94a3b8';
+    availSummary.style.marginTop = '2px';
+    availSummary.textContent = `${availCount} available`;
+    dayEl.appendChild(availSummary);
+
+    dayEl.onclick = () => {
+      state.selectedDate = dateStr;
+      renderAdminCalendar();
+      renderAdminSelectedDateSchedules();
+    };
+
+    container.appendChild(dayEl);
+  }
+}
+
+function renderAdminSelectedDateSchedules() {
+  document.getElementById('admin-selected-date-title').textContent = `${state.selectedDate}`;
+  
+  let availList = [];
+  let unavailList = [];
+  CREW_USERS.forEach(u => {
+    if (state.availability[`${u.id}_${state.selectedDate}`] !== false) availList.push(u);
+    else unavailList.push(u);
+  });
+
+  document.getElementById('admin-crew-avail-summary').innerHTML = 
+    `Available ${availList.length} (${availList.map(u => u.name).join(',') || '-'}) · Unavailable ${unavailList.length}`;
+
+  const listContainer = document.getElementById('admin-schedules-list');
+  listContainer.innerHTML = '';
+
+  const daySchedules = state.schedules.filter(s => s.jobDate === state.selectedDate);
+
+  if (daySchedules.length === 0) {
+    listContainer.innerHTML = `
+      <div style="text-align: center; padding: 30px 10px; color: var(--text-muted); font-size: 13px;">
+        No schedules.
+        <div style="margin-top: 8px;">
+          <button class="btn btn-primary btn-sm" onclick="openCreateScheduleModal('${state.selectedDate}')">+ Add Schedule</button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  daySchedules.forEach(sch => {
+    const assignedCount = sch.assignments ? sch.assignments.length : 0;
+    const isFull = assignedCount >= sch.requiredWorkers;
+
+    const item = document.createElement('div');
+    item.className = 'schedule-item';
+    item.innerHTML = `
+      <div class="schedule-item-top">
+        <div>
+          <span class="badge ${isFull ? 'badge-green' : 'badge-warning'}">${assignedCount}/${sch.requiredWorkers} crew</span>
+          <strong style="font-size: 13.5px; margin-left: 4px;">${sch.customerName}</strong>
+          <span style="font-size: 11.5px; color: var(--text-muted); margin-left: 4px;">${sch.overallTimeRange}</span>
+        </div>
+        <div style="display: flex; gap: 4px;">
+          <button class="btn btn-whatsapp btn-sm" onclick="openWhatsappBriefing('${sch.id}')">WhatsApp</button>
+          <button class="btn btn-danger-outline btn-sm" onclick="deleteSchedule('${sch.id}')">Delete</button>
+        </div>
+      </div>
+
+      <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; background: #f8fafc; padding: 6px 8px; border-radius: 4px;">
+        ${sch.originAddress} ➔ ${sch.destAddress}
+      </div>
+
+      <div id="assign-rows-${sch.id}"></div>
+
+      <div style="display: flex; gap: 6px; margin-top: 8px;">
+        <select id="select-add-crew-${sch.id}" class="form-control" style="font-size: 11.5px; padding: 4px 6px; flex: 1;">
+          <option value="">+ Assign Crew</option>
+          ${CREW_USERS.map(u => {
+            const isAssigned = (sch.assignments || []).some(a => a.userId === u.id);
+            if (isAssigned) return '';
+            const isAvail = state.availability[`${u.id}_${state.selectedDate}`] !== false;
+            return `<option value="${u.id}">${u.name} (${isAvail ? 'Available' : 'Unavailable'})</option>`;
+          }).join('')}
+        </select>
+        <button class="btn btn-secondary btn-sm" onclick="addCrewToSchedule('${sch.id}')">Add</button>
+      </div>
+    `;
+
+    listContainer.appendChild(item);
+    renderScheduleAssignmentsList(sch);
+  });
+}
+
+function renderScheduleAssignmentsList(sch) {
+  const container = document.getElementById(`assign-rows-${sch.id}`);
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (!sch.assignments || sch.assignments.length === 0) {
+    container.innerHTML = `<div style="font-size: 11.5px; color: var(--text-muted); padding: 4px 0;">No crew assigned</div>`;
+    return;
+  }
+
+  sch.assignments.forEach(assign => {
+    const user = CREW_USERS.find(u => u.id === assign.userId);
+    if (!user) return;
+
+    const row = document.createElement('div');
+    row.className = 'assign-row';
+    row.innerHTML = `
+      <span><strong>${user.name}</strong> (${user.canDrive ? 'Driver' : 'General'})</span>
+      <div style="display: flex; gap: 4px; align-items: center;">
+        <input type="text" class="assign-select" style="width: 55px;" value="${assign.startTime || '08:00'}" 
+               onchange="updateAssignmentTime('${sch.id}', '${user.id}', this.value)">
+        <select class="assign-select" onchange="updateAssignmentDuty('${sch.id}', '${user.id}', this.value)"
+                ${user.canDrive ? '' : 'disabled title="Crew without a license cannot take vehicle rental duty"'}>
+          ${VEHICLE_DUTIES.map(d => `<option value="${d.value}" ${assign.vehicleDuty === d.value ? 'selected' : ''}>${d.label}</option>`).join('')}
+        </select>
+        <button class="btn btn-secondary btn-sm" style="padding: 2px 5px; font-size: 10px;" onclick="removeCrewFromSchedule('${sch.id}', '${user.id}')">✕</button>
+      </div>
+    `;
+    container.appendChild(row);
+  });
+}
+
+function renderCrewDashboard() {
+  const currentUserId = state.currentRole;
+  const currentUser = CREW_USERS.find(u => u.id === currentUserId);
+  if (!currentUser) return;
+
+  const todayStr = TODAY_DATE;
+  const myJob = state.schedules.find(s => s.jobDate === todayStr && (s.assignments || []).some(a => a.userId === currentUserId));
+
+  const todaySection = document.getElementById('crew-today-section');
+  if (myJob) {
+    todaySection.classList.remove('hidden');
+    const myAssign = myJob.assignments.find(a => a.userId === currentUserId);
+
+    document.getElementById('crew-today-title').textContent = `Move for ${myJob.customerName}`;
+    document.getElementById('crew-today-time').textContent = myAssign.startTime || '08:00';
+    document.getElementById('crew-today-overall-time').textContent = `(Overall: ${myJob.overallTimeRange})`;
+
+    const dutyBox = document.getElementById('crew-duty-box');
+    if (myAssign.vehicleDuty !== 'none') {
+      dutyBox.classList.remove('hidden');
+      document.getElementById('crew-duty-text').textContent = `Vehicle rental: ${vehicleDutyLabel(myAssign.vehicleDuty)} (arrive at pickup by ${myAssign.startTime})`;
+    } else {
+      dutyBox.classList.add('hidden');
+    }
+
+    document.getElementById('crew-origin-addr').textContent = myJob.originAddress;
+    document.getElementById('crew-origin-spec').textContent = myJob.originSpec || '';
+    document.getElementById('crew-origin-map-link').href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(myJob.originAddress)}`;
+
+    document.getElementById('crew-dest-addr').textContent = myJob.destAddress;
+    document.getElementById('crew-dest-spec').textContent = myJob.destSpec || '';
+    document.getElementById('crew-dest-map-link').href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(myJob.destAddress)}`;
+
+    const chipContainer = document.getElementById('crew-members-list');
+    chipContainer.innerHTML = '';
+    myJob.assignments.forEach(a => {
+      const u = CREW_USERS.find(user => user.id === a.userId);
+      if (!u) return;
+      const item = document.createElement('div');
+      const isMe = u.id === currentUserId;
+      let duty = a.vehicleDuty !== 'none' ? ` · ${vehicleDutyLabel(a.vehicleDuty)}` : '';
+      item.className = `crew-tag ${isMe ? 'me' : ''}`;
+      item.innerHTML = `<span>${u.name}${isMe ? ' (You)' : ''}</span><span>${a.startTime}${duty}</span>`;
+      chipContainer.appendChild(item);
+    });
+
+    document.getElementById('crew-notes-text').textContent = myJob.notes || 'None';
+  } else {
+    todaySection.innerHTML = `
+      <div class="today-hero-card" style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 13px;">
+        No job assigned for today.
+      </div>
+    `;
+    todaySection.classList.remove('hidden');
+  }
+
+  renderCrewCalendar();
+}
+
+function renderCrewCalendar() {
+  document.getElementById('crew-cal-title').textContent = `${MONTH_NAMES[state.currentMonth]} ${state.currentYear}`;
+  const container = document.getElementById('crew-cal-days');
+  container.innerHTML = '';
+
+  const daysInMonth = new Date(state.currentYear, state.currentMonth + 1, 0).getDate();
+  // getDay()는 일요일=0 기준이라, 월요일 시작 그리드에 맞게 (일=0 -> 6, 월=1 -> 0, ...)로 보정합니다.
+  const firstDayIndex = (new Date(state.currentYear, state.currentMonth, 1).getDay() + 6) % 7;
+
+  for (let i = 0; i < firstDayIndex; i++) {
+    const blank = document.createElement('div');
+    blank.className = 'cal-day other-month';
+    container.appendChild(blank);
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${state.currentYear}-${String(state.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dayEl = document.createElement('div');
+    dayEl.className = 'cal-day';
+    if (dateStr === TODAY_DATE) dayEl.classList.add('today');
+
+    const dayNum = document.createElement('div');
+    dayNum.className = 'cal-day-num';
+    dayNum.textContent = day;
+    dayEl.appendChild(dayNum);
+
+    const isAvailable = state.availability[`${state.currentRole}_${dateStr}`] !== false;
+    const tag = document.createElement('div');
+    tag.className = `avail-btn-tag ${isAvailable ? 'avail' : 'unavail'}`;
+    tag.textContent = isAvailable ? 'Available' : 'Unavailable';
+    dayEl.appendChild(tag);
+
+    const assignedJob = state.schedules.find(s => s.jobDate === dateStr && (s.assignments || []).some(a => a.userId === state.currentRole));
+    if (assignedJob) {
+      const myAssign = assignedJob.assignments.find(a => a.userId === state.currentRole);
+      const pill = document.createElement('div');
+      pill.className = 'cal-event-pill my-job';
+      pill.textContent = `Assigned ${myAssign.startTime}`;
+      dayEl.appendChild(pill);
+    }
+
+    dayEl.onclick = async () => {
+      const currentVal = state.availability[`${state.currentRole}_${dateStr}`] !== false;
+      const nextVal = !currentVal;
+      
+      // 1. Optimistic UI update
+      state.availability[`${state.currentRole}_${dateStr}`] = nextVal;
+      renderCrewCalendar();
+      showToast(`${dateStr} [${nextVal ? 'Available' : 'Unavailable'}]`);
+
+      // 2. Broadcast immediately to all other open tabs
+      broadcastChange();
+
+      // 3. Upsert to Supabase
+      try {
+        await sb.from('availability').upsert({
+          user_id: state.currentRole,
+          job_date: dateStr,
+          is_available: nextVal
+        });
+        broadcastChange();
+      } catch (err) {
+        console.error('Availability update failed:', err);
+      }
+    };
+
+    container.appendChild(dayEl);
+  }
+}
+
+function openCreateScheduleModal(defaultDate) {
+  document.getElementById('schedule-form').reset();
+  document.getElementById('f-job-date').value = defaultDate || state.selectedDate;
+  document.getElementById('schedule-modal').classList.remove('hidden');
+}
+
+function closeScheduleModal() {
+  document.getElementById('schedule-modal').classList.add('hidden');
+}
+
+async function handleSaveSchedule(e) {
+  e.preventDefault();
+  const quoteNo = document.getElementById('f-quote-no').value.trim();
+  const quotePrice = document.getElementById('f-quote-price').value.trim();
+  const customerName = document.getElementById('f-customer-name').value.trim();
+  const customerPhone = document.getElementById('f-customer-phone').value.trim();
+  const jobDate = document.getElementById('f-job-date').value;
+  const timeRange = document.getElementById('f-time-range').value.trim();
+  const originAddr = document.getElementById('f-origin-addr').value.trim();
+  const originSpec = document.getElementById('f-origin-spec').value.trim();
+  const destAddr = document.getElementById('f-dest-addr').value.trim();
+  const destSpec = document.getElementById('f-dest-spec').value.trim();
+  const requiredWorkers = parseInt(document.getElementById('f-required-workers').value, 10) || 2;
+  const vehicleType = document.getElementById('f-vehicle-type').value;
+  const notes = document.getElementById('f-notes').value.trim();
+
+  const newId = 'sch-' + Date.now();
+  const dbPayload = {
+    id: newId,
+    quote_no: quoteNo,
+    quote_price: quotePrice ? parseFloat(quotePrice) : null,
+    customer_name: customerName,
+    customer_phone: customerPhone,
+    job_date: jobDate,
+    overall_time_range: timeRange,
+    origin_address: originAddr,
+    origin_spec: originSpec,
+    dest_address: destAddr,
+    dest_spec: destSpec,
+    required_workers: requiredWorkers,
+    vehicle_type: vehicleType,
+    notes: notes,
+    assignments: []
+  };
+
+  const { error } = await sb.from('schedules').insert(dbPayload);
+  if (error) {
+    alert('DB save error: ' + error.message);
+    return;
+  }
+
+  state.selectedDate = jobDate;
+  closeScheduleModal();
+  await loadDataFromSupabase();
+  renderApp();
+  broadcastChange();
+  showToast('Schedule saved.');
+}
+
+async function deleteSchedule(scheduleId) {
+  if (!confirm('Delete this schedule?')) return;
+  await sb.from('schedules').delete().eq('id', scheduleId);
+  await loadDataFromSupabase();
+  renderApp();
+  broadcastChange();
+  showToast('Deleted.');
+}
+
+async function addCrewToSchedule(scheduleId) {
+  const select = document.getElementById(`select-add-crew-${scheduleId}`);
+  const userId = select.value;
+  if (!userId) return;
+  const sch = state.schedules.find(s => s.id === scheduleId);
+  if (!sch) return;
+
+  if (!sch.assignments) sch.assignments = [];
+  const defaultStartTime = sch.overallTimeRange.split('~')[0].trim() || '08:00';
+
+  sch.assignments.push({
+    userId,
+    startTime: defaultStartTime,
+    vehicleDuty: 'none'
+  });
+
+  await sb.from('schedules').update({ assignments: sch.assignments }).eq('id', scheduleId);
+  renderApp();
+  broadcastChange();
+}
+
+async function removeCrewFromSchedule(scheduleId, userId) {
+  const sch = state.schedules.find(s => s.id === scheduleId);
+  if (!sch || !sch.assignments) return;
+  sch.assignments = sch.assignments.filter(a => a.userId !== userId);
+  await sb.from('schedules').update({ assignments: sch.assignments }).eq('id', scheduleId);
+  renderApp();
+  broadcastChange();
+}
+
+async function updateAssignmentTime(scheduleId, userId, newTime) {
+  const sch = state.schedules.find(s => s.id === scheduleId);
+  if (!sch || !sch.assignments) return;
+  const assign = sch.assignments.find(a => a.userId === userId);
+  if (assign) {
+    assign.startTime = newTime;
+    await sb.from('schedules').update({ assignments: sch.assignments }).eq('id', scheduleId);
+    broadcastChange();
+  }
+}
+
+async function updateAssignmentDuty(scheduleId, userId, newDuty) {
+  const sch = state.schedules.find(s => s.id === scheduleId);
+  if (!sch || !sch.assignments) return;
+  const assign = sch.assignments.find(a => a.userId === userId);
+  if (assign) {
+    assign.vehicleDuty = newDuty;
+    await sb.from('schedules').update({ assignments: sch.assignments }).eq('id', scheduleId);
+    broadcastChange();
+  }
+}
+
+function openWhatsappBriefing(scheduleId) {
+  const sch = state.schedules.find(s => s.id === scheduleId);
+  if (!sch) return;
+
+  let crewLines = '';
+  if (sch.assignments && sch.assignments.length > 0) {
+    crewLines = sch.assignments.map(a => {
+      const u = CREW_USERS.find(user => user.id === a.userId);
+      let duty = a.vehicleDuty !== 'none' ? ` (${vehicleDutyLabel(a.vehicleDuty)})` : '';
+      return `• ${u.name}: ${a.startTime}${duty}`;
+    }).join('\n');
+  } else {
+    crewLines = '• (Unassigned)';
+  }
+
+  const text = `[Dokgodali Assignment]
+Date/Time: ${sch.jobDate} (${sch.overallTimeRange})
+Customer: ${sch.customerName}
+
+Pickup: ${sch.originAddress} (${sch.originSpec || ''})
+Drop-off: ${sch.destAddress} (${sch.destSpec || ''})
+
+Crew:
+${crewLines}
+
+Notes: ${sch.notes || 'None'}`;
+
+  document.getElementById('whatsapp-text-content').value = text;
+  document.getElementById('btn-open-wa').href = `https://wa.me/?text=${encodeURIComponent(text)}`;
+  document.getElementById('whatsapp-modal').classList.remove('hidden');
+}
+
+function closeWhatsappModal() {
+  document.getElementById('whatsapp-modal').classList.add('hidden');
+}
+
+function copyWhatsappText() {
+  const textarea = document.getElementById('whatsapp-text-content');
+  textarea.select();
+  navigator.clipboard.writeText(textarea.value);
+  showToast('Copied.');
+}
+
+function copyInviteCode() {
+  navigator.clipboard.writeText(INVITE_CODE);
+  showToast('Invite code copied.');
+}
+
+function changeMonth(delta) {
+  state.currentMonth += delta;
+  if (state.currentMonth < 0) {
+    state.currentMonth = 11;
+    state.currentYear -= 1;
+  } else if (state.currentMonth > 11) {
+    state.currentMonth = 0;
+    state.currentYear += 1;
+  }
+  renderApp();
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 1600);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

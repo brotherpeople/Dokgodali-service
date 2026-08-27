@@ -7,557 +7,14 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-  :root {
-    --bg: #f8fafc;
-    --card: #ffffff;
-    --border: #e2e8f0;
-    --border-dark: #cbd5e1;
-    --text-primary: #0f172a;
-    --text-secondary: #475569;
-    --text-muted: #94a3b8;
-    --accent: #2563eb;
-    --accent-hover: #1d4ed8;
-    --accent-light: #eff6ff;
-    --success: #16a34a;
-    --success-light: #f0fdf4;
-    --danger: #dc2626;
-    --danger-light: #fef2f2;
-    --warning: #d97706;
-    --warning-light: #fffbeb;
-    --navy: #0f172a;
-    --radius-sm: 6px;
-    --radius-md: 10px;
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  body {
-    font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: var(--bg);
-    color: var(--text-primary);
-    line-height: 1.45;
-    padding-bottom: 40px;
-  }
-
-  /* Top Testing Switcher */
-  .role-switcher-bar {
-    background: #0f172a;
-    color: #94a3b8;
-    padding: 8px 16px;
-    font-size: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    border-bottom: 1px solid #1e293b;
-    flex-wrap: wrap;
-  }
-  .role-buttons {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    flex-wrap: wrap;
-  }
-  .role-btn {
-    background: #1e293b;
-    color: #cbd5e1;
-    border: 1px solid #334155;
-    padding: 3px 8px;
-    border-radius: 4px;
-    font-size: 11.5px;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .role-btn:hover { background: #334155; color: #fff; }
-  .role-btn.active {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #fff;
-    font-weight: 600;
-  }
-
-  /* Header */
-  header {
-    background: var(--card);
-    border-bottom: 1px solid var(--border);
-    position: sticky;
-    top: 0;
-    z-index: 40;
-  }
-  .header-inner {
-    max-width: 1000px;
-    margin: 0 auto;
-    padding: 12px 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .brand-area {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .brand-logo {
-    width: 26px;
-    height: 26px;
-    background: var(--navy);
-    color: #fff;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 800;
-    font-size: 13px;
-  }
-  .brand-name {
-    font-size: 16px;
-    font-weight: 700;
-    letter-spacing: -0.3px;
-  }
-
-  .badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 7px;
-    border-radius: 4px;
-    font-size: 11.5px;
-    font-weight: 600;
-  }
-  .badge-navy { background: #e2e8f0; color: #1e293b; }
-  .badge-blue { background: var(--accent-light); color: var(--accent); }
-  .badge-green { background: var(--success-light); color: var(--success); }
-  .badge-red { background: var(--danger-light); color: var(--danger); }
-  .badge-warning { background: var(--warning-light); color: var(--warning); }
-  .badge-outline { border: 1px solid var(--border); background: #fff; color: var(--text-secondary); }
-
-  /* Cloud Sync Status Indicator */
-  .sync-status {
-    font-size: 11px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    color: var(--success);
-    font-weight: 600;
-  }
-  .sync-dot {
-    width: 6px;
-    height: 6px;
-    background: var(--success);
-    border-radius: 50%;
-    animation: pulse 2s infinite;
-  }
-  @keyframes pulse {
-    0% { transform: scale(0.95); opacity: 0.8; }
-    50% { transform: scale(1.2); opacity: 1; }
-    100% { transform: scale(0.95); opacity: 0.8; }
-  }
-
-  /* Main Container */
-  .container {
-    max-width: 1000px;
-    margin: 16px auto;
-    padding: 0 16px;
-  }
-
-  /* Clean UI Cards */
-  .card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    padding: 18px;
-    margin-bottom: 16px;
-    box-shadow: var(--shadow-sm);
-  }
-  .card-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 14px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--border);
-  }
-  .card-title {
-    font-size: 15px;
-    font-weight: 700;
-    letter-spacing: -0.2px;
-  }
-
-  /* One-Touch Today's Job Card (Crew View) */
-  .today-hero-card {
-    border: 1px solid #bfdbfe;
-    background: #ffffff;
-    border-radius: var(--radius-md);
-    padding: 18px;
-    margin-bottom: 16px;
-    box-shadow: var(--shadow-sm);
-  }
-  .today-hero-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 10px;
-    margin-bottom: 12px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #f1f5f9;
-  }
-  .today-time-badge {
-    font-size: 22px;
-    font-weight: 800;
-    color: var(--accent);
-    letter-spacing: -0.5px;
-  }
-
-  /* Single-line duty note */
-  .duty-line {
-    background: #fffbeb;
-    border: 1px solid #fde68a;
-    border-radius: var(--radius-sm);
-    padding: 7px 10px;
-    font-size: 12.5px;
-    font-weight: 600;
-    color: #92400e;
-    margin-bottom: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  /* Arrow Route Block */
-  .arrow-route-card {
-    background: #f8fafc;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 12px 14px;
-    margin-bottom: 12px;
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    align-items: center;
-    gap: 12px;
-  }
-  @media (max-width: 680px) {
-    .arrow-route-card {
-      grid-template-columns: 1fr;
-      gap: 8px;
-    }
-    .route-arrow-icon {
-      transform: rotate(90deg);
-      text-align: center;
-      margin: 2px 0;
-    }
-  }
-  .route-point-title {
-    font-size: 13.5px;
-    font-weight: 700;
-    color: var(--text-primary);
-  }
-  .route-point-sub {
-    font-size: 12px;
-    color: var(--text-secondary);
-    margin-top: 1px;
-  }
-  .route-arrow-icon {
-    font-size: 18px;
-    color: var(--text-muted);
-    font-weight: 800;
-  }
-  .btn-map {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--accent);
-    background: #fff;
-    border: 1px solid #bfdbfe;
-    padding: 2px 6px;
-    border-radius: 4px;
-    text-decoration: none;
-    display: inline-block;
-    margin-top: 4px;
-  }
-  .btn-map:hover { background: #eff6ff; }
-
-  /* 2-Column Grid for Crew & Notes */
-  .grid-2col {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-  @media (max-width: 640px) {
-    .grid-2col { grid-template-columns: 1fr; }
-  }
-  .sub-box {
-    background: #f8fafc;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 10px 12px;
-  }
-  .sub-box-title {
-    font-size: 11.5px;
-    font-weight: 700;
-    color: var(--text-muted);
-    margin-bottom: 6px;
-    text-transform: uppercase;
-  }
-  .crew-tag-list {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .crew-tag {
-    font-size: 12.5px;
-    display: flex;
-    justify-content: space-between;
-    color: var(--text-secondary);
-  }
-  .crew-tag.me {
-    color: var(--accent);
-    font-weight: 700;
-  }
-
-  /* Calendar */
-  .calendar-container {
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-  }
-  .calendar-header {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 14px;
-    background: #f8fafc;
-    border-bottom: 1px solid var(--border);
-  }
-  .calendar-month-title {
-    font-size: 14px;
-    font-weight: 700;
-    text-align: center;
-  }
-  .calendar-nav-btn {
-    background: #fff;
-    border: 1px solid var(--border);
-    padding: 3px 8px;
-    border-radius: 4px;
-    font-size: 11.5px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  .calendar-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-  }
-  .cal-weekday {
-    padding: 6px 2px;
-    text-align: center;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-muted);
-    border-bottom: 1px solid var(--border);
-    background: #fafafa;
-  }
-  .cal-weekday.sun { color: #ef4444; }
-  .cal-weekday.sat { color: #3b82f6; }
-  .cal-day {
-    min-height: 64px;
-    padding: 5px;
-    border-right: 1px solid #f1f5f9;
-    border-bottom: 1px solid #f1f5f9;
-    cursor: pointer;
-    background: #fff;
-    position: relative;
-    user-select: none;
-  }
-  .cal-day:nth-child(7n) { border-right: none; }
-  /* 월요일 시작 그리드 기준: 6번째 칸(토), 7번째 칸(일) */
-  .calendar-grid .cal-day:nth-child(7n+6) { background: var(--accent-light); }
-  .calendar-grid .cal-day:nth-child(7n) { background: var(--danger-light); }
-  .cal-day:hover { background: #f8fafc; }
-  .cal-day.today { background: #eff6ff; }
-  .cal-day.selected { outline: 2px solid var(--accent); outline-offset: -2px; }
-  .cal-day.other-month { opacity: 0.25; }
-  .cal-day-num {
-    font-size: 11.5px;
-    font-weight: 600;
-    margin-bottom: 3px;
-  }
-  .cal-day.today .cal-day-num {
-    color: var(--accent);
-    font-weight: 800;
-  }
-
-  /* Availability Badges inside Calendar */
-  .avail-btn-tag {
-    font-size: 10px;
-    font-weight: 700;
-    padding: 2px 0;
-    border-radius: 3px;
-    text-align: center;
-    width: 100%;
-    display: block;
-    margin-bottom: 2px;
-    transition: background 0.1s;
-  }
-  .avail-btn-tag.avail { background: #dcfce7; color: #15803d; }
-  .avail-btn-tag.unavail { background: #fee2e2; color: #b91c1c; }
-
-  .cal-event-pill {
-    font-size: 9.5px;
-    font-weight: 600;
-    padding: 1px 3px;
-    border-radius: 2px;
-    background: #1e293b;
-    color: #fff;
-    margin-top: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: block;
-  }
-  .cal-event-pill.deficit { background: #d97706; }
-  .cal-event-pill.my-job { background: #2563eb; }
-
-  /* Admin Schedules */
-  .schedule-item {
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 14px;
-    margin-bottom: 12px;
-    background: #fff;
-  }
-  .schedule-item-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
-  }
-
-  .assign-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 6px 10px;
-    background: #f8fafc;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    margin-bottom: 6px;
-    font-size: 12px;
-    gap: 6px;
-    flex-wrap: wrap;
-  }
-  .assign-select {
-    padding: 4px 6px;
-    font-size: 11.5px;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    background: #fff;
-    font-family: inherit;
-  }
-  .assign-select:disabled { background: #f1f5f9; color: var(--text-muted); cursor: not-allowed; }
-
-  /* Forms & Buttons */
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 600;
-    padding: 6px 10px;
-    border-radius: 4px;
-    border: 1px solid transparent;
-    cursor: pointer;
-    text-decoration: none;
-  }
-  .btn-primary { background: var(--accent); color: #fff; }
-  .btn-primary:hover { background: var(--accent-hover); }
-  .btn-secondary { background: #f1f5f9; border-color: var(--border); color: var(--text-primary); }
-  .btn-whatsapp { background: #15803d; color: #ffffff; }
-  .btn-danger-outline { background: #fff; border-color: #fecaca; color: var(--danger); }
-  .btn-sm { padding: 4px 8px; font-size: 11px; }
-
-  .form-group { margin-bottom: 12px; }
-  .form-label { display: block; font-size: 11.5px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; }
-  .form-control {
-    width: 100%;
-    padding: 7px 9px;
-    font-size: 12.5px;
-    font-family: inherit;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    background: #fff;
-    outline: none;
-  }
-  .form-control:focus { border-color: var(--accent); }
-  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-
-  /* Modal */
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(15, 23, 42, 0.45);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 100;
-    padding: 16px;
-  }
-  .modal-dialog {
-    background: #fff;
-    border-radius: var(--radius-md);
-    width: 100%;
-    max-width: 540px;
-    max-height: 90vh;
-    overflow-y: auto;
-  }
-  .modal-header {
-    padding: 14px 18px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .modal-body { padding: 18px; }
-  .modal-footer {
-    padding: 12px 18px;
-    background: #f8fafc;
-    border-top: 1px solid var(--border);
-    display: flex;
-    justify-content: flex-end;
-    gap: 6px;
-  }
-
-  .toast {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #0f172a;
-    color: #fff;
-    padding: 8px 14px;
-    border-radius: 4px;
-    font-size: 12px;
-    z-index: 200;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.15s;
-  }
-  .toast.show { opacity: 1; }
-  .hidden { display: none !important; }
-</style>
+<link rel="stylesheet" href="dokgodali-schedule.css">
 </head>
 <body>
 
 <!-- Top Role Switcher Bar -->
 <div class="role-switcher-bar">
-  <div class="role-buttons">
-    <button class="role-btn active" onclick="switchRole('admin')">관리자 (Admin)</button>
-    <button class="role-btn" onclick="switchRole('crew1')">홍길동 (08:00 · Miles L)</button>
-    <button class="role-btn" onclick="switchRole('crew2')">김철수 (08:00 · 일반)</button>
-    <button class="role-btn" onclick="switchRole('crew3')">이영희 (09:00 · Miles XL)</button>
-    <button class="role-btn" onclick="switchRole('crew4')">박민수 (미배정)</button>
+  <div class="role-buttons" id="role-buttons-container">
+    <button class="role-btn active" data-role="admin" onclick="switchRole('admin')">관리자 (Admin)</button>
   </div>
   <div style="display: flex; gap: 10px; align-items: center;">
     <span class="sync-status"><span class="sync-dot"></span> 실시간 연동됨</span>
@@ -587,31 +44,31 @@
       <div class="today-hero-top">
         <div>
           <span class="badge badge-blue">오늘 작업</span>
-          <h2 id="crew-today-title" style="font-size: 16px; font-weight: 700; margin-top: 4px;">Max Mustermann</h2>
+          <h2 id="crew-today-title" style="font-size: 16px; font-weight: 700; margin-top: 4px;"></h2>
         </div>
         <div style="text-align: right;">
-          <div id="crew-today-time" class="today-time-badge">08:00</div>
-          <div id="crew-today-overall-time" style="font-size: 11px; color: var(--text-muted);">(전체: 08:00~13:00)</div>
+          <div id="crew-today-time" class="today-time-badge"></div>
+          <div id="crew-today-overall-time" style="font-size: 11px; color: var(--text-muted);"></div>
         </div>
       </div>
 
       <!-- Single-line Duty Alert -->
       <div id="crew-duty-box" class="duty-line">
-        <span id="crew-duty-text">차량 대여: Miles L (08:00까지 상차지 도착)</span>
+        <span id="crew-duty-text"></span>
         <span class="badge badge-warning">대여</span>
       </div>
 
       <!-- Arrow Route -->
       <div class="arrow-route-card">
         <div>
-          <div id="crew-origin-addr" class="route-point-title">Musterstr. 1, 12345 Berlin</div>
-          <div id="crew-origin-spec" class="route-point-sub">2층 · 엘리베이터 있음</div>
+          <div id="crew-origin-addr" class="route-point-title"></div>
+          <div id="crew-origin-spec" class="route-point-sub"></div>
           <a id="crew-origin-map-link" class="btn-map" href="#" target="_blank">Google Maps</a>
         </div>
         <div class="route-arrow-icon">➔</div>
         <div>
-          <div id="crew-dest-addr" class="route-point-title">Kantstr. 45, 10625 Berlin</div>
-          <div id="crew-dest-spec" class="route-point-sub">4층 · 엘리베이터 없음</div>
+          <div id="crew-dest-addr" class="route-point-title"></div>
+          <div id="crew-dest-spec" class="route-point-sub"></div>
           <a id="crew-dest-map-link" class="btn-map" href="#" target="_blank">Google Maps</a>
         </div>
       </div>
@@ -624,63 +81,59 @@
         </div>
         <div class="sub-box">
           <div class="sub-box-title">현장 메모</div>
-          <div id="crew-notes-text" style="font-size: 12.5px; color: var(--text-secondary);">사다리차 불가, 계단 작업 주의, 침대 분해 필요.</div>
+          <div id="crew-notes-text" style="font-size: 12.5px; color: var(--text-secondary);"></div>
         </div>
       </div>
     </div>
   </div>
 
   <!-- CREW VIEW: Minimal Availability Calendar -->
-  <div id="crew-calendar-section" class="card hidden">
-    <div class="calendar-container">
-      <div class="calendar-header">
-        <button class="calendar-nav-btn" onclick="changeMonth(-1)">이전 달</button>
-        <div id="crew-cal-title" class="calendar-month-title">2026년 9월</div>
-        <button class="calendar-nav-btn" onclick="changeMonth(1)">다음 달</button>
-      </div>
-      <div class="calendar-grid">
-        <div class="cal-weekday">월</div>
-        <div class="cal-weekday">화</div>
-        <div class="cal-weekday">수</div>
-        <div class="cal-weekday">목</div>
-        <div class="cal-weekday">금</div>
-        <div class="cal-weekday sat">토</div>
-        <div class="cal-weekday sun">일</div>
-      </div>
-      <div id="crew-cal-days" class="calendar-grid"></div>
+  <div id="crew-calendar-section" class="calendar-container hidden">
+    <div class="calendar-header">
+      <button class="calendar-nav-btn" onclick="changeMonth(-1)">이전 달</button>
+      <div id="crew-cal-title" class="calendar-month-title"></div>
+      <button class="calendar-nav-btn" onclick="changeMonth(1)">다음 달</button>
     </div>
+    <div class="calendar-grid">
+      <div class="cal-weekday">월</div>
+      <div class="cal-weekday">화</div>
+      <div class="cal-weekday">수</div>
+      <div class="cal-weekday">목</div>
+      <div class="cal-weekday">금</div>
+      <div class="cal-weekday sat">토</div>
+      <div class="cal-weekday sun">일</div>
+    </div>
+    <div id="crew-cal-days" class="calendar-grid"></div>
   </div>
 
   <!-- ADMIN VIEW -->
   <div id="admin-section">
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+    <div class="admin-layout">
       
       <!-- Left: Monthly Calendar -->
-      <div class="card" style="padding: 14px;">
-        <div class="calendar-container">
-          <div class="calendar-header">
-            <button class="calendar-nav-btn" onclick="changeMonth(-1)">이전 달</button>
-            <div id="admin-cal-title" class="calendar-month-title">2026년 9월</div>
-            <button class="calendar-nav-btn" onclick="changeMonth(1)">다음 달</button>
-          </div>
-          <div class="calendar-grid">
-            <div class="cal-weekday">월</div>
-            <div class="cal-weekday">화</div>
-            <div class="cal-weekday">수</div>
-            <div class="cal-weekday">목</div>
-            <div class="cal-weekday">금</div>
-            <div class="cal-weekday sat">토</div>
-            <div class="cal-weekday sun">일</div>
-          </div>
-          <div id="admin-cal-days" class="calendar-grid"></div>
+      <div class="calendar-container">
+        <div class="calendar-header">
+          <button class="calendar-nav-btn" onclick="changeMonth(-1)">이전 달</button>
+          <div id="admin-cal-title" class="calendar-month-title"></div>
+          <button class="calendar-nav-btn" onclick="changeMonth(1)">다음 달</button>
         </div>
+        <div class="calendar-grid">
+          <div class="cal-weekday">월</div>
+          <div class="cal-weekday">화</div>
+          <div class="cal-weekday">수</div>
+          <div class="cal-weekday">목</div>
+          <div class="cal-weekday">금</div>
+          <div class="cal-weekday sat">토</div>
+          <div class="cal-weekday sun">일</div>
+        </div>
+        <div id="admin-cal-days" class="calendar-grid"></div>
       </div>
 
       <!-- Right: Selected Date & Dispatch Panel -->
       <div class="card" style="padding: 14px;">
         <div class="card-header" style="margin-bottom: 10px; padding-bottom: 8px;">
-          <div class="card-title" id="admin-selected-date-title">2026-09-01 (화)</div>
-          <div id="admin-crew-avail-summary" style="font-size: 11.5px; color: var(--text-secondary);">가용 3명 · 불가 1명</div>
+          <div class="card-title" id="admin-selected-date-title"></div>
+          <div id="admin-crew-avail-summary" style="font-size: 11.5px; color: var(--text-secondary);"></div>
         </div>
         <div id="admin-schedules-list"></div>
       </div>
@@ -816,6 +269,22 @@ const CREW_USERS = [
   { id: 'crew4', name: '박민수', phone: '+49 174 4444444', canDrive: false }
 ];
 
+// 데모용 "오늘" 날짜 고정값 — 실제 서비스 전환 시 new Date() 기반으로 교체
+const TODAY_DATE = '2026-09-01';
+
+const INVITE_CODE = 'DKGD-2026-BERLIN';
+
+const VEHICLE_DUTIES = [
+  { value: 'none', label: '대여 없음' },
+  { value: 'miles_l', label: 'Miles L' },
+  { value: 'miles_xl', label: 'Miles XL' }
+];
+
+function vehicleDutyLabel(value) {
+  const duty = VEHICLE_DUTIES.find(d => d.value === value);
+  return duty ? duty.label : '';
+}
+
 let state = {
   currentRole: 'admin',
   currentYear: 2026,
@@ -925,13 +394,6 @@ function broadcastChange() {
 
 function switchRole(roleKey) {
   state.currentRole = roleKey;
-  
-  document.querySelectorAll('.role-btn').forEach(btn => {
-    btn.classList.remove('active');
-    if (btn.getAttribute('onclick').includes(`'${roleKey}'`)) {
-      btn.classList.add('active');
-    }
-  });
 
   const badge = document.getElementById('current-user-badge');
   const btnNew = document.getElementById('btn-open-new-schedule');
@@ -950,7 +412,32 @@ function switchRole(roleKey) {
   renderApp();
 }
 
+function renderRoleSwitcherButtons() {
+  const container = document.getElementById('role-buttons-container');
+  container.querySelectorAll('.crew-role-btn').forEach(btn => btn.remove());
+
+  CREW_USERS.forEach(u => {
+    const todayJob = state.schedules.find(s => s.jobDate === TODAY_DATE && (s.assignments || []).some(a => a.userId === u.id));
+    const myAssign = todayJob ? todayJob.assignments.find(a => a.userId === u.id) : null;
+    const dutyLabel = myAssign && myAssign.vehicleDuty !== 'none' ? ` · ${vehicleDutyLabel(myAssign.vehicleDuty)}` : '';
+    const label = myAssign ? `${u.name} (${myAssign.startTime}${dutyLabel})` : `${u.name} (미배정)`;
+
+    const btn = document.createElement('button');
+    btn.className = 'role-btn crew-role-btn';
+    btn.dataset.role = u.id;
+    btn.textContent = label;
+    btn.onclick = () => switchRole(u.id);
+    container.appendChild(btn);
+  });
+
+  container.querySelectorAll('.role-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.role === state.currentRole);
+  });
+}
+
 function renderApp() {
+  renderRoleSwitcherButtons();
+
   const isAdmin = state.currentRole === 'admin';
   document.getElementById('admin-section').classList.toggle('hidden', !isAdmin);
   document.getElementById('crew-today-section').classList.toggle('hidden', isAdmin);
@@ -984,7 +471,7 @@ function renderAdminCalendar() {
     const dayEl = document.createElement('div');
     dayEl.className = 'cal-day';
     if (dateStr === state.selectedDate) dayEl.classList.add('selected');
-    if (dateStr === '2026-09-01') dayEl.classList.add('today');
+    if (dateStr === TODAY_DATE) dayEl.classList.add('today');
 
     const dayNum = document.createElement('div');
     dayNum.className = 'cal-day-num';
@@ -1119,9 +606,7 @@ function renderScheduleAssignmentsList(sch) {
                onchange="updateAssignmentTime('${sch.id}', '${user.id}', this.value)">
         <select class="assign-select" onchange="updateAssignmentDuty('${sch.id}', '${user.id}', this.value)"
                 ${user.canDrive ? '' : 'disabled title="면허가 없는 크루는 차량 대여 담당을 맡을 수 없습니다"'}>
-          <option value="none" ${assign.vehicleDuty === 'none' ? 'selected' : ''}>대여 없음</option>
-          <option value="miles_l" ${assign.vehicleDuty === 'miles_l' ? 'selected' : ''}>Miles L</option>
-          <option value="miles_xl" ${assign.vehicleDuty === 'miles_xl' ? 'selected' : ''}>Miles XL</option>
+          ${VEHICLE_DUTIES.map(d => `<option value="${d.value}" ${assign.vehicleDuty === d.value ? 'selected' : ''}>${d.label}</option>`).join('')}
         </select>
         <button class="btn btn-secondary btn-sm" style="padding: 2px 5px; font-size: 10px;" onclick="removeCrewFromSchedule('${sch.id}', '${user.id}')">✕</button>
       </div>
@@ -1135,7 +620,7 @@ function renderCrewDashboard() {
   const currentUser = CREW_USERS.find(u => u.id === currentUserId);
   if (!currentUser) return;
 
-  const todayStr = '2026-09-01';
+  const todayStr = TODAY_DATE;
   const myJob = state.schedules.find(s => s.jobDate === todayStr && (s.assignments || []).some(a => a.userId === currentUserId));
 
   const todaySection = document.getElementById('crew-today-section');
@@ -1148,12 +633,9 @@ function renderCrewDashboard() {
     document.getElementById('crew-today-overall-time').textContent = `(전체: ${myJob.overallTimeRange})`;
 
     const dutyBox = document.getElementById('crew-duty-box');
-    if (myAssign.vehicleDuty === 'miles_l') {
+    if (myAssign.vehicleDuty !== 'none') {
       dutyBox.classList.remove('hidden');
-      document.getElementById('crew-duty-text').textContent = `차량 대여: Miles L (${myAssign.startTime}까지 상차지 도착)`;
-    } else if (myAssign.vehicleDuty === 'miles_xl') {
-      dutyBox.classList.remove('hidden');
-      document.getElementById('crew-duty-text').textContent = `차량 대여: Miles XL (${myAssign.startTime}까지 상차지 도착)`;
+      document.getElementById('crew-duty-text').textContent = `차량 대여: ${vehicleDutyLabel(myAssign.vehicleDuty)} (${myAssign.startTime}까지 상차지 도착)`;
     } else {
       dutyBox.classList.add('hidden');
     }
@@ -1173,7 +655,7 @@ function renderCrewDashboard() {
       if (!u) return;
       const item = document.createElement('div');
       const isMe = u.id === currentUserId;
-      let duty = a.vehicleDuty === 'miles_l' ? ' · Miles L' : (a.vehicleDuty === 'miles_xl' ? ' · Miles XL' : '');
+      let duty = a.vehicleDuty !== 'none' ? ` · ${vehicleDutyLabel(a.vehicleDuty)}` : '';
       item.className = `crew-tag ${isMe ? 'me' : ''}`;
       item.innerHTML = `<span>${u.name}${isMe ? ' (나)' : ''}</span><span>${a.startTime}${duty}</span>`;
       chipContainer.appendChild(item);
@@ -1211,7 +693,7 @@ function renderCrewCalendar() {
     const dateStr = `${state.currentYear}-${String(state.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const dayEl = document.createElement('div');
     dayEl.className = 'cal-day';
-    if (dateStr === '2026-09-01') dayEl.classList.add('today');
+    if (dateStr === TODAY_DATE) dayEl.classList.add('today');
 
     const dayNum = document.createElement('div');
     dayNum.className = 'cal-day-num';
@@ -1390,7 +872,7 @@ function openWhatsappBriefing(scheduleId) {
   if (sch.assignments && sch.assignments.length > 0) {
     crewLines = sch.assignments.map(a => {
       const u = CREW_USERS.find(user => user.id === a.userId);
-      let duty = a.vehicleDuty === 'miles_l' ? ' (Miles L)' : (a.vehicleDuty === 'miles_xl' ? ' (Miles XL)' : '');
+      let duty = a.vehicleDuty !== 'none' ? ` (${vehicleDutyLabel(a.vehicleDuty)})` : '';
       return `• ${u.name}: ${a.startTime}${duty}`;
     }).join('\n');
   } else {
@@ -1426,7 +908,7 @@ function copyWhatsappText() {
 }
 
 function copyInviteCode() {
-  navigator.clipboard.writeText('DKGD-2026-BERLIN');
+  navigator.clipboard.writeText(INVITE_CODE);
   showToast('초대코드가 복사되었습니다.');
 }
 
