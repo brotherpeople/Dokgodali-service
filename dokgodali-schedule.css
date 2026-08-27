@@ -198,21 +198,6 @@
     letter-spacing: -0.5px;
   }
 
-  /* Single-line duty note */
-  .duty-line {
-    background: #fffbeb;
-    border: 1px solid #fde68a;
-    border-radius: var(--radius-sm);
-    padding: 7px 10px;
-    font-size: 12.5px;
-    font-weight: 600;
-    color: #92400e;
-    margin-bottom: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
   /* Arrow Route Block */
   .arrow-route-card {
     background: #f8fafc;

@@ -44,18 +44,13 @@
       <div class="today-hero-top">
         <div>
           <span class="badge badge-blue">Today's Job</span>
+          <span id="crew-duty-badge" class="badge badge-red hidden">⚠️ <span id="crew-duty-text"></span></span>
           <h2 id="crew-today-title" style="font-size: 16px; font-weight: 700; margin-top: 4px;"></h2>
         </div>
         <div style="text-align: right;">
           <div id="crew-today-time" class="today-time-badge"></div>
           <div id="crew-today-overall-time" style="font-size: 11px; color: var(--text-muted);"></div>
         </div>
-      </div>
-
-      <!-- Single-line Duty Alert -->
-      <div id="crew-duty-box" class="duty-line">
-        <span id="crew-duty-text"></span>
-        <span class="badge badge-warning">Rental</span>
       </div>
 
       <!-- Arrow Route -->
@@ -634,12 +629,12 @@ function renderCrewDashboard() {
     document.getElementById('crew-today-time').textContent = myAssign.startTime || '08:00';
     document.getElementById('crew-today-overall-time').textContent = `(Overall: ${myJob.overallTimeRange})`;
 
-    const dutyBox = document.getElementById('crew-duty-box');
+    const dutyBadge = document.getElementById('crew-duty-badge');
     if (myAssign.vehicleDuty !== 'none') {
-      dutyBox.classList.remove('hidden');
-      document.getElementById('crew-duty-text').textContent = `Vehicle rental: ${vehicleDutyLabel(myAssign.vehicleDuty)} (arrive at pickup by ${myAssign.startTime})`;
+      dutyBadge.classList.remove('hidden');
+      document.getElementById('crew-duty-text').textContent = `Vehicle Rental Required: ${vehicleDutyLabel(myAssign.vehicleDuty)}`;
     } else {
-      dutyBox.classList.add('hidden');
+      dutyBadge.classList.add('hidden');
     }
 
     document.getElementById('crew-origin-addr').textContent = myJob.originAddress;
