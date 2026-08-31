@@ -119,6 +119,12 @@
     <div id="crew-cal-days" class="calendar-grid"></div>
   </div>
 
+  <!-- CREW VIEW: Work Log History -->
+  <div id="crew-history-section" class="card hidden" style="margin-top:12px;">
+    <div class="card-title">내 근무 이력</div>
+    <div id="crew-history-list"></div>
+  </div>
+
   <!-- ADMIN VIEW -->
   <div id="admin-section">
     <div class="admin-layout">
@@ -601,6 +607,7 @@ function renderApp() {
   document.getElementById('crew-today-section').classList.toggle('hidden', isAdmin);
   document.getElementById('crew-calendar-section').classList.toggle('hidden', isAdmin);
   document.getElementById('crew-worklog-section').classList.toggle('hidden', isAdmin);
+  document.getElementById('crew-history-section').classList.toggle('hidden', isAdmin);
 
   if (isAdmin) {
     renderAdminCalendar();
@@ -833,6 +840,29 @@ function renderCrewDashboard() {
   }
 
   renderCrewCalendar();
+  renderCrewHistory(currentUserId);
+}
+
+function renderCrewHistory(currentUserId) {
+  const section = document.getElementById('crew-history-section');
+  section.classList.remove('hidden');
+  const list = document.getElementById('crew-history-list');
+  const myLogs = state.workLogs
+    .filter(w => w.userId === currentUserId)
+    .sort((a, b) => b.jobDate.localeCompare(a.jobDate));
+
+  if (myLogs.length === 0) {
+    list.innerHTML = '<div class="worklog-history-empty">아직 제출한 근무 기록이 없습니다.</div>';
+    return;
+  }
+
+  const statusLabel = { pending: '승인 대기', confirmed: '승인됨', rejected: '반려됨' };
+  list.innerHTML = myLogs.map(w => `
+    <div class="worklog-history-item">
+      <span>${w.jobDate} · ${w.actualStart}~${w.actualEnd}</span>
+      <span>휴게 ${w.breakMinutes}분 · ${w.workedHours}h · ${statusLabel[w.status]}</span>
+    </div>
+  `).join('');
 }
 
 function renderCrewCalendar() {
