@@ -401,6 +401,8 @@ function renderWorklogSection(myJob, currentUserId) {
   } else {
     statusView.classList.add('hidden');
     formView.classList.remove('hidden');
+    const existingBadge = formView.querySelector('.worklog-status-rejected');
+    if (existingBadge) existingBadge.remove();
     if (existing && existing.status === 'rejected') {
       formView.insertAdjacentHTML('afterbegin', `<div class="worklog-status-badge worklog-status-rejected">반려됨: ${existing.rejectReason || ''}</div>`);
     }
