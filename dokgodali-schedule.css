@@ -533,3 +533,12 @@
   }
   .toast.show { opacity: 1; }
   .hidden { display: none !important; }
+
+  .worklog-card { margin-top: 12px; }
+  .worklog-time-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .worklog-time-select { flex: 1; padding: 8px; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 13px; }
+  .worklog-preview { font-size: 12.5px; color: var(--text-secondary); margin-bottom: 10px; }
+  .worklog-status-badge { display: inline-block; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+  .worklog-status-pending { background: #f1f5f9; color: #475569; }
+  .worklog-status-confirmed { background: #dcfce7; color: #166534; }
+  .worklog-status-rejected { background: #fee2e2; color: #b91c1c; }

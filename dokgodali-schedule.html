@@ -82,6 +82,24 @@
     </div>
   </div>
 
+  <!-- CREW VIEW: Work Time Submission (kept as a sibling of crew-today-section, not
+       nested inside it — crew-today-section's "no job today" branch replaces its own
+       innerHTML wholesale, which would destroy a nested worklog section on every
+       re-render once no job is assigned) -->
+  <div id="crew-worklog-section" class="card worklog-card hidden">
+    <div class="card-title">근무시간 제출</div>
+    <div id="worklog-form-view">
+      <div class="worklog-time-row">
+        <select id="worklog-start-select" class="worklog-time-select"></select>
+        <span>~</span>
+        <select id="worklog-end-select" class="worklog-time-select"></select>
+      </div>
+      <div id="worklog-preview" class="worklog-preview"></div>
+      <button class="btn btn-primary" id="worklog-submit-btn" style="width:100%;">제출</button>
+    </div>
+    <div id="worklog-status-view" class="hidden"></div>
+  </div>
+
   <!-- CREW VIEW: Minimal Availability Calendar -->
   <div id="crew-calendar-section" class="calendar-container hidden">
     <div class="calendar-header">
@@ -298,6 +316,101 @@ function calcWorkLog(actualStart, actualEnd) {
   return { breakMinutes, workedHours };
 }
 
+function populateWorklogTimeSelects() {
+  const starts = document.getElementById('worklog-start-select');
+  const ends = document.getElementById('worklog-end-select');
+  if (!starts || starts.options.length > 0) return;
+  for (let m = 6 * 60; m <= 22 * 60; m += 15) {
+    const h = String(Math.floor(m / 60)).padStart(2, '0');
+    const mm = String(m % 60).padStart(2, '0');
+    const label = `${h}:${mm}`;
+    starts.appendChild(new Option(label, label));
+    ends.appendChild(new Option(label, label));
+  }
+  starts.value = '07:00';
+  ends.value = '16:00';
+}
+
+function updateWorklogPreview() {
+  const start = document.getElementById('worklog-start-select').value;
+  const end = document.getElementById('worklog-end-select').value;
+  const preview = document.getElementById('worklog-preview');
+  const raw = timeToMinutes(end) - timeToMinutes(start);
+  if (raw <= 0) {
+    preview.textContent = '종료 시간은 시작 시간보다 늦어야 합니다.';
+    return;
+  }
+  const { breakMinutes, workedHours } = calcWorkLog(start, end);
+  preview.textContent = `예상 근무시간: ${workedHours}시간 (휴게 ${breakMinutes}분 자동 적용)`;
+}
+
+async function submitWorklog(scheduleId) {
+  const currentUserId = state.currentRole;
+  const start = document.getElementById('worklog-start-select').value;
+  const end = document.getElementById('worklog-end-select').value;
+  const raw = timeToMinutes(end) - timeToMinutes(start);
+  if (raw <= 0) return;
+  const { breakMinutes, workedHours } = calcWorkLog(start, end);
+
+  const existing = state.workLogs.find(w => w.scheduleId === scheduleId && w.userId === currentUserId);
+  const myJob = state.schedules.find(s => s.id === scheduleId);
+  const myAssign = myJob.assignments.find(a => a.userId === currentUserId);
+
+  const row = {
+    schedule_id: scheduleId,
+    user_id: currentUserId,
+    job_date: myJob.jobDate,
+    assigned_start: myAssign.startTime,
+    actual_start: start,
+    actual_end: end,
+    break_minutes: breakMinutes,
+    worked_hours: workedHours,
+    status: 'pending',
+    reject_reason: null,
+    submitted_at: new Date().toISOString(),
+    confirmed_at: null
+  };
+
+  if (existing) {
+    await sb.from('work_logs').update(row).eq('id', existing.id);
+  } else {
+    await sb.from('work_logs').insert(row);
+  }
+  await loadDataFromSupabase();
+  renderApp();
+}
+
+function renderWorklogSection(myJob, currentUserId) {
+  const section = document.getElementById('crew-worklog-section');
+  section.classList.remove('hidden');
+  populateWorklogTimeSelects();
+
+  const formView = document.getElementById('worklog-form-view');
+  const statusView = document.getElementById('worklog-status-view');
+  const existing = state.workLogs.find(w => w.scheduleId === myJob.id && w.userId === currentUserId);
+
+  if (existing && existing.status !== 'rejected') {
+    formView.classList.add('hidden');
+    statusView.classList.remove('hidden');
+    const badgeClass = existing.status === 'confirmed' ? 'worklog-status-confirmed' : 'worklog-status-pending';
+    const badgeText = existing.status === 'confirmed' ? '승인됨' : '제출 완료 · 승인 대기중';
+    statusView.innerHTML = `
+      <span class="worklog-status-badge ${badgeClass}">${badgeText}</span>
+      <div style="font-size:13px;">${existing.actualStart} ~ ${existing.actualEnd} (휴게 ${existing.breakMinutes}분, 실근무 ${existing.workedHours}시간)</div>
+    `;
+  } else {
+    statusView.classList.add('hidden');
+    formView.classList.remove('hidden');
+    if (existing && existing.status === 'rejected') {
+      formView.insertAdjacentHTML('afterbegin', `<div class="worklog-status-badge worklog-status-rejected">반려됨: ${existing.rejectReason || ''}</div>`);
+    }
+    document.getElementById('worklog-start-select').onchange = updateWorklogPreview;
+    document.getElementById('worklog-end-select').onchange = updateWorklogPreview;
+    document.getElementById('worklog-submit-btn').onclick = () => submitWorklog(myJob.id);
+    updateWorklogPreview();
+  }
+}
+
 let state = {
   currentRole: 'admin',
   currentYear: 2026,
@@ -485,6 +598,7 @@ function renderApp() {
   document.getElementById('admin-section').classList.toggle('hidden', !isAdmin);
   document.getElementById('crew-today-section').classList.toggle('hidden', isAdmin);
   document.getElementById('crew-calendar-section').classList.toggle('hidden', isAdmin);
+  document.getElementById('crew-worklog-section').classList.toggle('hidden', isAdmin);
 
   if (isAdmin) {
     renderAdminCalendar();
@@ -705,6 +819,7 @@ function renderCrewDashboard() {
     });
 
     document.getElementById('crew-notes-text').textContent = myJob.notes || '없음';
+    renderWorklogSection(myJob, currentUserId);
   } else {
     todaySection.innerHTML = `
       <div class="today-hero-card" style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 13px;">
@@ -712,6 +827,7 @@ function renderCrewDashboard() {
       </div>
     `;
     todaySection.classList.remove('hidden');
+    document.getElementById('crew-worklog-section').classList.add('hidden');
   }
 
   renderCrewCalendar();
