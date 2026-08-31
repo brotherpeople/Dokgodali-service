@@ -280,6 +280,24 @@ function vehicleDutyLabel(value) {
   return duty ? duty.label : '';
 }
 
+function timeToMinutes(hhmm) {
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function calcBreakMinutes(rawMinutes) {
+  if (rawMinutes > 9 * 60) return 45;
+  if (rawMinutes > 6 * 60) return 30;
+  return 0;
+}
+
+function calcWorkLog(actualStart, actualEnd) {
+  const rawMinutes = timeToMinutes(actualEnd) - timeToMinutes(actualStart);
+  const breakMinutes = calcBreakMinutes(rawMinutes);
+  const workedHours = Math.round(((rawMinutes - breakMinutes) / 60) * 100) / 100;
+  return { breakMinutes, workedHours };
+}
+
 let state = {
   currentRole: 'admin',
   currentYear: 2026,
