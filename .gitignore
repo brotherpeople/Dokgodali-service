@@ -4,3 +4,4 @@ dokgodali-quote-flow.artifact.html
 # OS 잡파일
 Thumbs.db
 .DS_Store
+.worktrees/
