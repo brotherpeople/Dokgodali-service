@@ -127,6 +127,10 @@
 
   <!-- ADMIN VIEW -->
   <div id="admin-section">
+    <div class="admin-tab-bar">
+      <button class="admin-tab-btn active" id="admin-tab-dispatch-btn" onclick="switchAdminTab('dispatch')">스케줄 관리</button>
+      <button class="admin-tab-btn" id="admin-tab-worklog-btn" onclick="switchAdminTab('worklog')">근무시간 승인</button>
+    </div>
     <div class="admin-layout">
       
       <!-- Left: Monthly Calendar -->
@@ -157,6 +161,10 @@
         <div id="admin-schedules-list"></div>
       </div>
 
+    </div>
+
+    <div id="admin-worklog-section" class="hidden">
+      <div id="admin-worklog-pending-list"></div>
     </div>
   </div>
 
@@ -610,11 +618,76 @@ function renderApp() {
   document.getElementById('crew-history-section').classList.toggle('hidden', isAdmin);
 
   if (isAdmin) {
-    renderAdminCalendar();
-    renderAdminSelectedDateSchedules();
+    document.getElementById('admin-worklog-section').classList.toggle('hidden', state.adminTab !== 'worklog');
+    document.querySelector('.admin-layout').classList.toggle('hidden', state.adminTab !== 'dispatch');
+    document.getElementById('admin-tab-dispatch-btn').classList.toggle('active', state.adminTab === 'dispatch');
+    document.getElementById('admin-tab-worklog-btn').classList.toggle('active', state.adminTab === 'worklog');
+    if (state.adminTab === 'worklog') {
+      renderAdminWorklogTab();
+    } else {
+      renderAdminCalendar();
+      renderAdminSelectedDateSchedules();
+    }
   } else {
     renderCrewDashboard();
   }
+}
+
+function switchAdminTab(tab) {
+  state.adminTab = tab;
+  renderApp();
+}
+
+function renderAdminWorklogTab() {
+  const list = document.getElementById('admin-worklog-pending-list');
+  const pending = state.workLogs.filter(w => w.status === 'pending').sort((a, b) => a.jobDate.localeCompare(b.jobDate));
+
+  if (pending.length === 0) {
+    list.innerHTML = '<div class="worklog-history-empty">승인 대기중인 근무 기록이 없습니다.</div>';
+    return;
+  }
+
+  list.innerHTML = pending.map(w => {
+    const u = CREW_USERS.find(c => c.id === w.userId);
+    return `
+      <div class="worklog-pending-item" id="worklog-item-${w.id}">
+        <div>
+          <div>${u ? u.name : w.userId} · ${w.jobDate} ${w.actualStart}~${w.actualEnd}</div>
+          <div style="font-size:12px; color:var(--text-secondary);">휴게 ${w.breakMinutes}분 · 실근무 ${w.workedHours}시간</div>
+        </div>
+        <div>
+          <button class="btn btn-primary btn-sm" onclick="approveWorklog('${w.id}')">승인</button>
+          <button class="btn btn-secondary btn-sm" onclick="openRejectWorklog('${w.id}')">반려</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function approveWorklog(id) {
+  await sb.from('work_logs').update({ status: 'confirmed', confirmed_at: new Date().toISOString() }).eq('id', id);
+  await loadDataFromSupabase();
+  renderApp();
+}
+
+function openRejectWorklog(id) {
+  const item = document.getElementById(`worklog-item-${id}`);
+  if (item.querySelector('.worklog-reject-form')) return;
+  const form = document.createElement('div');
+  form.className = 'worklog-reject-form';
+  form.innerHTML = `
+    <input type="text" placeholder="반려 사유" id="reject-reason-${id}">
+    <button class="btn btn-primary btn-sm" onclick="submitRejectWorklog('${id}')">확인</button>
+  `;
+  item.appendChild(form);
+}
+
+async function submitRejectWorklog(id) {
+  const reason = document.getElementById(`reject-reason-${id}`).value.trim();
+  if (!reason) return;
+  await sb.from('work_logs').update({ status: 'rejected', reject_reason: reason }).eq('id', id);
+  await loadDataFromSupabase();
+  renderApp();
 }
 
 function renderAdminCalendar() {
