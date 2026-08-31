@@ -286,7 +286,9 @@ let state = {
   currentMonth: 8,
   selectedDate: '2026-09-01',
   schedules: [],
-  availability: {}
+  availability: {},
+  workLogs: [],
+  adminTab: 'dispatch'
 };
 
 async function init() {
@@ -319,6 +321,12 @@ async function loadDataFromSupabase(isBackground = false) {
       state.availability = newAvail;
     }
 
+    // 3. Fetch work logs
+    const { data: workLogsData } = await sb.from('work_logs').select('*');
+    if (workLogsData) {
+      state.workLogs = workLogsData.map(mapWorkLogFromDB);
+    }
+
     if (isBackground) {
       renderApp();
     }
@@ -347,6 +355,24 @@ function mapScheduleFromDB(s) {
   };
 }
 
+function mapWorkLogFromDB(w) {
+  return {
+    id: w.id,
+    scheduleId: w.schedule_id,
+    userId: w.user_id,
+    jobDate: w.job_date,
+    assignedStart: w.assigned_start,
+    actualStart: w.actual_start,
+    actualEnd: w.actual_end,
+    breakMinutes: w.break_minutes,
+    workedHours: w.worked_hours,
+    status: w.status,
+    rejectReason: w.reject_reason,
+    submittedAt: w.submitted_at,
+    confirmedAt: w.confirmed_at
+  };
+}
+
 function setupRealtime() {
   realtimeChannel = sb.channel('dokgodali_realtime_room')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'schedules' }, async () => {
@@ -354,6 +380,10 @@ function setupRealtime() {
       renderApp();
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'availability' }, async () => {
+      await loadDataFromSupabase();
+      renderApp();
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'work_logs' }, async () => {
       await loadDataFromSupabase();
       renderApp();
     })
