@@ -18,7 +18,13 @@
 **[한국어로 테스트해 볼 수 있습니다 →](https://brotherpeople.github.io/Dokgodali-service/dokgodali-schedule.html)**
 **[English version →](https://brotherpeople.github.io/Dokgodali-service/dokgodali-schedule-en.html)**
 
-## 3. 실제 서비스로 배포하기 전 고려할 점
+## 3. 소형 배송 예약
+
+소형 박스·화물의 픽업지와 배송지를 입력하고, 배송 방식 및 개인 정보를 단계별로 입력하는 고객용 예약 플로우입니다.
+
+**[배송 예약을 테스트해 볼 수 있습니다 →](https://brotherpeople.github.io/Dokgodali-service/dokgodali-delivery.html)**
+
+## 4. 실제 서비스로 배포하기 전 고려할 점
 
 현재 두 프로토타입은 **서로 연동되어 있지 않습니다.** 견적서 플로우는 완전히 클라이언트 사이드로 동작해서 고객이 견적서를 작성하고 PDF를 다운로드해도 그 내용이 어디에도 저장되지 않고, 스케줄 관리 대시보드의 Supabase DB는 관리자가 직접 "스케줄 등록" 화면에서 수동으로 입력해야만 채워집니다. 실제 서비스로 전환하려면 최소한 아래 사항들을 검토해야 합니다.
 

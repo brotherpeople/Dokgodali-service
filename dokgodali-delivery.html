@@ -1,0 +1,889 @@
+<!doctype html>
+<html lang="ko">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="description" content="독고달이 소형 배송 예약" />
+        <title>Dokgodali - 배송 예약</title>
+        <link rel="stylesheet" href="dokgodali-delivery.css" />
+    </head>
+    <body>
+        <main class="page">
+            <header class="topbar">
+                <a
+                    class="brand"
+                    href="dokgodali-quote-flow.html"
+                    aria-label="독고달이 이사 서비스로 이동"
+                >
+                    <img
+                        class="brand-logo"
+                        src="images/logo.png"
+                        alt="Dokgodali 로고"
+                    />
+                    <div>
+                        <div class="brand-title">독고달이</div>
+                        <div class="brand-sub">
+                            독일 고속도로를 달리는 이사 도우미
+                        </div>
+                    </div>
+                </a>
+                <div class="lang"><span>ko</span><span>de</span></div>
+            </header>
+
+            <nav class="steps" aria-label="배송 예약 단계">
+                <button class="step active" data-step="1" type="button">
+                    <span class="step-icon"
+                        ><svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path d="m21 8-9-5-9 5 9 5 9-5Z" />
+                            <path d="M3 8v8l9 5 9-5V8" />
+                            <path d="M12 13v8" /></svg
+                    ></span>
+                    <span
+                        ><span class="step-title">1. 물건 정보</span
+                        ><span class="step-desc"
+                            >품목 및 수령지 입력</span
+                        ></span
+                    >
+                </button>
+                <button class="step" data-step="2" type="button">
+                    <span class="step-icon"
+                        ><svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path d="M3 7h12v10H3z" />
+                            <path d="M15 10h3l3 3v4h-6z" />
+                            <circle cx="7.5" cy="18" r="1.5" />
+                            <circle cx="17.5" cy="18" r="1.5" /></svg
+                    ></span>
+                    <span
+                        ><span class="step-title">2. 접수 방식</span
+                        ><span class="step-desc"
+                            >픽업 또는 방문 접수 선택</span
+                        ></span
+                    >
+                </button>
+                <button class="step" data-step="3" type="button">
+                    <span class="step-icon"
+                        ><svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path d="M20 21a8 8 0 0 0-16 0" />
+                            <circle cx="12" cy="7" r="4" /></svg
+                    ></span>
+                    <span
+                        ><span class="step-title">3. 개인 정보</span
+                        ><span class="step-desc"
+                            >예약자 및 결제 정보</span
+                        ></span
+                    >
+                </button>
+            </nav>
+
+            <section class="screen active" id="screen1">
+                <div class="layout">
+                    <div class="card">
+                        <h1>Step 1: 물건 정보를 입력해 주세요</h1>
+                        <p class="desc">
+                            배송할 물건의 크기와 수량을 등록해 주세요. 소형
+                            화물과 박스 배송에 맞춘 간편 예약입니다.
+                        </p>
+                        <hr class="sep" />
+
+                        <div class="section cargo-section-box">
+                            <div class="section-label">물건 크기</div>
+                            <div class="section-hint">
+                                가장 가까운 크기를 선택해 주세요. 실제 크기가
+                                다를 경우 배송 전 안내드립니다.
+                            </div>
+                            <div class="package-grid" id="packageGrid">
+                                <button
+                                    class="package-card selected"
+                                    data-package="small"
+                                    type="button"
+                                >
+                                    <span class="package-icon"
+                                        ><svg
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="1.8"
+                                        >
+                                            <path d="m3 7 9-4 9 4-9 4-9-4Z" />
+                                            <path d="M3 7v10l9 4 9-4V7" />
+                                            <path d="M12 11v10" /></svg
+                                    ></span>
+                                    <span class="package-name">소형</span
+                                    ><span class="package-note"
+                                        >최대 40 × 30 × 30cm · 10kg</span
+                                    >
+                                </button>
+                                <button
+                                    class="package-card"
+                                    data-package="medium"
+                                    type="button"
+                                >
+                                    <span class="package-icon"
+                                        ><svg
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="1.8"
+                                        >
+                                            <path
+                                                d="m2 7 10-5 10 5-10 5L2 7Z"
+                                            />
+                                            <path d="M2 7v10l10 5 10-5V7" />
+                                            <path d="M12 12v10" /></svg
+                                    ></span>
+                                    <span class="package-name">중형</span
+                                    ><span class="package-note"
+                                        >최대 80 × 60 × 60cm · 30kg</span
+                                    >
+                                </button>
+                                <button
+                                    class="package-card"
+                                    data-package="large"
+                                    type="button"
+                                >
+                                    <span class="package-icon"
+                                        ><svg
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="1.8"
+                                        >
+                                            <rect
+                                                x="3"
+                                                y="5"
+                                                width="18"
+                                                height="14"
+                                                rx="1"
+                                            />
+                                            <path d="M3 10h18M12 5v14" /></svg
+                                    ></span>
+                                    <span class="package-name">대형</span
+                                    ><span class="package-note"
+                                        >최대 120 × 80 × 80cm · 60kg</span
+                                    >
+                                </button>
+                            </div>
+                            <div class="cargo-control">
+                                <div class="quantity-row">
+                                    <div>
+                                        <div class="quantity-label">
+                                            선택한 물건의 수량
+                                        </div>
+                                        <div class="quantity-sub">
+                                            수량을 고른 뒤 화물을 등록해 주세요.
+                                        </div>
+                                    </div>
+                                    <div class="qty">
+                                        <button
+                                            type="button"
+                                            id="qtyMinus"
+                                            aria-label="수량 줄이기"
+                                        >
+                                            −</button
+                                        ><span class="qty-value" id="qtyValue"
+                                            >1</span
+                                        ><button
+                                            type="button"
+                                            id="qtyPlus"
+                                            aria-label="수량 늘리기"
+                                        >
+                                            +
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="cargo-register">
+                                    <div class="cargo-register-copy">
+                                        <strong id="selectedCargoLabel"
+                                            >소형 1개</strong
+                                        >다른 크기의 화물도 선택 후 계속 등록할
+                                        수 있습니다.
+                                    </div>
+                                    <button
+                                        class="btn btn-primary btn-register"
+                                        id="registerCargo"
+                                        type="button"
+                                    >
+                                        화물 등록
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="cargo-list-heading">
+                                등록한 물건
+                                <span id="cargoCountLabel"></span>
+                            </div>
+                            <div class="cargo-list" id="cargoList"></div>
+                            <div class="field-error" id="cargoError">
+                                최소 한 개 이상의 물건을 등록해 주세요.
+                            </div>
+                        </div>
+                        <div class="actions">
+                            <span></span
+                            ><button
+                                class="btn btn-primary"
+                                id="toStep2"
+                                type="button"
+                            >
+                                접수 방식 선택하기
+                            </button>
+                        </div>
+                    </div>
+                    <aside class="sidebar-card" id="summary1"></aside>
+                </div>
+            </section>
+
+            <section class="screen" id="screen2">
+                <div class="layout">
+                    <div class="card">
+                        <h1>Step 2: 접수 방식을 선택해 주세요</h1>
+                        <p class="desc">
+                            원하시는 픽업 또는 접수처 방문 방식을 선택하고,
+                            방문·픽업 희망 일시를 입력해 주세요.
+                        </p>
+                        <hr class="sep" />
+                        <div class="section">
+                            <div class="section-label">접수 방식</div>
+                            <div class="method-list" id="methodList">
+                                <div
+                                    class="method-card selected"
+                                    data-method="premium"
+                                    role="button"
+                                    tabindex="0"
+                                >
+                                    <span class="method-radio"></span>
+                                    <div>
+                                        <div class="method-name">
+                                            프리미엄 픽업
+                                            <span class="method-area"
+                                                >베를린 내</span
+                                            >
+                                        </div>
+                                        <div class="method-note">
+                                            맞춤 예약제로 픽업해 드립니다.
+                                        </div>
+                                    </div>
+                                    <div class="method-price">
+                                        €250 이상 시 무료
+                                    </div>
+                                </div>
+                                <div
+                                    class="method-card"
+                                    data-method="fixed"
+                                    role="button"
+                                    tabindex="0"
+                                >
+                                    <span class="method-radio"></span>
+                                    <div>
+                                        <div class="method-name">
+                                            고정 픽업
+                                            <span class="method-area"
+                                                >베를린 내</span
+                                            >
+                                        </div>
+                                        <div class="method-note">
+                                            매주 화요일 17:00–21:00에
+                                            픽업합니다.
+                                        </div>
+                                    </div>
+                                    <div class="method-price">
+                                        €3 · €50 이상 무료
+                                    </div>
+                                </div>
+                                <div
+                                    class="method-card"
+                                    data-method="dropoff"
+                                    role="button"
+                                    tabindex="0"
+                                >
+                                    <span class="method-radio"></span>
+                                    <div>
+                                        <div class="method-name">
+                                            접수처 방문
+                                            <span class="method-area"
+                                                >Atti Asia Markt</span
+                                            >
+                                        </div>
+                                        <div class="method-note">
+                                            월–토 10:30–17:00에 직접 방문해
+                                            접수합니다.
+                                        </div>
+                                    </div>
+                                    <div class="method-price">
+                                        상자당 현금 €2
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="section">
+                            <div class="section-label">
+                                방문 / 픽업 희망 일시
+                            </div>
+                            <div class="section-hint">
+                                방문 접수는 “2026-05-12 / 18:00”, 픽업 요청은
+                                “2026-05-12 / 18:00–21:00” 형식으로 적어 주세요.
+                            </div>
+                            <input
+                                class="text-input method-required"
+                                id="pickupSchedule"
+                                type="text"
+                                placeholder="예: 2026-05-12 / 18:00–21:00"
+                            />
+                            <div class="field-error" id="methodError">
+                                방문 또는 픽업 희망 일시를 입력해 주세요.
+                            </div>
+                        </div>
+                        <div class="actions">
+                            <button
+                                class="btn btn-secondary"
+                                data-back="1"
+                                type="button"
+                            >
+                                이전 단계</button
+                            ><button
+                                class="btn btn-primary"
+                                id="toStep3"
+                                type="button"
+                            >
+                                개인 정보 입력하기
+                            </button>
+                        </div>
+                    </div>
+                    <aside class="sidebar-card" id="summary2"></aside>
+                </div>
+            </section>
+
+            <section class="screen" id="screen3">
+                <div class="layout">
+                    <div class="card" id="personalCard">
+                        <div id="personalForm">
+                            <h1>Step 3: 예약자 정보를 입력해 주세요</h1>
+                            <p class="desc">
+                                신청인 주소와 픽업·배송지, 예약 확인에 필요한
+                                최소한의 정보만 수집합니다.
+                            </p>
+                            <hr class="sep" />
+                            <div class="section">
+                                <div class="section-label">신청인 주소</div>
+                                <div class="field-grid">
+                                    <div class="field-full">
+                                        <div class="field-title">
+                                            주소
+                                            <span class="required">*필수</span>
+                                        </div>
+                                        <input
+                                            class="text-input address-required"
+                                            id="customerAddress"
+                                            type="text"
+                                            placeholder="예: Musterstr. 1, 10115 Berlin"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="section">
+                                <div class="section-label">픽업 및 배송지</div>
+                                <div class="address-card">
+                                    <div class="address-caption">
+                                        <svg
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                        >
+                                            <circle cx="12" cy="12" r="8" />
+                                            <circle
+                                                cx="12"
+                                                cy="12"
+                                                r="2"
+                                            /></svg
+                                        >픽업지
+                                    </div>
+                                    <label class="same-address-check"
+                                        ><input
+                                            id="sameAsCustomer"
+                                            type="checkbox"
+                                            checked
+                                        /><span
+                                            >신청인의 주소지와 같습니다</span
+                                        ></label
+                                    >
+                                    <div
+                                        class="field-grid pickup-address-field hidden"
+                                        id="pickupAddressField"
+                                    >
+                                        <div class="field-full">
+                                            <div class="field-title">
+                                                픽업지 주소
+                                                <span class="required"
+                                                    >*필수</span
+                                                >
+                                            </div>
+                                            <input
+                                                class="text-input"
+                                                id="pickupAddress"
+                                                type="text"
+                                                placeholder="예: Musterstr. 1, 10115 Berlin"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="address-card">
+                                    <div class="address-caption">
+                                        <svg
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                        >
+                                            <path
+                                                d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"
+                                            />
+                                            <circle
+                                                cx="12"
+                                                cy="10"
+                                                r="2"
+                                            /></svg
+                                        >배송지
+                                    </div>
+                                    <div class="field-grid">
+                                        <div class="field-full">
+                                            <div class="field-title">
+                                                주소
+                                                <span class="required"
+                                                    >*필수</span
+                                                >
+                                            </div>
+                                            <input
+                                                class="text-input address-required"
+                                                id="deliveryAddress"
+                                                type="text"
+                                                placeholder="예: Friedrichstr. 77, 10117 Berlin"
+                                            />
+                                        </div>
+                                        <div>
+                                            <div class="field-title">
+                                                수령인 이름
+                                            </div>
+                                            <input
+                                                class="text-input"
+                                                id="recipientName"
+                                                type="text"
+                                                placeholder="예: Kim Minsoo"
+                                            />
+                                        </div>
+                                        <div>
+                                            <div class="field-title">
+                                                수령인 연락처
+                                            </div>
+                                            <input
+                                                class="text-input"
+                                                id="recipientPhone"
+                                                type="tel"
+                                                placeholder="예: +49 170 1234567"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="field-error" id="addressError">
+                                    신청인 주소와 배송지 주소를 모두 입력해
+                                    주세요.
+                                </div>
+                            </div>
+                            <div class="section">
+                                <div class="section-label">예약자 정보</div>
+                                <div class="field-grid">
+                                    <div>
+                                        <div class="field-title">
+                                            이름
+                                            <span class="required">*필수</span>
+                                        </div>
+                                        <input
+                                            class="text-input personal-required"
+                                            id="customerName"
+                                            type="text"
+                                            placeholder="예: Kim Minsoo"
+                                        />
+                                    </div>
+                                    <div>
+                                        <div class="field-title">
+                                            이메일
+                                            <span class="required">*필수</span>
+                                        </div>
+                                        <input
+                                            class="text-input personal-required"
+                                            id="customerEmail"
+                                            type="email"
+                                            placeholder="name@example.com"
+                                        />
+                                    </div>
+                                    <div>
+                                        <div class="field-title">
+                                            휴대폰 번호
+                                            <span class="required">*필수</span>
+                                        </div>
+                                        <input
+                                            class="text-input personal-required"
+                                            id="customerPhone"
+                                            type="tel"
+                                            placeholder="예: +49 170 1234567"
+                                        />
+                                    </div>
+                                    <div>
+                                        <div class="field-title">결제 방법</div>
+                                        <select
+                                            class="select-input"
+                                            id="payment"
+                                        >
+                                            <option>카드 결제</option>
+                                            <option>PayPal</option>
+                                            <option>계좌이체 (SEPA)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="section">
+                                <div class="section-label">예약 확인</div>
+                                <div class="notice">
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                    >
+                                        <path
+                                            d="M20 11V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7"
+                                        />
+                                        <path d="m14 18 2 2 4-5" /></svg
+                                    ><span
+                                        >예약 요청 후 입력하신 연락처로 최종
+                                        금액과 픽업 가능 시간을 안내해 드립니다.
+                                        결제는 배송 확정 후 진행됩니다.</span
+                                    >
+                                </div>
+                                <label class="privacy-box"
+                                    ><input id="privacy" type="checkbox" /><span
+                                        >독고달이의 개인정보 수집·이용 및 배송
+                                        약관에 동의합니다. 예약과 배송 안내를
+                                        위한 목적 외에는 고객 정보를 사용하지
+                                        않습니다.
+                                        <b class="required">(필수)</b></span
+                                    ></label
+                                >
+                                <div class="field-error" id="personalError">
+                                    필수 개인정보와 약관 동의를 확인해 주세요.
+                                </div>
+                            </div>
+                            <div class="actions">
+                                <button
+                                    class="btn btn-secondary"
+                                    data-back="2"
+                                    type="button"
+                                >
+                                    이전 단계</button
+                                ><button
+                                    class="btn btn-primary"
+                                    id="submitOrder"
+                                    type="button"
+                                >
+                                    배송 예약 요청하기
+                                </button>
+                            </div>
+                        </div>
+                        <div class="complete" id="completeView">
+                            <div class="complete-icon">
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2.3"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <path d="m5 12 4 4L19 6" />
+                                </svg>
+                            </div>
+                            <h2>배송 예약 요청이 접수되었습니다</h2>
+                            <p>
+                                담당자가 물건과 경로를 확인한 뒤, 입력하신
+                                연락처로 픽업 가능 시간과 최종 결제 안내를
+                                보내드릴게요.
+                            </p>
+                            <div class="order-code" id="orderCode">
+                                배송 요청 번호 D-000000
+                            </div>
+                        </div>
+                    </div>
+                    <aside class="sidebar-card" id="summary3"></aside>
+                </div>
+            </section>
+        </main>
+
+        <script>
+            const packageData = {
+                small: { name: "소형", base: 9 },
+                medium: { name: "중형", base: 16 },
+                large: { name: "대형", base: 28 },
+            };
+            const methodData = {
+                premium: {
+                    name: "프리미엄 픽업",
+                    condition: "베를린 내 · €250 이상 결제 시 픽업비 무료",
+                },
+                fixed: {
+                    name: "고정 픽업",
+                    condition:
+                        "베를린 내 · 화요일 17:00–21:00 · €3 (€50 이상 무료)",
+                },
+                dropoff: {
+                    name: "접수처 방문",
+                    condition:
+                        "Atti Asia Markt · 월–토 10:30–17:00 · 상자당 현금 €2",
+                },
+            };
+            const state = {
+                step: 1,
+                selectedPackage: "small",
+                selectedQuantity: 1,
+                cargoes: [],
+                method: "premium",
+            };
+            const $ = (selector) => document.querySelector(selector);
+            const $$ = (selector) => [...document.querySelectorAll(selector)];
+            const escapeText = (text) =>
+                text
+                    ? text.replace(
+                          /[&<>\"']/g,
+                          (char) =>
+                              ({
+                                  "&": "&amp;",
+                                  "<": "&lt;",
+                                  ">": "&gt;",
+                                  '"': "&quot;",
+                                  "'": "&#039;",
+                              })[char],
+                      )
+                    : "주소를 입력해 주세요";
+
+            function renderSummary() {
+                const pickup = escapeText(
+                    ($("#sameAsCustomer").checked
+                        ? $("#customerAddress").value
+                        : $("#pickupAddress").value
+                    ).trim(),
+                );
+                const delivery = escapeText($("#deliveryAddress").value.trim());
+                const markup = `
+        <div class="summary-heading">배송 요약</div>
+        <div class="summary-route"><div class="route-line"></div><div><div class="route-label">픽업지</div><div class="route-value" title="${pickup}">${pickup}</div><div class="route-label" style="margin-top:15px">배송지</div><div class="route-value" title="${delivery}">${delivery}</div></div></div>
+        <div class="summary-divider"></div>
+        <div class="summary-row"><span>물건 정보</span><strong>${state.cargoes.length ? state.cargoes.map((cargo) => `${packageData[cargo.package].name} ${cargo.quantity}개`).join(", ") : "화물 등록 전"}</strong></div>
+        <div class="summary-row"><span>접수 방식</span><strong>${methodData[state.method].name}</strong></div>
+        <div class="summary-row"><span>이용 조건</span><strong>${methodData[state.method].condition}</strong></div>
+        <div class="summary-total"><div><div class="summary-total-label">최종 배송비</div><div class="summary-total-note">박스 규격·무게·물품 상세 확인 후 안내</div></div><div class="summary-status">접수 후 확정</div></div>
+        <div class="delivery-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>폼의 접수 조건을 기준으로 안내합니다</div>`;
+                ["#summary1", "#summary2", "#summary3"].forEach(
+                    (id) => ($(id).innerHTML = markup),
+                );
+            }
+            function render() {
+                $$(".package-card").forEach((card) =>
+                    card.classList.toggle(
+                        "selected",
+                        card.dataset.package === state.selectedPackage,
+                    ),
+                );
+                $$(".method-card").forEach((card) =>
+                    card.classList.toggle(
+                        "selected",
+                        card.dataset.method === state.method,
+                    ),
+                );
+                $("#qtyValue").textContent = state.selectedQuantity;
+                $("#selectedCargoLabel").textContent =
+                    `${packageData[state.selectedPackage].name} ${state.selectedQuantity}개`;
+                $("#cargoCountLabel").textContent = state.cargoes.length
+                    ? `총 ${state.cargoes.reduce((sum, cargo) => sum + cargo.quantity, 0)}개`
+                    : "아직 등록된 물건이 없습니다";
+                $("#cargoList").innerHTML = state.cargoes.length
+                    ? state.cargoes
+                          .map(
+                              (cargo) =>
+                                  `<div class="cargo-row"><div class="cargo-row-main"><span class="cargo-dot"></span><span class="cargo-name">${packageData[cargo.package].name}</span><span class="cargo-count">${cargo.quantity}개</span></div><button class="cargo-remove" type="button" data-remove-cargo="${cargo.package}">삭제</button></div>`,
+                          )
+                          .join("")
+                    : '<div class="cargo-empty">물건 크기와 수량을 선택한 뒤 “화물 등록”을 눌러 주세요.</div>';
+                $$("[data-remove-cargo]").forEach((button) =>
+                    button.addEventListener("click", () => {
+                        state.cargoes = state.cargoes.filter(
+                            (cargo) =>
+                                cargo.package !== button.dataset.removeCargo,
+                        );
+                        render();
+                    }),
+                );
+                renderSummary();
+            }
+            function showStep(step) {
+                state.step = step;
+                $$(".screen").forEach((screen) =>
+                    screen.classList.toggle(
+                        "active",
+                        screen.id === `screen${step}`,
+                    ),
+                );
+                $$(".step").forEach((button) => {
+                    const number = Number(button.dataset.step);
+                    button.classList.toggle("active", number === step);
+                    button.classList.toggle("done", number < step);
+                });
+                window.scrollTo({ top: 0, behavior: "smooth" });
+                render();
+            }
+            function validateCargoes() {
+                const valid = state.cargoes.length > 0;
+                $("#cargoError").classList.toggle("visible", !valid);
+                return valid;
+            }
+            function validateAddresses() {
+                const inputs = $$(".address-required");
+                if (!$("#sameAsCustomer").checked)
+                    inputs.push($("#pickupAddress"));
+                const invalid = inputs.filter((input) => !input.value.trim());
+                inputs.forEach((input) =>
+                    input.classList.toggle("input-error", !input.value.trim()),
+                );
+                $("#addressError").classList.toggle(
+                    "visible",
+                    invalid.length > 0,
+                );
+                return invalid.length === 0;
+            }
+            function validateMethodDetails() {
+                const input = $("#pickupSchedule");
+                const valid = !!input.value.trim();
+                input.classList.toggle("input-error", !valid);
+                $("#methodError").classList.toggle("visible", !valid);
+                return valid;
+            }
+            function validatePersonal() {
+                const inputs = $$(".personal-required");
+                const invalid = inputs.filter((input) => !input.value.trim());
+                inputs.forEach((input) =>
+                    input.classList.toggle("input-error", !input.value.trim()),
+                );
+                const valid = invalid.length === 0 && $("#privacy").checked;
+                $("#personalError").classList.toggle("visible", !valid);
+                return valid;
+            }
+            function updateSameAddress() {
+                const isSame = $("#sameAsCustomer").checked;
+                $("#pickupAddressField").classList.toggle("hidden", isSame);
+                if (isSame) $("#pickupAddress").classList.remove("input-error");
+                render();
+            }
+            $$(".package-card").forEach((card) =>
+                card.addEventListener("click", () => {
+                    state.selectedPackage = card.dataset.package;
+                    render();
+                }),
+            );
+            $$(".method-card").forEach((card) => {
+                const choose = () => {
+                    state.method = card.dataset.method;
+                    render();
+                };
+                card.addEventListener("click", choose);
+                card.addEventListener("keydown", (event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        choose();
+                    }
+                });
+            });
+            $("#qtyMinus").addEventListener("click", () => {
+                state.selectedQuantity = Math.max(
+                    1,
+                    state.selectedQuantity - 1,
+                );
+                render();
+            });
+            $("#qtyPlus").addEventListener("click", () => {
+                state.selectedQuantity = Math.min(
+                    10,
+                    state.selectedQuantity + 1,
+                );
+                render();
+            });
+            $("#registerCargo").addEventListener("click", () => {
+                const existing = state.cargoes.find(
+                    (cargo) => cargo.package === state.selectedPackage,
+                );
+                if (existing) existing.quantity += state.selectedQuantity;
+                else
+                    state.cargoes.push({
+                        package: state.selectedPackage,
+                        quantity: state.selectedQuantity,
+                    });
+                $("#cargoError").classList.remove("visible");
+                render();
+            });
+            $$("input, select, textarea").forEach((input) =>
+                input.addEventListener("input", render),
+            );
+            $("#sameAsCustomer").addEventListener("change", updateSameAddress);
+            $("#toStep2").addEventListener("click", () => {
+                if (validateCargoes()) showStep(2);
+            });
+            $("#toStep3").addEventListener("click", () => {
+                if (validateMethodDetails()) showStep(3);
+            });
+            $$("[data-back]").forEach((button) =>
+                button.addEventListener("click", () =>
+                    showStep(Number(button.dataset.back)),
+                ),
+            );
+            $$(".step").forEach((button) =>
+                button.addEventListener("click", () => {
+                    const destination = Number(button.dataset.step);
+                    if (
+                        destination === 1 ||
+                        state.step > 1 ||
+                        validateCargoes()
+                    )
+                        showStep(destination);
+                }),
+            );
+            $("#submitOrder").addEventListener("click", () => {
+                if (!validateAddresses() || !validatePersonal()) return;
+                $("#personalForm").style.display = "none";
+                $("#completeView").classList.add("show");
+                $("#orderCode").textContent =
+                    `배송 요청 번호 D-${String(Date.now()).slice(-6)}`;
+                $$(".steps .step").forEach((step) =>
+                    step.classList.add("done"),
+                );
+                window.scrollTo({ top: 0, behavior: "smooth" });
+            });
+            render();
+        </script>
+    </body>
+</html>
