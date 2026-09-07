@@ -1,3 +1,7 @@
+/* dokgodali-delivery.html 전용 스타일. 공통 셸(topbar/steps/card/버튼/폼 필드)은 dokgodali-shared.css에 있음 - 이 파일은
+   테마 변수(--accent 등)와 배송 예약 플로우 전용 컴포넌트만 정의한다. */
+
+/* 테마 변수 (주황 accent) */
 :root {
   --accent: #e66a18;
   --accent-dark: #c8550b;
@@ -11,12 +15,16 @@
 }
 
 .hidden { display: none !important; }
+
+/* Step 네비 상태색 (shared.css 셸에 이 파일의 --accent/--green을 적용) */
 .step.active { border-color: var(--accent-border); background: var(--accent-light); }
 .step.done .step-icon { background: var(--green); color: #fff; }
 
+/* 섹션 블록 (shared.css의 .section-label과 함께 쓰는 여백 컨테이너) */
 .section-block { margin-top: 28px; }
 .section-block:first-of-type { margin-top: 0; }
 
+/* Step 1: 화물 크기 / 수량 선택 */
 .package-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px; }
 .cargo-section-box { padding: 20px; border: 1px solid var(--border); border-radius: 12px; background: #fbfcff; }
 .cargo-section-box .package-grid { margin-top: 16px; }
@@ -34,10 +42,14 @@
 .qty button { width: 30px; height: 30px; border: 1px solid #cfd4e5; border-radius: 6px; background: #fff; color: var(--accent); font-size: 16px; line-height: 1; }
 .qty button:hover { background: var(--accent-light); border-color: var(--accent-border); }
 .qty-value { min-width: 16px; font-size: 14.5px; font-weight: 800; text-align: center; }
+
+/* 폼 필드 (배송지/신청인 정보) */
 .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
 .field-full { grid-column: 1 / -1; }
 .text-input:focus, .select-input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(230,106,24,.13); }
 .input-error { border-color: var(--red) !important; }
+
+/* 픽업 / 배송지 주소 카드 */
 .address-card { margin-top: 14px; padding: 16px; border: 1px solid var(--border); border-radius: 10px; background: #fbfcff; }
 .address-card + .address-card { margin-top: 10px; }
 .address-caption { display: flex; align-items: center; gap: 7px; margin-bottom: 11px; font-size: 13px; font-weight: 800; }
@@ -46,9 +58,12 @@
 .same-address-check { display: inline-flex; align-items: center; gap: 8px; margin: -2px 0 13px; color: var(--muted); font-size: 12.5px; cursor: pointer; }
 .same-address-check input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
 .pickup-address-field { margin-bottom: 14px !important; }
+
+/* 안내 문구 */
 .notice { display: flex; gap: 10px; align-items: flex-start; margin-top: 16px; padding: 12px 14px; border: 1px solid var(--accent-border); border-radius: 9px; background: #fff8f2; color: #80502f; font-size: 12.5px; line-height: 1.5; }
 .notice svg { flex: none; width: 17px; margin-top: 1px; color: var(--accent); }
 
+/* Step 2: 접수 방식 카드 */
 .method-list { display: grid; gap: 10px; margin-top: 14px; }
 .method-card { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; border: 1px solid var(--border); border-radius: 10px; padding: 16px; cursor: pointer; transition: .15s ease; }
 .method-card:hover { border-color: var(--accent-border); }
@@ -67,6 +82,7 @@
 .option-note { margin-top: 2px; color: var(--muted); font-size: 11.5px; }
 .date-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
 
+/* 사이드바 요약 */
 .summary-heading { font-size: 15px; font-weight: 800; }
 .summary-route { display: grid; grid-template-columns: 8px 1fr; gap: 11px; margin: 20px 0; }
 .route-line { position: relative; width: 2px; background: #cdd3e7; margin: 7px auto; }
@@ -87,6 +103,7 @@
 .delivery-badge { display: inline-flex; align-items: center; gap: 5px; margin-top: 20px; padding: 7px 9px; border-radius: 7px; background: var(--green-light); color: var(--green); font-size: 11.5px; font-weight: 700; }
 .delivery-badge svg { width: 15px; }
 
+/* Step 3: 개인정보 동의 / 완료 화면 */
 .privacy-box { display: flex; gap: 11px; margin-top: 20px; padding: 14px; background: #fffdfa; border: 1px solid var(--border); border-radius: 9px; color: var(--muted); font-size: 12px; line-height: 1.55; }
 .privacy-box input { flex: none; margin: 2px 0 0; width: 16px; height: 16px; accent-color: var(--accent); }
 .complete { display: none; padding: 42px 24px; text-align: center; }
@@ -97,6 +114,7 @@
 .complete p { margin: 9px auto 0; max-width: 440px; color: var(--muted); font-size: 14px; line-height: 1.6; }
 .order-code { display: inline-block; margin: 20px 0 0; padding: 9px 12px; background: var(--accent-light); color: var(--accent-dark); border-radius: 7px; font-size: 13px; font-weight: 800; }
 
+/* 화물 등록 / 리스트 */
 .cargo-register { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 14px; padding: 14px 0 0; border-top: 1px solid var(--border); }
 .cargo-register-copy { color: var(--muted); font-size: 12.5px; line-height: 1.45; }
 .cargo-register-copy strong { display: block; margin-bottom: 2px; color: var(--text); font-size: 13px; }
@@ -113,5 +131,30 @@
 .cargo-remove { border: 0; background: transparent; color: var(--muted); padding: 3px 2px; font-size: 12px; text-decoration: underline; }
 .cargo-remove:hover { color: var(--red); }
 
-@media (max-width: 900px) { .page { padding: 0 20px 48px; } .layout { grid-template-columns: 1fr; } .sidebar-card { position: static; grid-row: 1; } .screen .card { grid-row: 2; } }
-@media (max-width: 680px) { .topbar { align-items: flex-start; } .steps { gap: 4px; padding: 6px; } .step { justify-content: center; padding: 10px 4px; } .step-icon { width: 37px; height: 37px; border-radius: 8px; } .step-icon svg { width: 20px; } .step > div:last-child { display: none; } .card, .sidebar-card { border-radius: 12px; } .card { padding: 22px 18px; } .cargo-section-box { padding: 16px; } .package-grid { grid-template-columns: 1fr; } .package-card { min-height: 0; display: grid; grid-template-columns: 42px 1fr; column-gap: 12px; align-items: center; } .package-name { margin-top: 0; } .package-note { grid-column: 2; } .field-grid, .date-row, .option-list { grid-template-columns: 1fr; } .cargo-register { align-items: flex-end; gap: 10px; } .summary-route { margin: 14px 0; } .actions { margin-top: 24px; } .btn { padding: 12px 14px; } }
+/* 반응형 */
+@media (max-width: 900px) {
+  .page { padding: 0 20px 48px; }
+  .layout { grid-template-columns: 1fr; }
+  .sidebar-card { position: static; grid-row: 1; }
+  .screen .card { grid-row: 2; }
+}
+@media (max-width: 680px) {
+  .topbar { align-items: flex-start; }
+  .steps { gap: 4px; padding: 6px; }
+  .step { justify-content: center; padding: 10px 4px; }
+  .step-icon { width: 37px; height: 37px; border-radius: 8px; }
+  .step-icon svg { width: 20px; }
+  .step > div:last-child { display: none; }
+  .card, .sidebar-card { border-radius: 12px; }
+  .card { padding: 22px 18px; }
+  .cargo-section-box { padding: 16px; }
+  .package-grid { grid-template-columns: 1fr; }
+  .package-card { min-height: 0; display: grid; grid-template-columns: 42px 1fr; column-gap: 12px; align-items: center; }
+  .package-name { margin-top: 0; }
+  .package-note { grid-column: 2; }
+  .field-grid, .date-row, .option-list { grid-template-columns: 1fr; }
+  .cargo-register { align-items: flex-end; gap: 10px; }
+  .summary-route { margin: 14px 0; }
+  .actions { margin-top: 24px; }
+  .btn { padding: 12px 14px; }
+}
