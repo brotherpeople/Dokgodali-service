@@ -107,18 +107,14 @@
                         </p>
                         <hr class="sep" />
 
-                        <div class="section-block cargo-section-box">
-                            <div class="section-label">물건 크기</div>
+                        <div class="section-block section-box">
+                            <div class="section-label">물건 크기 및 수량</div>
                             <div class="section-hint">
-                                가장 가까운 크기를 선택해 주세요. 실제 크기가
-                                다를 경우 배송 전 안내드립니다.
+                                각 크기별로 필요한 수량만큼 담아 주세요. 여러
+                                크기를 함께 담을 수 있습니다.
                             </div>
-                            <div class="package-grid" id="packageGrid">
-                                <button
-                                    class="package-card selected"
-                                    data-package="small"
-                                    type="button"
-                                >
+                            <div class="package-list" id="packageList">
+                                <div class="package-row" data-package="small">
                                     <span class="package-icon"
                                         ><svg
                                             viewBox="0 0 24 24"
@@ -130,15 +126,41 @@
                                             <path d="M3 7v10l9 4 9-4V7" />
                                             <path d="M12 11v10" /></svg
                                     ></span>
-                                    <span class="package-name">소형</span
-                                    ><span class="package-note"
-                                        >최대 40 × 30 × 30cm · 10kg</span
-                                    >
-                                </button>
-                                <button
-                                    class="package-card"
+                                    <div class="package-row-info">
+                                        <div class="package-row-name">
+                                            소형
+                                        </div>
+                                        <div class="package-row-note">
+                                            최대 40 × 30 × 30cm · 10kg
+                                        </div>
+                                    </div>
+                                    <div class="qty">
+                                        <button
+                                            type="button"
+                                            class="qty-btn"
+                                            data-action="minus"
+                                            data-package="small"
+                                            aria-label="소형 수량 줄이기"
+                                        >
+                                            −</button
+                                        ><span
+                                            class="qty-value"
+                                            data-package="small"
+                                            >0</span
+                                        ><button
+                                            type="button"
+                                            class="qty-btn"
+                                            data-action="plus"
+                                            data-package="small"
+                                            aria-label="소형 수량 늘리기"
+                                        >
+                                            +
+                                        </button>
+                                    </div>
+                                </div>
+                                <div
+                                    class="package-row"
                                     data-package="medium"
-                                    type="button"
                                 >
                                     <span class="package-icon"
                                         ><svg
@@ -153,16 +175,39 @@
                                             <path d="M2 7v10l10 5 10-5V7" />
                                             <path d="M12 12v10" /></svg
                                     ></span>
-                                    <span class="package-name">중형</span
-                                    ><span class="package-note"
-                                        >최대 80 × 60 × 60cm · 30kg</span
-                                    >
-                                </button>
-                                <button
-                                    class="package-card"
-                                    data-package="large"
-                                    type="button"
-                                >
+                                    <div class="package-row-info">
+                                        <div class="package-row-name">
+                                            중형
+                                        </div>
+                                        <div class="package-row-note">
+                                            최대 80 × 60 × 60cm · 30kg
+                                        </div>
+                                    </div>
+                                    <div class="qty">
+                                        <button
+                                            type="button"
+                                            class="qty-btn"
+                                            data-action="minus"
+                                            data-package="medium"
+                                            aria-label="중형 수량 줄이기"
+                                        >
+                                            −</button
+                                        ><span
+                                            class="qty-value"
+                                            data-package="medium"
+                                            >0</span
+                                        ><button
+                                            type="button"
+                                            class="qty-btn"
+                                            data-action="plus"
+                                            data-package="medium"
+                                            aria-label="중형 수량 늘리기"
+                                        >
+                                            +
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="package-row" data-package="large">
                                     <span class="package-icon"
                                         ><svg
                                             viewBox="0 0 24 24"
@@ -179,63 +224,41 @@
                                             />
                                             <path d="M3 10h18M12 5v14" /></svg
                                     ></span>
-                                    <span class="package-name">대형</span
-                                    ><span class="package-note"
-                                        >최대 120 × 80 × 80cm · 60kg</span
-                                    >
-                                </button>
-                            </div>
-                            <div class="cargo-control">
-                                <div class="quantity-row">
-                                    <div>
-                                        <div class="quantity-label">
-                                            선택한 물건의 수량
+                                    <div class="package-row-info">
+                                        <div class="package-row-name">
+                                            대형
                                         </div>
-                                        <div class="quantity-sub">
-                                            수량을 고른 뒤 화물을 등록해 주세요.
+                                        <div class="package-row-note">
+                                            최대 120 × 80 × 80cm · 60kg
                                         </div>
                                     </div>
                                     <div class="qty">
                                         <button
                                             type="button"
-                                            id="qtyMinus"
-                                            aria-label="수량 줄이기"
+                                            class="qty-btn"
+                                            data-action="minus"
+                                            data-package="large"
+                                            aria-label="대형 수량 줄이기"
                                         >
                                             −</button
-                                        ><span class="qty-value" id="qtyValue"
-                                            >1</span
+                                        ><span
+                                            class="qty-value"
+                                            data-package="large"
+                                            >0</span
                                         ><button
                                             type="button"
-                                            id="qtyPlus"
-                                            aria-label="수량 늘리기"
+                                            class="qty-btn"
+                                            data-action="plus"
+                                            data-package="large"
+                                            aria-label="대형 수량 늘리기"
                                         >
                                             +
                                         </button>
                                     </div>
                                 </div>
-                                <div class="cargo-register">
-                                    <div class="cargo-register-copy">
-                                        <strong id="selectedCargoLabel"
-                                            >소형 1개</strong
-                                        >다른 크기의 화물도 선택 후 계속 등록할
-                                        수 있습니다.
-                                    </div>
-                                    <button
-                                        class="btn btn-primary btn-register"
-                                        id="registerCargo"
-                                        type="button"
-                                    >
-                                        화물 등록
-                                    </button>
-                                </div>
                             </div>
-                            <div class="cargo-list-heading">
-                                등록한 물건
-                                <span id="cargoCountLabel"></span>
-                            </div>
-                            <div class="cargo-list" id="cargoList"></div>
                             <div class="field-error" id="cargoError">
-                                최소 한 개 이상의 물건을 등록해 주세요.
+                                최소 한 개 이상의 물건을 담아 주세요.
                             </div>
                         </div>
                         <div class="actions">
@@ -429,14 +452,13 @@
                                 최소한의 정보만 수집합니다.
                             </p>
                             <hr class="sep" />
-                            <div class="section-block">
-                                <div class="section-label">신청인 주소</div>
+                            <div class="section-block section-box">
+                                <div class="section-label">
+                                    신청인 주소
+                                    <span class="required">*필수</span>
+                                </div>
                                 <div class="field-grid">
                                     <div class="field-full">
-                                        <div class="field-title">
-                                            주소
-                                            <span class="required">*필수</span>
-                                        </div>
                                         <input
                                             class="text-input address-required"
                                             id="customerAddress"
@@ -446,7 +468,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="section-block">
+                            <div class="section-block section-box">
                                 <div class="section-label">픽업 및 배송지</div>
                                 <div class="address-card">
                                     <div class="address-caption">
@@ -462,7 +484,7 @@
                                                 cy="12"
                                                 r="2"
                                             /></svg
-                                        >픽업지
+                                        >픽업지 (독일)
                                     </div>
                                     <label class="same-address-check"
                                         ><input
@@ -509,12 +531,27 @@
                                                 cy="10"
                                                 r="2"
                                             /></svg
-                                        >배송지
+                                        >배송지 (대한민국)
                                     </div>
                                     <div class="field-grid">
-                                        <div class="field-full">
+                                        <div>
                                             <div class="field-title">
-                                                주소
+                                                우편번호
+                                                <span class="required"
+                                                    >*필수</span
+                                                >
+                                            </div>
+                                            <input
+                                                class="text-input address-required"
+                                                id="deliveryZip"
+                                                type="text"
+                                                inputmode="numeric"
+                                                placeholder="예: 06133"
+                                            />
+                                        </div>
+                                        <div>
+                                            <div class="field-title">
+                                                도로명 주소
                                                 <span class="required"
                                                     >*필수</span
                                                 >
@@ -523,39 +560,84 @@
                                                 class="text-input address-required"
                                                 id="deliveryAddress"
                                                 type="text"
-                                                placeholder="예: Friedrichstr. 77, 10117 Berlin"
+                                                placeholder="예: 서울특별시 강남구 테헤란로 231"
                                             />
                                         </div>
                                         <div>
                                             <div class="field-title">
-                                                수령인 이름
+                                                수취인 한글 이름
+                                                <span class="required"
+                                                    >*필수</span
+                                                >
                                             </div>
                                             <input
-                                                class="text-input"
-                                                id="recipientName"
+                                                class="text-input address-required"
+                                                id="recipientNameKo"
+                                                type="text"
+                                                placeholder="예: 김민수"
+                                            />
+                                        </div>
+                                        <div>
+                                            <div class="field-title">
+                                                수취인 영문 이름
+                                                <span class="required"
+                                                    >*필수</span
+                                                >
+                                            </div>
+                                            <input
+                                                class="text-input address-required"
+                                                id="recipientNameEn"
                                                 type="text"
                                                 placeholder="예: Kim Minsoo"
                                             />
                                         </div>
                                         <div>
                                             <div class="field-title">
-                                                수령인 연락처
+                                                수취인 전화번호
+                                                <span class="required"
+                                                    >*필수</span
+                                                >
                                             </div>
                                             <input
-                                                class="text-input"
+                                                class="text-input address-required"
                                                 id="recipientPhone"
                                                 type="tel"
-                                                placeholder="예: +49 170 1234567"
+                                                placeholder="예: 010-1234-5678"
                                             />
+                                        </div>
+                                        <div class="field-full">
+                                            <div class="field-title">
+                                                개인통관고유부호
+                                                <span class="required"
+                                                    >*필수</span
+                                                >
+                                            </div>
+                                            <input
+                                                class="text-input address-required"
+                                                id="customsCode"
+                                                type="text"
+                                                placeholder="예: p123456789012"
+                                            />
+                                            <div class="field-hint">
+                                                <a
+                                                    href="https://ecos.customs.go.kr/ecp/index.do"
+                                                    target="_blank"
+                                                    rel="noopener"
+                                                    >여기</a
+                                                >를 클릭하셔서 조회할 수
+                                                있습니다. 물건을 받으시는
+                                                <b>수취인(한국) 본인</b> 명의로
+                                                발급된 부호를 입력해 주세요.
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="field-error" id="addressError">
-                                    신청인 주소와 배송지 주소를 모두 입력해
-                                    주세요.
+                                    신청인 주소, 배송지, 수취인 정보를 모두
+                                    입력해 주세요.
                                 </div>
                             </div>
-                            <div class="section-block">
+                            <div class="section-block section-box">
                                 <div class="section-label">예약자 정보</div>
                                 <div class="field-grid">
                                     <div>
@@ -595,19 +677,66 @@
                                         />
                                     </div>
                                     <div>
-                                        <div class="field-title">결제 방법</div>
+                                        <div class="field-title">
+                                            결제 방법
+                                            <span class="required">*필수</span>
+                                        </div>
                                         <select
-                                            class="select-input"
+                                            class="select-input personal-required"
                                             id="payment"
                                         >
+                                            <option value="">선택</option>
                                             <option>카드 결제</option>
                                             <option>PayPal</option>
                                             <option>계좌이체 (SEPA)</option>
                                         </select>
                                     </div>
+                                    <div>
+                                        <div class="field-title">
+                                            이사화물 여부
+                                            <span class="required">*필수</span>
+                                        </div>
+                                        <select
+                                            class="select-input personal-required"
+                                            id="movingStatus"
+                                        >
+                                            <option value="">선택</option>
+                                            <option value="none">
+                                                해당 없음
+                                            </option>
+                                            <option value="moving">
+                                                이사화물 (독일 3개월 이상 거주
+                                                후 귀국)
+                                            </option>
+                                            <option value="import">
+                                                반입 건 (귀국 후 6개월 이내
+                                                반입)
+                                            </option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <div class="field-title">
+                                            한국 입국일
+                                            <span class="required">*필수</span>
+                                        </div>
+                                        <input
+                                            class="text-input personal-required"
+                                            id="entryDate"
+                                            type="date"
+                                        />
+                                    </div>
+                                </div>
+                                <div class="section-hint">
+                                    독일에 3개월 이상 거주하다 한국으로
+                                    귀국하시는 경우, 또는 귀국 후 6개월 이내에
+                                    짐을 들여오시는 경우 '이사화물'로 신고하면
+                                    관세가 면제될 수 있습니다. 신고서 작성
+                                    대행 수수료로 이사통관서류비 €30가 별도
+                                    청구됩니다. 한국 입국일은 이삿짐 통관서류를
+                                    요청하기 위해 필요합니다.
                                 </div>
                             </div>
-                            <div class="section-block">
+                            <div class="section-block section-box">
                                 <div class="section-label">예약 확인</div>
                                 <div class="notice">
                                     <svg
@@ -626,7 +755,30 @@
                                         결제는 배송 확정 후 진행됩니다.</span
                                     >
                                 </div>
-                                <label class="privacy-box"
+                                <label class="confirm-check"
+                                    ><input
+                                        id="hazmatCheck"
+                                        type="checkbox"
+                                    /><span
+                                        ><b>위험물 확인</b> — 보낼 수 없는
+                                        위험물(가스, 인화성 물질) 및 배터리,
+                                        향수, 스프레이, 김치, 한약, 육류, 씨앗
+                                        관련 규정을 준수하였습니다.
+                                        <b class="required">(필수)</b></span
+                                    ></label
+                                >
+                                <label class="confirm-check"
+                                    ><input
+                                        id="packagingCheck"
+                                        type="checkbox"
+                                    /><span
+                                        ><b>포장 확인</b> — 박스는 외부
+                                        충격에 견딜 수 있도록 안전하게
+                                        포장되었으며, 파손 면책에 동의합니다.
+                                        <b class="required">(필수)</b></span
+                                    ></label
+                                >
+                                <label class="confirm-check"
                                     ><input id="privacy" type="checkbox" /><span
                                         >독고달이의 개인정보 수집·이용 및 배송
                                         약관에 동의합니다. 예약과 배송 안내를
@@ -636,7 +788,8 @@
                                     ></label
                                 >
                                 <div class="field-error" id="personalError">
-                                    필수 개인정보와 약관 동의를 확인해 주세요.
+                                    필수 개인정보, 위험물·포장 확인, 약관
+                                    동의를 모두 확인해 주세요.
                                 </div>
                             </div>
                             <div class="actions">
@@ -714,9 +867,7 @@
                ================================================================ */
             const state = {
                 step: 1,
-                selectedPackage: "small",
-                selectedQuantity: 1,
-                cargoes: [],
+                quantities: { small: 0, medium: 0, large: 0 },
                 method: "premium",
             };
             const $ = (selector) => document.querySelector(selector);
@@ -794,7 +945,14 @@
                         : $("#pickupAddress").value
                     ).trim(),
                 );
-                const delivery = escapeText($("#deliveryAddress").value.trim());
+                const delivery = escapeText(
+                    [
+                        $("#deliveryZip").value.trim(),
+                        $("#deliveryAddress").value.trim(),
+                    ]
+                        .filter(Boolean)
+                        .join(" "),
+                );
                 const scheduleDate = $("#pickupDate").value;
                 const scheduleTime = $("#pickupTime").value;
                 const scheduleLabel = !scheduleDate
@@ -804,11 +962,16 @@
                       : scheduleTime
                         ? `${scheduleDate} ${scheduleTime}`
                         : "미선택";
+                const cargoSummary =
+                    Object.entries(state.quantities)
+                        .filter(([, qty]) => qty > 0)
+                        .map(([pkg, qty]) => `${packageData[pkg].name} ${qty}개`)
+                        .join(", ") || "화물 등록 전";
                 const markup = `
         <div class="summary-heading">배송 요약</div>
         <div class="summary-route"><div class="route-line"></div><div><div class="route-label">픽업지</div><div class="route-value" title="${pickup}">${pickup}</div><div class="route-label" style="margin-top:15px">배송지</div><div class="route-value" title="${delivery}">${delivery}</div></div></div>
         <div class="summary-divider"></div>
-        <div class="summary-row"><span>물건 정보</span><strong>${state.cargoes.length ? state.cargoes.map((cargo) => `${packageData[cargo.package].name} ${cargo.quantity}개`).join(", ") : "화물 등록 전"}</strong></div>
+        <div class="summary-row"><span>물건 정보</span><strong>${cargoSummary}</strong></div>
         <div class="summary-row"><span>접수 방식</span><strong>${methodData[state.method].name}</strong></div>
         <div class="summary-row"><span>이용 조건</span><strong>${methodData[state.method].condition}</strong></div>
         <div class="summary-row"><span>희망 일시</span><strong>${scheduleLabel}</strong></div>
@@ -819,12 +982,15 @@
                 );
             }
             function render() {
-                $$(".package-card").forEach((card) =>
-                    card.classList.toggle(
-                        "selected",
-                        card.dataset.package === state.selectedPackage,
-                    ),
-                );
+                $$(".package-row").forEach((row) => {
+                    const pkg = row.dataset.package;
+                    const qty = state.quantities[pkg];
+                    row.classList.toggle("active", qty > 0);
+                    $(`.qty-value[data-package="${pkg}"]`).textContent = qty;
+                    $(
+                        `.qty-btn[data-action="minus"][data-package="${pkg}"]`,
+                    ).disabled = qty <= 0;
+                });
                 $$(".method-card").forEach((card) =>
                     card.classList.toggle(
                         "selected",
@@ -857,29 +1023,6 @@
                 } else {
                     hint.classList.add("hidden");
                 }
-                $("#qtyValue").textContent = state.selectedQuantity;
-                $("#selectedCargoLabel").textContent =
-                    `${packageData[state.selectedPackage].name} ${state.selectedQuantity}개`;
-                $("#cargoCountLabel").textContent = state.cargoes.length
-                    ? `총 ${state.cargoes.reduce((sum, cargo) => sum + cargo.quantity, 0)}개`
-                    : "아직 등록된 물건이 없습니다";
-                $("#cargoList").innerHTML = state.cargoes.length
-                    ? state.cargoes
-                          .map(
-                              (cargo) =>
-                                  `<div class="cargo-row"><div class="cargo-row-main"><span class="cargo-dot"></span><span class="cargo-name">${packageData[cargo.package].name}</span><span class="cargo-count">${cargo.quantity}개</span></div><button class="cargo-remove" type="button" data-remove-cargo="${cargo.package}">삭제</button></div>`,
-                          )
-                          .join("")
-                    : '<div class="cargo-empty">물건 크기와 수량을 선택한 뒤 “화물 등록”을 눌러 주세요.</div>';
-                $$("[data-remove-cargo]").forEach((button) =>
-                    button.addEventListener("click", () => {
-                        state.cargoes = state.cargoes.filter(
-                            (cargo) =>
-                                cargo.package !== button.dataset.removeCargo,
-                        );
-                        render();
-                    }),
-                );
                 renderSummary();
             }
             function showStep(step) {
@@ -899,7 +1042,9 @@
                 render();
             }
             function validateCargoes() {
-                const valid = state.cargoes.length > 0;
+                const valid = Object.values(state.quantities).some(
+                    (qty) => qty > 0,
+                );
                 $("#cargoError").classList.toggle("visible", !valid);
                 return valid;
             }
@@ -929,12 +1074,18 @@
                 return valid;
             }
             function validatePersonal() {
-                const inputs = $$(".personal-required");
+                const inputs = $$(".personal-required").filter(
+                    (input) => !input.disabled,
+                );
                 const invalid = inputs.filter((input) => !input.value.trim());
                 inputs.forEach((input) =>
                     input.classList.toggle("input-error", !input.value.trim()),
                 );
-                const valid = invalid.length === 0 && $("#privacy").checked;
+                const valid =
+                    invalid.length === 0 &&
+                    $("#privacy").checked &&
+                    $("#hazmatCheck").checked &&
+                    $("#packagingCheck").checked;
                 $("#personalError").classList.toggle("visible", !valid);
                 return valid;
             }
@@ -944,12 +1095,30 @@
                 if (isSame) $("#pickupAddress").classList.remove("input-error");
                 render();
             }
-            $$(".package-card").forEach((card) =>
-                card.addEventListener("click", () => {
-                    state.selectedPackage = card.dataset.package;
-                    render();
-                }),
-            );
+            // 한국으로 이사가는 게 아니라 박스만 보내는 경우(해당 없음)엔
+            // 한국 입국일을 물어볼 이유가 없으므로 비활성화한다.
+            function updateMovingStatus() {
+                const entryDate = $("#entryDate");
+                const isNone = $("#movingStatus").value === "none";
+                entryDate.disabled = isNone;
+                if (isNone) {
+                    entryDate.value = "";
+                    entryDate.classList.remove("input-error");
+                }
+            }
+            $("#packageList").addEventListener("click", (event) => {
+                const btn = event.target.closest(".qty-btn");
+                if (!btn) return;
+                const pkg = btn.dataset.package;
+                const delta = btn.dataset.action === "plus" ? 1 : -1;
+                state.quantities[pkg] = Math.max(
+                    0,
+                    Math.min(10, state.quantities[pkg] + delta),
+                );
+                if (state.quantities[pkg] > 0)
+                    $("#cargoError").classList.remove("visible");
+                render();
+            });
             $$(".method-card").forEach((card) => {
                 const choose = () => {
                     state.method = card.dataset.method;
@@ -971,37 +1140,14 @@
             $(".map-link").addEventListener("click", (event) =>
                 event.stopPropagation(),
             );
-            $("#qtyMinus").addEventListener("click", () => {
-                state.selectedQuantity = Math.max(
-                    1,
-                    state.selectedQuantity - 1,
-                );
-                render();
-            });
-            $("#qtyPlus").addEventListener("click", () => {
-                state.selectedQuantity = Math.min(
-                    10,
-                    state.selectedQuantity + 1,
-                );
-                render();
-            });
-            $("#registerCargo").addEventListener("click", () => {
-                const existing = state.cargoes.find(
-                    (cargo) => cargo.package === state.selectedPackage,
-                );
-                if (existing) existing.quantity += state.selectedQuantity;
-                else
-                    state.cargoes.push({
-                        package: state.selectedPackage,
-                        quantity: state.selectedQuantity,
-                    });
-                $("#cargoError").classList.remove("visible");
-                render();
-            });
             $$("input, select, textarea").forEach((input) =>
                 input.addEventListener("input", render),
             );
             $("#sameAsCustomer").addEventListener("change", updateSameAddress);
+            $("#movingStatus").addEventListener("change", () => {
+                updateMovingStatus();
+                render();
+            });
             $("#toStep2").addEventListener("click", () => {
                 if (validateCargoes()) showStep(2);
             });
