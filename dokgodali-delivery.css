@@ -14,8 +14,8 @@
 .step.active { border-color: var(--accent-border); background: var(--accent-light); }
 .step.done .step-icon { background: var(--green); color: #fff; }
 
-.section { margin-top: 28px; }
-.section:first-of-type { margin-top: 0; }
+.section-block { margin-top: 28px; }
+.section-block:first-of-type { margin-top: 0; }
 
 .package-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px; }
 .cargo-section-box { padding: 20px; border: 1px solid var(--border); border-radius: 12px; background: #fbfcff; }
@@ -36,8 +36,6 @@
 .qty-value { min-width: 16px; font-size: 14.5px; font-weight: 800; text-align: center; }
 .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
 .field-full { grid-column: 1 / -1; }
-.field-title { margin-bottom: 8px; font-size: 12.5px; font-weight: 700; color: var(--faint); letter-spacing: 0.04em; }
-.required { margin-left: 3px; color: var(--red); font-size: 11px; font-weight: 700; }
 .text-input:focus, .select-input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(230,106,24,.13); }
 .input-error { border-color: var(--red) !important; }
 .address-card { margin-top: 14px; padding: 16px; border: 1px solid var(--border); border-radius: 10px; background: #fbfcff; }

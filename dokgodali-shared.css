@@ -53,6 +53,7 @@ h1 { margin: 0 0 8px; font-size: 22px; }
 
 /* Form field basics */
 .field-title { margin-bottom: 8px; font-size: 12.5px; font-weight: 700; color: var(--faint); letter-spacing: 0.04em; }
+.required { margin-left: 3px; color: var(--red); font-size: 11px; font-weight: 700; }
 .text-input, .select-input, textarea { width: 100%; border: 1px solid var(--border); background: #fafbfe; border-radius: 8px; padding: 12px 14px; font-size: 14px; font-family: inherit; color: var(--text); outline: none; transition: border-color .15s, box-shadow .15s; }
 textarea { min-height: 88px; resize: vertical; }
 .input-error { border-color: var(--red) !important; }
