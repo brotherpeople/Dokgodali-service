@@ -312,12 +312,13 @@
                                             <div class="method-note">
                                                 매주 화요일 17:00–21:00,
                                                 정해진 순회 경로로만
-                                                픽업합니다.
+                                                픽업합니다. 시간대는 저희가
+                                                배정해 드립니다.
                                             </div>
                                         </div>
                                         <div class="method-price">
-                                            픽업비 €3<br />€50 이상 결제 시
-                                            무료
+                                            €50 이상 결제 시<br />픽업비 무료
+                                            (미만 €3)
                                         </div>
                                     </div>
                                     <div class="method-schedule-slot"></div>
@@ -335,7 +336,27 @@
                                                 접수처 방문
                                                 <span class="method-area"
                                                     >Atti Asia Markt</span
-                                                >
+                                                ><a
+                                                    class="map-link"
+                                                    href="https://www.google.com/maps/search/?api=1&query=Atti+Asia+Markt+Berlin"
+                                                    target="_blank"
+                                                    rel="noopener"
+                                                    aria-label="Google 지도에서 위치 보기"
+                                                    ><svg
+                                                        viewBox="0 0 24 24"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        stroke-width="2"
+                                                    >
+                                                        <path
+                                                            d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"
+                                                        />
+                                                        <circle
+                                                            cx="12"
+                                                            cy="10"
+                                                            r="2"
+                                                        /></svg
+                                                ></a>
                                             </div>
                                             <div class="method-note">
                                                 고객님께서 접수처에 직접
@@ -358,15 +379,31 @@
                                 <span class="required">*필수</span>
                             </div>
                             <div class="date-row">
-                                <input
-                                    class="text-input"
-                                    id="pickupDate"
-                                    type="date"
-                                />
-                                <select
-                                    class="select-input"
-                                    id="pickupTime"
-                                ></select>
+                                <div>
+                                    <input
+                                        class="text-input"
+                                        id="pickupDate"
+                                        type="date"
+                                    />
+                                    <div
+                                        class="schedule-hint hidden"
+                                        id="fixedDateHint"
+                                    >
+                                        화요일만 선택 가능합니다.
+                                    </div>
+                                </div>
+                                <div>
+                                    <select
+                                        class="select-input"
+                                        id="pickupTime"
+                                    ></select>
+                                    <div
+                                        class="schedule-hint hidden"
+                                        id="fixedTimeNote"
+                                    >
+                                        17:00–21:00 사이 배정됩니다.
+                                    </div>
+                                </div>
                             </div>
                             <div class="field-error" id="methodError">
                                 희망 날짜와 시간을 선택해 주세요.
@@ -708,6 +745,16 @@
                               })[char],
                       )
                     : "주소를 입력해 주세요";
+            // 고정 픽업은 화요일에만 순회하므로, 화요일이 아닌 날짜가 들어오면 다음 화요일로 보정한다.
+            // (toISOString은 UTC로 변환되면서 자정 날짜가 하루 밀릴 수 있어 로컬 날짜 요소로 직접 계산한다)
+            function snapToTuesday(dateStr) {
+                if (!dateStr) return dateStr;
+                const [y, m, d] = dateStr.split("-").map(Number);
+                const date = new Date(y, m - 1, d, 12);
+                const diff = (2 - date.getDay() + 7) % 7;
+                date.setDate(date.getDate() + diff);
+                return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+            }
 
             function renderSummary() {
                 const pickup = escapeText(
@@ -719,8 +766,11 @@
                 const delivery = escapeText($("#deliveryAddress").value.trim());
                 const scheduleDate = $("#pickupDate").value;
                 const scheduleTime = $("#pickupTime").value;
-                const scheduleLabel =
-                    scheduleDate && scheduleTime
+                const scheduleLabel = !scheduleDate
+                    ? "미선택"
+                    : state.method === "fixed"
+                      ? `${scheduleDate} (17:00–21:00 배정)`
+                      : scheduleTime
                         ? `${scheduleDate} ${scheduleTime}`
                         : "미선택";
                 const markup = `
@@ -750,9 +800,17 @@
                         card.dataset.method === state.method,
                     ),
                 );
-                $(
+                const scheduleSlot = $(
                     `.method-card[data-method="${state.method}"] .method-schedule-slot`,
-                ).appendChild($("#methodSchedule"));
+                );
+                if (!scheduleSlot.contains($("#methodSchedule"))) {
+                    scheduleSlot.appendChild($("#methodSchedule"));
+                }
+                const isFixed = state.method === "fixed";
+                $("#pickupTime").classList.toggle("hidden", isFixed);
+                $("#pickupTime").disabled = isFixed;
+                $("#fixedTimeNote").classList.toggle("hidden", !isFixed);
+                $("#fixedDateHint").classList.toggle("hidden", !isFixed);
                 $("#qtyValue").textContent = state.selectedQuantity;
                 $("#selectedCargoLabel").textContent =
                     `${packageData[state.selectedPackage].name} ${state.selectedQuantity}개`;
@@ -816,9 +874,11 @@
             function validateMethodDetails() {
                 const dateInput = $("#pickupDate");
                 const timeInput = $("#pickupTime");
-                const valid = !!dateInput.value && !!timeInput.value;
+                const isFixed = state.method === "fixed";
+                const timeOk = isFixed || !!timeInput.value;
+                const valid = !!dateInput.value && timeOk;
                 dateInput.classList.toggle("input-error", !dateInput.value);
-                timeInput.classList.toggle("input-error", !timeInput.value);
+                timeInput.classList.toggle("input-error", !timeOk);
                 $("#methodError").classList.toggle("visible", !valid);
                 return valid;
             }
@@ -847,6 +907,11 @@
             $$(".method-card").forEach((card) => {
                 const choose = () => {
                     state.method = card.dataset.method;
+                    if (state.method === "fixed") {
+                        $("#pickupDate").value = snapToTuesday(
+                            $("#pickupDate").value,
+                        );
+                    }
                     render();
                 };
                 card.addEventListener("click", choose);
@@ -857,6 +922,17 @@
                     }
                 });
             });
+            $("#pickupDate").addEventListener("change", () => {
+                if (state.method === "fixed") {
+                    $("#pickupDate").value = snapToTuesday(
+                        $("#pickupDate").value,
+                    );
+                    render();
+                }
+            });
+            $(".map-link").addEventListener("click", (event) =>
+                event.stopPropagation(),
+            );
             $("#qtyMinus").addEventListener("click", () => {
                 state.selectedQuantity = Math.max(
                     1,
@@ -931,7 +1007,7 @@
             }
             const tomorrow = new Date();
             tomorrow.setDate(tomorrow.getDate() + 1);
-            const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+            const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
             $("#pickupDate").min = tomorrowStr;
             $("#pickupDate").value = tomorrowStr;
 
