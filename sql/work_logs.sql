@@ -1,6 +1,6 @@
 create table work_logs (
   id uuid primary key default gen_random_uuid(),
-  schedule_id uuid references schedules(id),
+  schedule_id text references schedules(id),
   user_id text not null,
   job_date date not null,
   assigned_start text,

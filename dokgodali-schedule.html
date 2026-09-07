@@ -80,6 +80,9 @@
         </div>
       </div>
     </div>
+    <div id="crew-today-empty" class="today-hero-card hidden" style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 13px;">
+      오늘 배정된 작업 일정이 없습니다.
+    </div>
   </div>
 
   <!-- CREW VIEW: Work Time Submission (kept as a sibling of crew-today-section, not
@@ -218,7 +221,11 @@
           </div>
           <div class="form-group">
             <label class="form-label">작업 시간</label>
-            <input type="text" id="f-time-range" class="form-control" placeholder="08:00 ~ 13:00" required>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <select id="f-time-start" class="form-control" required></select>
+              <span>~</span>
+              <select id="f-time-end" class="form-control" required></select>
+            </div>
           </div>
         </div>
 
@@ -238,20 +245,15 @@
           </div>
         </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">필요 인원</label>
-            <input type="number" id="f-required-workers" class="form-control" min="1" max="10" value="3" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label">차량 종류</label>
-            <select id="f-vehicle-type" class="form-control">
-              <option value="Miles L / XL 밴">Miles L / XL 밴</option>
-              <option value="Miles L 사이즈 밴">Miles L 사이즈 밴</option>
-              <option value="Miles XL 사이즈 밴">Miles XL 사이즈 밴</option>
-              <option value="3.5t 트럭">3.5t 트럭</option>
-            </select>
-          </div>
+        <div class="form-group">
+          <label class="form-label">필요 인원</label>
+          <input type="number" id="f-required-workers" class="form-control" min="1" max="10" value="3" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">차량 종류 및 대수</label>
+          <div id="f-vehicles-rows"></div>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="addVehicleRow()">+ 차량 추가</button>
         </div>
 
         <div class="form-group">
@@ -259,8 +261,20 @@
           <input type="text" id="f-notes" class="form-control" placeholder="사다리차 불가, 계단 주의, 침대 분해">
         </div>
 
+        <div id="modal-crew-section" class="hidden" style="margin-top: 4px; padding-top: 10px; border-top: 1px solid var(--border);">
+          <label class="form-label">배정 크루</label>
+          <div id="modal-assign-rows"></div>
+          <div style="display: flex; gap: 6px; margin-top: 8px;">
+            <select id="modal-select-add-crew" class="form-control" style="font-size: 11.5px; padding: 4px 6px; flex: 1;">
+              <option value="">+ 크루 배정</option>
+            </select>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="addCrewToSchedule()">추가</button>
+          </div>
+        </div>
+
       </div>
       <div class="modal-footer">
+        <button type="button" class="btn btn-danger-outline btn-sm hidden" id="schedule-delete-btn" style="margin-right: auto;">삭제</button>
         <button type="button" class="btn btn-secondary btn-sm" onclick="closeScheduleModal()">취소</button>
         <button type="submit" class="btn btn-primary btn-sm">저장</button>
       </div>
@@ -281,6 +295,37 @@
     <div class="modal-footer">
       <button class="btn btn-secondary btn-sm" onclick="copyWhatsappText()">복사</button>
       <a id="btn-open-wa" class="btn btn-whatsapp btn-sm" href="#" target="_blank">WhatsApp 열기</a>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Crew Day Detail -->
+<div id="daydetail-modal" class="modal-overlay hidden">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div class="card-title" id="daydetail-title"></div>
+        <span id="daydetail-avail-badge" class="avail-badge"></span>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="closeDayDetailModal()">닫기</button>
+    </div>
+    <div class="modal-body">
+      <div id="daydetail-job-info" style="margin-bottom: 14px;"></div>
+      <div id="daydetail-worklog-section" class="hidden" style="margin-bottom: 14px; padding-top: 10px; border-top: 1px solid var(--border);">
+        <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px;">근무시간 제출</div>
+        <div id="daydetail-worklog-body"></div>
+      </div>
+      <div id="daydetail-action-view">
+        <button class="btn btn-primary" id="daydetail-toggle-btn" style="width:100%;"></button>
+        <div id="daydetail-past-note" class="hidden" style="font-size: 12.5px; color: var(--text-muted); text-align: center;">지난 날짜는 가능/불가 상태를 변경할 수 없습니다.</div>
+      </div>
+      <div id="daydetail-confirm-view" class="hidden">
+        <div id="daydetail-confirm-text" style="font-size: 14px; font-weight: 600; margin-bottom: 10px; text-align: center;"></div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-secondary" id="daydetail-confirm-cancel-btn" style="flex:1;">취소</button>
+          <button class="btn btn-primary" id="daydetail-confirm-ok-btn" style="flex:1;">확인</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -307,8 +352,10 @@ const CREW_USERS = [
   { id: 'crew4', name: '박민수', phone: '+49 174 4444444', canDrive: false }
 ];
 
-// 데모용 "오늘" 날짜 고정값 — 실제 서비스 전환 시 new Date() 기반으로 교체
-const TODAY_DATE = '2026-09-01';
+function formatDateLocal(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+const TODAY_DATE = formatDateLocal(new Date());
 
 const INVITE_CODE = 'DKGD-2026-BERLIN';
 
@@ -341,50 +388,104 @@ function calcWorkLog(actualStart, actualEnd) {
   return { breakMinutes, workedHours };
 }
 
-function populateWorklogTimeSelects() {
-  const starts = document.getElementById('worklog-start-select');
-  const ends = document.getElementById('worklog-end-select');
-  if (!starts || starts.options.length > 0) return;
+function populateTimeSelect(selectEl, defaultValue) {
+  if (!selectEl || selectEl.options.length > 0) return;
   for (let m = 6 * 60; m <= 22 * 60; m += 15) {
     const h = String(Math.floor(m / 60)).padStart(2, '0');
     const mm = String(m % 60).padStart(2, '0');
     const label = `${h}:${mm}`;
-    starts.appendChild(new Option(label, label));
-    ends.appendChild(new Option(label, label));
+    selectEl.appendChild(new Option(label, label));
   }
-  starts.value = '07:00';
-  ends.value = '16:00';
+  if (defaultValue) selectEl.value = defaultValue;
+}
+
+const VEHICLE_TYPE_OPTIONS = ['Miles L / XL 밴', 'Miles L 사이즈 밴', 'Miles XL 사이즈 밴', '3.5t 트럭'];
+
+function vehicleCountOptionsHtml(selected) {
+  let opts = '';
+  for (let i = 1; i <= 10; i++) {
+    opts += `<option value="${i}" ${i === selected ? 'selected' : ''}>${i}대</option>`;
+  }
+  return opts;
+}
+
+function createVehicleRowEl(type, count) {
+  const row = document.createElement('div');
+  row.className = 'vehicle-row';
+  row.style.cssText = 'display: flex; gap: 6px; align-items: center; margin-bottom: 6px;';
+  row.innerHTML = `
+    <select class="form-control vehicle-type-select" style="flex: 2;">
+      <option value="">필요 없음</option>
+      ${VEHICLE_TYPE_OPTIONS.map(t => `<option value="${t}">${t}</option>`).join('')}
+    </select>
+    <select class="form-control vehicle-count-select ${type ? '' : 'hidden'}" style="flex: 1;">
+      ${vehicleCountOptionsHtml(count || 1)}
+    </select>
+    <button type="button" class="btn btn-secondary btn-sm" style="padding: 2px 8px;" onclick="this.closest('.vehicle-row').remove()">✕</button>
+  `;
+  const typeSelect = row.querySelector('.vehicle-type-select');
+  const countSelect = row.querySelector('.vehicle-count-select');
+  if (type) typeSelect.value = type;
+  typeSelect.onchange = () => {
+    countSelect.classList.toggle('hidden', !typeSelect.value);
+  };
+  return row;
+}
+
+function addVehicleRow() {
+  document.getElementById('f-vehicles-rows').appendChild(createVehicleRowEl('', 1));
+}
+
+function renderVehicleRows(vehicles) {
+  const container = document.getElementById('f-vehicles-rows');
+  container.innerHTML = '';
+  const list = (vehicles && vehicles.length > 0) ? vehicles : [{ type: '', count: 1 }];
+  list.forEach(v => container.appendChild(createVehicleRowEl(v.type, v.count)));
+}
+
+function collectVehicleRows() {
+  return Array.from(document.querySelectorAll('#f-vehicles-rows .vehicle-row'))
+    .map(row => ({
+      type: row.querySelector('.vehicle-type-select').value,
+      count: parseInt(row.querySelector('.vehicle-count-select').value, 10) || 1
+    }))
+    .filter(v => v.type);
+}
+
+function populateWorklogTimeSelects() {
+  populateTimeSelect(document.getElementById('worklog-start-select'), '07:00');
+  populateTimeSelect(document.getElementById('worklog-end-select'), '16:00');
+}
+
+function formatWorklogPreviewText(start, end) {
+  const raw = timeToMinutes(end) - timeToMinutes(start);
+  if (raw <= 0) {
+    return '종료 시간은 시작 시간보다 늦어야 합니다.';
+  }
+  const { breakMinutes, workedHours } = calcWorkLog(start, end);
+  return `예상 근무시간: ${workedHours}시간 (휴게 ${breakMinutes}분 자동 적용)`;
 }
 
 function updateWorklogPreview() {
   const start = document.getElementById('worklog-start-select').value;
   const end = document.getElementById('worklog-end-select').value;
-  const preview = document.getElementById('worklog-preview');
-  const raw = timeToMinutes(end) - timeToMinutes(start);
-  if (raw <= 0) {
-    preview.textContent = '종료 시간은 시작 시간보다 늦어야 합니다.';
-    return;
-  }
-  const { breakMinutes, workedHours } = calcWorkLog(start, end);
-  preview.textContent = `예상 근무시간: ${workedHours}시간 (휴게 ${breakMinutes}분 자동 적용)`;
+  document.getElementById('worklog-preview').textContent = formatWorklogPreviewText(start, end);
 }
 
-async function submitWorklog(scheduleId) {
+async function submitWorkLogEntry(scheduleId, start, end) {
   const currentUserId = state.currentRole;
-  const start = document.getElementById('worklog-start-select').value;
-  const end = document.getElementById('worklog-end-select').value;
   const raw = timeToMinutes(end) - timeToMinutes(start);
-  if (raw <= 0) return;
+  if (raw <= 0) return { ok: false, error: '종료 시간은 시작 시간보다 늦어야 합니다.' };
   const { breakMinutes, workedHours } = calcWorkLog(start, end);
 
   const existing = state.workLogs.find(w => w.scheduleId === scheduleId && w.userId === currentUserId);
-  const myJob = state.schedules.find(s => s.id === scheduleId);
-  const myAssign = myJob.assignments.find(a => a.userId === currentUserId);
+  const job = state.schedules.find(s => s.id === scheduleId);
+  const myAssign = job.assignments.find(a => a.userId === currentUserId);
 
   const row = {
     schedule_id: scheduleId,
     user_id: currentUserId,
-    job_date: myJob.jobDate,
+    job_date: job.jobDate,
     assigned_start: myAssign.startTime,
     actual_start: start,
     actual_end: end,
@@ -396,13 +497,32 @@ async function submitWorklog(scheduleId) {
     confirmed_at: null
   };
 
+  let writeError;
   if (existing) {
-    await sb.from('work_logs').update(row).eq('id', existing.id);
+    ({ error: writeError } = await sb.from('work_logs').update(row).eq('id', existing.id));
   } else {
-    await sb.from('work_logs').insert(row);
+    ({ error: writeError } = await sb.from('work_logs').insert(row));
+  }
+  if (writeError) {
+    console.error('work_logs submit failed:', writeError);
+    return { ok: false, error: '제출에 실패했습니다. 잠시 후 다시 시도해 주세요.' };
   }
   await loadDataFromSupabase();
-  renderApp();
+  return { ok: true, error: null };
+}
+
+async function submitWorklog(scheduleId) {
+  const start = document.getElementById('worklog-start-select').value;
+  const end = document.getElementById('worklog-end-select').value;
+  const btn = document.getElementById('worklog-submit-btn');
+  btn.disabled = true;
+  const result = await submitWorkLogEntry(scheduleId, start, end);
+  btn.disabled = false;
+  if (result.ok) {
+    renderApp();
+  } else {
+    document.getElementById('worklog-preview').textContent = result.error;
+  }
 }
 
 function renderWorklogSection(myJob, currentUserId) {
@@ -440,13 +560,14 @@ function renderWorklogSection(myJob, currentUserId) {
 
 let state = {
   currentRole: 'admin',
-  currentYear: 2026,
-  currentMonth: 8,
-  selectedDate: '2026-09-01',
+  currentYear: new Date().getFullYear(),
+  currentMonth: new Date().getMonth(),
+  selectedDate: TODAY_DATE,
   schedules: [],
   availability: {},
   workLogs: [],
-  adminTab: 'dispatch'
+  adminTab: 'dispatch',
+  editingScheduleId: null
 };
 
 async function init() {
@@ -506,7 +627,7 @@ function mapScheduleFromDB(s) {
     originSpec: s.origin_spec,
     destAddress: s.dest_address,
     destSpec: s.dest_spec,
-    vehicleType: s.vehicle_type,
+    vehicles: s.vehicles || [],
     requiredWorkers: s.required_workers,
     notes: s.notes,
     assignments: s.assignments || []
@@ -864,7 +985,7 @@ function renderAdminSelectedDateSchedules() {
         </div>
         <div style="display: flex; gap: 4px;">
           <button class="btn btn-whatsapp btn-sm" onclick="openWhatsappBriefing('${sch.id}')">WhatsApp</button>
-          <button class="btn btn-danger-outline btn-sm" onclick="deleteSchedule('${sch.id}')">삭제</button>
+          <button class="btn btn-secondary btn-sm" onclick="openEditScheduleModal('${sch.id}')">수정</button>
         </div>
       </div>
 
@@ -872,29 +993,38 @@ function renderAdminSelectedDateSchedules() {
         ${sch.originAddress} ➔ ${sch.destAddress}
       </div>
 
-      <div id="assign-rows-${sch.id}"></div>
-
-      <div style="display: flex; gap: 6px; margin-top: 8px;">
-        <select id="select-add-crew-${sch.id}" class="form-control" style="font-size: 11.5px; padding: 4px 6px; flex: 1;">
-          <option value="">+ 크루 배정</option>
-          ${CREW_USERS.map(u => {
-            const isAssigned = (sch.assignments || []).some(a => a.userId === u.id);
-            if (isAssigned) return '';
-            const isAvail = state.availability[`${u.id}_${state.selectedDate}`] !== false;
-            return `<option value="${u.id}">${u.name} (${isAvail ? '가능' : '불가'})</option>`;
-          }).join('')}
-        </select>
-        <button class="btn btn-secondary btn-sm" onclick="addCrewToSchedule('${sch.id}')">추가</button>
+      <div style="font-size: 11.5px;">
+        ${(sch.assignments && sch.assignments.length > 0) ? sch.assignments.map(a => {
+          const u = CREW_USERS.find(c => c.id === a.userId);
+          const name = u ? u.name : a.userId;
+          const time = `${a.startTime || ''}${a.endTime ? ' ~ ' + a.endTime : ''}`;
+          const duty = a.vehicleDuty && a.vehicleDuty !== 'none' ? ` · ${vehicleDutyLabel(a.vehicleDuty)}` : '';
+          return `<span style="display:inline-block; background:#f1f5f9; border-radius:4px; padding:2px 6px; margin:0 4px 4px 0;">${name} ${time}${duty}</span>`;
+        }).join('') : `<span style="color: var(--text-muted);">배정 인원 없음</span>`}
       </div>
     `;
 
     listContainer.appendChild(item);
-    renderScheduleAssignmentsList(sch);
   });
 }
 
+function renderModalCrewAssignment(scheduleId) {
+  const sch = state.schedules.find(s => s.id === scheduleId);
+  if (!sch) return;
+
+  const addSelect = document.getElementById('modal-select-add-crew');
+  addSelect.innerHTML = '<option value="">+ 크루 배정</option>' + CREW_USERS.map(u => {
+    const isAssigned = (sch.assignments || []).some(a => a.userId === u.id);
+    if (isAssigned) return '';
+    const isAvail = state.availability[`${u.id}_${sch.jobDate}`] !== false;
+    return `<option value="${u.id}">${u.name} (${isAvail ? '가능' : '불가'})</option>`;
+  }).join('');
+
+  renderScheduleAssignmentsList(sch);
+}
+
 function renderScheduleAssignmentsList(sch) {
-  const container = document.getElementById(`assign-rows-${sch.id}`);
+  const container = document.getElementById('modal-assign-rows');
   if (!container) return;
   container.innerHTML = '';
 
@@ -907,18 +1037,21 @@ function renderScheduleAssignmentsList(sch) {
     const user = CREW_USERS.find(u => u.id === assign.userId);
     if (!user) return;
 
+    const rowKey = `${sch.id}_${user.id}`;
+
     const row = document.createElement('div');
     row.className = 'assign-row';
     row.innerHTML = `
       <span><strong>${user.name}</strong> (${user.canDrive ? '운전' : '일반'})</span>
       <div style="display: flex; gap: 4px; align-items: center;">
-        <input type="text" class="assign-select" style="width: 55px;" value="${assign.startTime || '08:00'}" 
-               onchange="updateAssignmentTime('${sch.id}', '${user.id}', this.value)">
+        <input type="text" class="assign-select" id="edit-start-${rowKey}" style="width: 48px;" value="${assign.startTime || '08:00'}" placeholder="시작" onchange="saveAssignmentTime('${sch.id}', '${user.id}')">
+        <span style="font-size: 11px;">~</span>
+        <input type="text" class="assign-select" id="edit-end-${rowKey}" style="width: 48px;" value="${assign.endTime || ''}" placeholder="종료" onchange="saveAssignmentTime('${sch.id}', '${user.id}')">
         <select class="assign-select" onchange="updateAssignmentDuty('${sch.id}', '${user.id}', this.value)"
                 ${user.canDrive ? '' : 'disabled title="면허가 없는 크루는 차량 대여 담당을 맡을 수 없습니다"'}>
           ${VEHICLE_DUTIES.map(d => `<option value="${d.value}" ${assign.vehicleDuty === d.value ? 'selected' : ''}>${d.label}</option>`).join('')}
         </select>
-        <button class="btn btn-secondary btn-sm" style="padding: 2px 5px; font-size: 10px;" onclick="removeCrewFromSchedule('${sch.id}', '${user.id}')">✕</button>
+        <button type="button" class="btn btn-secondary btn-sm" style="padding: 2px 5px; font-size: 10px;" onclick="removeCrewFromSchedule('${sch.id}', '${user.id}')">✕</button>
       </div>
     `;
     container.appendChild(row);
@@ -934,8 +1067,12 @@ function renderCrewDashboard() {
   const myJob = state.schedules.find(s => s.jobDate === todayStr && (s.assignments || []).some(a => a.userId === currentUserId));
 
   const todaySection = document.getElementById('crew-today-section');
+  const todayHeroCard = todaySection.querySelector('.today-hero-card:not(#crew-today-empty)');
+  const todayEmpty = document.getElementById('crew-today-empty');
   if (myJob) {
     todaySection.classList.remove('hidden');
+    todayHeroCard.classList.remove('hidden');
+    todayEmpty.classList.add('hidden');
     const myAssign = myJob.assignments.find(a => a.userId === currentUserId);
 
     document.getElementById('crew-today-title').textContent = `${myJob.customerName} 님 이사/운송`;
@@ -974,12 +1111,9 @@ function renderCrewDashboard() {
     document.getElementById('crew-notes-text').textContent = myJob.notes || '없음';
     renderWorklogSection(myJob, currentUserId);
   } else {
-    todaySection.innerHTML = `
-      <div class="today-hero-card" style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 13px;">
-        오늘 배정된 작업 일정이 없습니다.
-      </div>
-    `;
     todaySection.classList.remove('hidden');
+    todayHeroCard.classList.add('hidden');
+    todayEmpty.classList.remove('hidden');
     document.getElementById('crew-worklog-section').classList.add('hidden');
   }
 
@@ -1050,43 +1184,214 @@ function renderCrewCalendar() {
       dayEl.appendChild(pill);
     }
 
-    dayEl.onclick = async () => {
-      const currentVal = state.availability[`${state.currentRole}_${dateStr}`] !== false;
-      const nextVal = !currentVal;
-      
-      // 1. Optimistic UI update
-      state.availability[`${state.currentRole}_${dateStr}`] = nextVal;
-      renderCrewCalendar();
-      showToast(`${dateStr} [${nextVal ? '가능' : '불가'}]`);
-
-      // 2. Broadcast immediately to all other open tabs
-      broadcastChange();
-
-      // 3. Upsert to Supabase
-      try {
-        await sb.from('availability').upsert({
-          user_id: state.currentRole,
-          job_date: dateStr,
-          is_available: nextVal
-        });
-        broadcastChange();
-      } catch (err) {
-        console.error('Availability update failed:', err);
-      }
-    };
+    dayEl.onclick = () => openDayDetailModal(dateStr);
 
     container.appendChild(dayEl);
   }
 }
 
+function openDayDetailModal(dateStr) {
+  const currentUserId = state.currentRole;
+  document.getElementById('daydetail-title').textContent = dateStr;
+
+  const jobInfoEl = document.getElementById('daydetail-job-info');
+  const worklogSection = document.getElementById('daydetail-worklog-section');
+  const assignedJob = state.schedules.find(s => s.jobDate === dateStr && (s.assignments || []).some(a => a.userId === currentUserId));
+  if (assignedJob) {
+    const myAssign = assignedJob.assignments.find(a => a.userId === currentUserId);
+    jobInfoEl.innerHTML = `
+      <div style="font-size: 13px; font-weight: 700; margin-bottom: 4px;">${assignedJob.customerName} 님 이사/운송</div>
+      <div style="font-size: 12.5px; color: var(--text-secondary);">배정 시간: ${myAssign.startTime} · ${assignedJob.originAddress} → ${assignedJob.destAddress}</div>
+    `;
+    renderDayDetailWorklog(dateStr, assignedJob, currentUserId);
+  } else {
+    jobInfoEl.innerHTML = `<div style="font-size: 12.5px; color: var(--text-muted);">배정된 작업 없음</div>`;
+    worklogSection.classList.add('hidden');
+  }
+
+  const isAvailable = state.availability[`${currentUserId}_${dateStr}`] !== false;
+  const isPast = dateStr < TODAY_DATE;
+
+  const availBadge = document.getElementById('daydetail-avail-badge');
+  availBadge.textContent = isAvailable ? '가능' : '불가';
+  availBadge.className = `avail-badge ${isAvailable ? 'avail' : 'unavail'}`;
+
+  const toggleBtn = document.getElementById('daydetail-toggle-btn');
+  const pastNote = document.getElementById('daydetail-past-note');
+  if (isPast) {
+    toggleBtn.classList.add('hidden');
+    pastNote.classList.remove('hidden');
+  } else {
+    toggleBtn.classList.remove('hidden');
+    pastNote.classList.add('hidden');
+    toggleBtn.textContent = isAvailable ? "'불가'로 변경" : "'가능'으로 변경";
+    toggleBtn.onclick = () => showDayDetailConfirm(dateStr, !isAvailable);
+  }
+
+  document.getElementById('daydetail-action-view').classList.remove('hidden');
+  document.getElementById('daydetail-confirm-view').classList.add('hidden');
+  document.getElementById('daydetail-modal').classList.remove('hidden');
+}
+
+function showDayDetailConfirm(dateStr, nextVal) {
+  document.getElementById('daydetail-confirm-text').textContent = `'${nextVal ? '가능' : '불가'}'으로 변경하시겠습니까?`;
+  document.getElementById('daydetail-confirm-cancel-btn').onclick = () => {
+    document.getElementById('daydetail-action-view').classList.remove('hidden');
+    document.getElementById('daydetail-confirm-view').classList.add('hidden');
+  };
+  document.getElementById('daydetail-confirm-ok-btn').onclick = () => confirmAvailabilityChange(dateStr, nextVal);
+
+  document.getElementById('daydetail-action-view').classList.add('hidden');
+  document.getElementById('daydetail-confirm-view').classList.remove('hidden');
+}
+
+async function confirmAvailabilityChange(dateStr, nextVal) {
+  const currentUserId = state.currentRole;
+
+  // 1. Optimistic UI update
+  state.availability[`${currentUserId}_${dateStr}`] = nextVal;
+  closeDayDetailModal();
+  renderCrewCalendar();
+  showToast(`${dateStr} [${nextVal ? '가능' : '불가'}]`);
+
+  // 2. Broadcast immediately to all other open tabs
+  broadcastChange();
+
+  // 3. Upsert to Supabase
+  try {
+    await sb.from('availability').upsert({
+      user_id: currentUserId,
+      job_date: dateStr,
+      is_available: nextVal
+    });
+    broadcastChange();
+  } catch (err) {
+    console.error('Availability update failed:', err);
+  }
+}
+
+function populateDayDetailWorklogTimeSelects() {
+  populateTimeSelect(document.getElementById('daydetail-worklog-start-select'), '07:00');
+  populateTimeSelect(document.getElementById('daydetail-worklog-end-select'), '16:00');
+}
+
+function updateDayDetailWorklogPreview() {
+  const start = document.getElementById('daydetail-worklog-start-select').value;
+  const end = document.getElementById('daydetail-worklog-end-select').value;
+  document.getElementById('daydetail-worklog-preview').textContent = formatWorklogPreviewText(start, end);
+}
+
+async function submitDayDetailWorklog(scheduleId, dateStr) {
+  const start = document.getElementById('daydetail-worklog-start-select').value;
+  const end = document.getElementById('daydetail-worklog-end-select').value;
+  const btn = document.getElementById('daydetail-worklog-submit-btn');
+  btn.disabled = true;
+  const result = await submitWorkLogEntry(scheduleId, start, end);
+  if (result.ok) {
+    renderApp();
+    openDayDetailModal(dateStr);
+  } else {
+    btn.disabled = false;
+    document.getElementById('daydetail-worklog-preview').textContent = result.error;
+  }
+}
+
+function renderDayDetailWorklog(dateStr, job, currentUserId) {
+  const section = document.getElementById('daydetail-worklog-section');
+  section.classList.remove('hidden');
+  const body = document.getElementById('daydetail-worklog-body');
+  const existing = state.workLogs.find(w => w.scheduleId === job.id && w.userId === currentUserId);
+
+  if (existing && existing.status !== 'rejected') {
+    const badgeClass = existing.status === 'confirmed' ? 'worklog-status-confirmed' : 'worklog-status-pending';
+    const badgeText = existing.status === 'confirmed' ? '승인됨' : '제출 완료 · 승인 대기중';
+    body.innerHTML = `
+      <span class="worklog-status-badge ${badgeClass}">${badgeText}</span>
+      <div style="font-size:13px;">${existing.actualStart} ~ ${existing.actualEnd} (휴게 ${existing.breakMinutes}분, 실근무 ${existing.workedHours}시간)</div>
+    `;
+    return;
+  }
+
+  const rejectedBannerHtml = (existing && existing.status === 'rejected')
+    ? `<div class="worklog-status-badge worklog-status-rejected" style="margin-bottom:8px;">반려됨: ${existing.rejectReason || ''}</div>`
+    : '';
+
+  body.innerHTML = `
+    ${rejectedBannerHtml}
+    <div class="worklog-time-row">
+      <select id="daydetail-worklog-start-select" class="worklog-time-select"></select>
+      <span>~</span>
+      <select id="daydetail-worklog-end-select" class="worklog-time-select"></select>
+    </div>
+    <div id="daydetail-worklog-preview" class="worklog-preview"></div>
+    <button class="btn btn-primary" id="daydetail-worklog-submit-btn" style="width:100%;">제출</button>
+  `;
+  populateDayDetailWorklogTimeSelects();
+  document.getElementById('daydetail-worklog-start-select').onchange = updateDayDetailWorklogPreview;
+  document.getElementById('daydetail-worklog-end-select').onchange = updateDayDetailWorklogPreview;
+  document.getElementById('daydetail-worklog-submit-btn').onclick = () => submitDayDetailWorklog(job.id, dateStr);
+  updateDayDetailWorklogPreview();
+}
+
+function closeDayDetailModal() {
+  document.getElementById('daydetail-modal').classList.add('hidden');
+}
+
 function openCreateScheduleModal(defaultDate) {
+  state.editingScheduleId = null;
   document.getElementById('schedule-form').reset();
+  document.getElementById('modal-title').textContent = '스케줄 등록';
+  document.getElementById('schedule-delete-btn').classList.add('hidden');
+  document.getElementById('modal-crew-section').classList.add('hidden');
   document.getElementById('f-job-date').value = defaultDate || state.selectedDate;
+  renderVehicleRows([]);
+  const startSel = document.getElementById('f-time-start');
+  const endSel = document.getElementById('f-time-end');
+  startSel.innerHTML = '';
+  endSel.innerHTML = '';
+  populateTimeSelect(startSel, '08:00');
+  populateTimeSelect(endSel, '13:00');
+  document.getElementById('schedule-modal').classList.remove('hidden');
+}
+
+function openEditScheduleModal(scheduleId) {
+  const sch = state.schedules.find(s => s.id === scheduleId);
+  if (!sch) return;
+  state.editingScheduleId = scheduleId;
+  document.getElementById('modal-title').textContent = '스케줄 수정';
+  const deleteBtn = document.getElementById('schedule-delete-btn');
+  deleteBtn.classList.remove('hidden');
+  deleteBtn.onclick = () => deleteSchedule(scheduleId);
+  document.getElementById('modal-crew-section').classList.remove('hidden');
+
+  document.getElementById('f-quote-no').value = sch.quoteNo || '';
+  document.getElementById('f-quote-price').value = sch.quotePrice != null ? sch.quotePrice : '';
+  document.getElementById('f-customer-name').value = sch.customerName || '';
+  document.getElementById('f-customer-phone').value = sch.customerPhone || '';
+  document.getElementById('f-job-date').value = sch.jobDate;
+  document.getElementById('f-origin-addr').value = sch.originAddress || '';
+  document.getElementById('f-origin-spec').value = sch.originSpec || '';
+  document.getElementById('f-dest-addr').value = sch.destAddress || '';
+  document.getElementById('f-dest-spec').value = sch.destSpec || '';
+  document.getElementById('f-required-workers').value = sch.requiredWorkers || 2;
+  renderVehicleRows(sch.vehicles || []);
+  document.getElementById('f-notes').value = sch.notes || '';
+
+  const [rangeStart, rangeEnd] = (sch.overallTimeRange || '').split('~').map(s => s.trim());
+  const startSel = document.getElementById('f-time-start');
+  const endSel = document.getElementById('f-time-end');
+  startSel.innerHTML = '';
+  endSel.innerHTML = '';
+  populateTimeSelect(startSel, rangeStart || '08:00');
+  populateTimeSelect(endSel, rangeEnd || '13:00');
+
+  renderModalCrewAssignment(scheduleId);
   document.getElementById('schedule-modal').classList.remove('hidden');
 }
 
 function closeScheduleModal() {
   document.getElementById('schedule-modal').classList.add('hidden');
+  state.editingScheduleId = null;
 }
 
 async function handleSaveSchedule(e) {
@@ -1096,18 +1401,18 @@ async function handleSaveSchedule(e) {
   const customerName = document.getElementById('f-customer-name').value.trim();
   const customerPhone = document.getElementById('f-customer-phone').value.trim();
   const jobDate = document.getElementById('f-job-date').value;
-  const timeRange = document.getElementById('f-time-range').value.trim();
+  const timeStart = document.getElementById('f-time-start').value;
+  const timeEnd = document.getElementById('f-time-end').value;
+  const timeRange = `${timeStart} ~ ${timeEnd}`;
   const originAddr = document.getElementById('f-origin-addr').value.trim();
   const originSpec = document.getElementById('f-origin-spec').value.trim();
   const destAddr = document.getElementById('f-dest-addr').value.trim();
   const destSpec = document.getElementById('f-dest-spec').value.trim();
   const requiredWorkers = parseInt(document.getElementById('f-required-workers').value, 10) || 2;
-  const vehicleType = document.getElementById('f-vehicle-type').value;
+  const vehicles = collectVehicleRows();
   const notes = document.getElementById('f-notes').value.trim();
 
-  const newId = 'sch-' + Date.now();
-  const dbPayload = {
-    id: newId,
+  const fieldsPayload = {
     quote_no: quoteNo,
     quote_price: quotePrice ? parseFloat(quotePrice) : null,
     customer_name: customerName,
@@ -1119,12 +1424,18 @@ async function handleSaveSchedule(e) {
     dest_address: destAddr,
     dest_spec: destSpec,
     required_workers: requiredWorkers,
-    vehicle_type: vehicleType,
-    notes: notes,
-    assignments: []
+    vehicles: vehicles,
+    notes: notes
   };
 
-  const { error } = await sb.from('schedules').insert(dbPayload);
+  const isEditing = !!state.editingScheduleId;
+  let error;
+  if (isEditing) {
+    ({ error } = await sb.from('schedules').update(fieldsPayload).eq('id', state.editingScheduleId));
+  } else {
+    const newId = 'sch-' + Date.now();
+    ({ error } = await sb.from('schedules').insert({ id: newId, ...fieldsPayload, assignments: [] }));
+  }
   if (error) {
     alert('DB 저장 오류: ' + error.message);
     return;
@@ -1135,22 +1446,24 @@ async function handleSaveSchedule(e) {
   await loadDataFromSupabase();
   renderApp();
   broadcastChange();
-  showToast('스케줄이 저장되었습니다.');
+  showToast(isEditing ? '스케줄이 수정되었습니다.' : '스케줄이 저장되었습니다.');
 }
 
 async function deleteSchedule(scheduleId) {
   if (!confirm('삭제하시겠습니까?')) return;
   await sb.from('schedules').delete().eq('id', scheduleId);
+  closeScheduleModal();
   await loadDataFromSupabase();
   renderApp();
   broadcastChange();
   showToast('삭제되었습니다.');
 }
 
-async function addCrewToSchedule(scheduleId) {
-  const select = document.getElementById(`select-add-crew-${scheduleId}`);
+async function addCrewToSchedule() {
+  const scheduleId = state.editingScheduleId;
+  const select = document.getElementById('modal-select-add-crew');
   const userId = select.value;
-  if (!userId) return;
+  if (!userId || !scheduleId) return;
   const sch = state.schedules.find(s => s.id === scheduleId);
   if (!sch) return;
 
@@ -1164,7 +1477,7 @@ async function addCrewToSchedule(scheduleId) {
   });
 
   await sb.from('schedules').update({ assignments: sch.assignments }).eq('id', scheduleId);
-  renderApp();
+  renderModalCrewAssignment(scheduleId);
   broadcastChange();
 }
 
@@ -1173,19 +1486,24 @@ async function removeCrewFromSchedule(scheduleId, userId) {
   if (!sch || !sch.assignments) return;
   sch.assignments = sch.assignments.filter(a => a.userId !== userId);
   await sb.from('schedules').update({ assignments: sch.assignments }).eq('id', scheduleId);
-  renderApp();
+  renderModalCrewAssignment(scheduleId);
   broadcastChange();
 }
 
-async function updateAssignmentTime(scheduleId, userId, newTime) {
+async function saveAssignmentTime(scheduleId, userId) {
+  const rowKey = `${scheduleId}_${userId}`;
+  const startVal = document.getElementById(`edit-start-${rowKey}`).value.trim();
+  const endVal = document.getElementById(`edit-end-${rowKey}`).value.trim();
   const sch = state.schedules.find(s => s.id === scheduleId);
   if (!sch || !sch.assignments) return;
   const assign = sch.assignments.find(a => a.userId === userId);
-  if (assign) {
-    assign.startTime = newTime;
-    await sb.from('schedules').update({ assignments: sch.assignments }).eq('id', scheduleId);
-    broadcastChange();
-  }
+  if (!assign) return;
+
+  assign.startTime = startVal || assign.startTime;
+  assign.endTime = endVal || null;
+  await sb.from('schedules').update({ assignments: sch.assignments }).eq('id', scheduleId);
+  renderModalCrewAssignment(scheduleId);
+  broadcastChange();
 }
 
 async function updateAssignmentDuty(scheduleId, userId, newDuty) {

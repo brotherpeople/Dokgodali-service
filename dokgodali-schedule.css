@@ -388,6 +388,17 @@
   .avail-btn-tag.avail { background: #dcfce7; color: #15803d; }
   .avail-btn-tag.unavail { background: #fee2e2; color: #b91c1c; }
 
+  /* Availability Badge inside Day Detail Modal header */
+  .avail-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    display: inline-block;
+  }
+  .avail-badge.avail { background: #dcfce7; color: #15803d; }
+  .avail-badge.unavail { background: #fee2e2; color: #b91c1c; }
+
   .cal-event-pill {
     font-size: 9.5px;
     font-weight: 600;
