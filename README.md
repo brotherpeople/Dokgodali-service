@@ -17,3 +17,9 @@ Once an admin registers a confirmed job and assigns crew, each crew member can c
 
 **[Test it here →](https://brotherpeople.github.io/Dokgodali-service/dokgodali-schedule-en.html)**
 **[한국어 버전 →](https://brotherpeople.github.io/Dokgodali-service/dokgodali-schedule.html)**
+
+## 3. Small Package Delivery Booking
+
+A customer-facing booking flow for sending small boxes/cargo from Germany to Korea — enter the item size/quantity and delivery address, then choose a pickup/drop-off method and personal info step by step.
+
+**[Test it here →](https://brotherpeople.github.io/Dokgodali-service/dokgodali-delivery.html)**
