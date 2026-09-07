@@ -333,16 +333,21 @@
 <div id="toast" class="toast">저장되었습니다.</div>
 
 <script>
-// --- Supabase Client Initialization ---
+/* ================================================================
+   설정 상수 — 자주 바뀌는 값은 전부 여기서 관리한다.
+   ================================================================ */
+
+// --- Supabase 연결 정보 ---
 const SUPABASE_URL = "https://wxfqakwnbqapatclybiz.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4ZnFha3duYnFhcGF0Y2x5Yml6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3NTQ5NjQsImV4cCI6MjEwMzMzMDk2NH0._YGTlvj8y2gkIMdrzArKXbwAer1ZMwQCgRN1vz7wiPc";
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Multi-tab BroadcastChannel for 0.01s local tab sync
+// 같은 브라우저의 다른 탭 간 즉시 동기화용 BroadcastChannel
 const localSyncChannel = ('BroadcastChannel' in window) ? new BroadcastChannel('dokgodali_local_sync') : null;
 let realtimeChannel = null;
 
+// --- 회사 / 크루 정보 ---
 const COMPANY_NAME = '독고달이 Umzüge GmbH';
 
 const CREW_USERS = [
@@ -352,6 +357,7 @@ const CREW_USERS = [
   { id: 'crew4', name: '박민수', phone: '+49 174 4444444', canDrive: false }
 ];
 
+// --- 날짜 / 초대 코드 ---
 function formatDateLocal(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
@@ -359,11 +365,28 @@ const TODAY_DATE = formatDateLocal(new Date());
 
 const INVITE_CODE = 'DKGD-2026-BERLIN';
 
+// --- 차량 옵션 ---
 const VEHICLE_DUTIES = [
   { value: 'none', label: '대여 없음' },
   { value: 'miles_l', label: 'Miles L' },
   { value: 'miles_xl', label: 'Miles XL' }
 ];
+const VEHICLE_TYPE_OPTIONS = ['Miles L / XL 밴', 'Miles L 사이즈 밴', 'Miles XL 사이즈 밴', '3.5t 트럭'];
+
+/* ================================================================
+   런타임 상태 — 사용자가 화면에서 조작함에 따라 바뀌는 값들
+   ================================================================ */
+let state = {
+  currentRole: 'admin',
+  currentYear: new Date().getFullYear(),
+  currentMonth: new Date().getMonth(),
+  selectedDate: TODAY_DATE,
+  schedules: [],
+  availability: {},
+  workLogs: [],
+  adminTab: 'dispatch',
+  editingScheduleId: null
+};
 
 function vehicleDutyLabel(value) {
   const duty = VEHICLE_DUTIES.find(d => d.value === value);
@@ -398,8 +421,6 @@ function populateTimeSelect(selectEl, defaultValue) {
   }
   if (defaultValue) selectEl.value = defaultValue;
 }
-
-const VEHICLE_TYPE_OPTIONS = ['Miles L / XL 밴', 'Miles L 사이즈 밴', 'Miles XL 사이즈 밴', '3.5t 트럭'];
 
 function vehicleCountOptionsHtml(selected) {
   let opts = '';
@@ -558,17 +579,6 @@ function renderWorklogSection(myJob, currentUserId) {
   }
 }
 
-let state = {
-  currentRole: 'admin',
-  currentYear: new Date().getFullYear(),
-  currentMonth: new Date().getMonth(),
-  selectedDate: TODAY_DATE,
-  schedules: [],
-  availability: {},
-  workLogs: [],
-  adminTab: 'dispatch',
-  editingScheduleId: null
-};
 
 async function init() {
   await loadDataFromSupabase();

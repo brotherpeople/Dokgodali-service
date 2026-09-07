@@ -777,28 +777,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 </script>
 <script>
 /* ================================================================
-   Step 3: 견적서 번호 / 고객 번호 자동 생성
-   ================================================================ */
-function todayStr(offsetDays = 0){
-  const d = new Date();
-  d.setDate(d.getDate() + offsetDays);
-  return d.getFullYear() + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + String(d.getDate()).padStart(2,'0');
-}
-function makeInvoiceNo(){
-  const d = new Date();
-  const ymd = d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
-  const seq = String(Math.floor(Math.random()*90)+10);
-  return `ANG-${ymd}-${seq}`;
-}
-function makeCustomerNo(){
-  return `KD-${new Date().getFullYear()}-${Math.floor(1000 + Math.random()*9000)}`;
-}
-function formatDateTime(d){
-  const p = n => String(n).padStart(2, '0');
-  return `${d.getFullYear()}.${p(d.getMonth()+1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
-}
-
-/* ================================================================
    Shared sidebar template (van card + steppers + price lines)
    ================================================================ */
 const SIDEBAR_HTML = `
@@ -870,6 +848,28 @@ const state = {
   accepted: { at: null, place: '' },   // 디지털 동의(서명) 여부. 1/2단계로 돌아가 내용을 바꾸면 자동으로 무효화됩니다.
 };
 state.items.forEach(i => { if (i.assembly && i.qty > 0) i.assemblyState = 'disassembled'; });
+
+/* ================================================================
+   Step 3: 견적서 번호 / 고객 번호 자동 생성
+   ================================================================ */
+function todayStr(offsetDays = 0){
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  return d.getFullYear() + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + String(d.getDate()).padStart(2,'0');
+}
+function makeInvoiceNo(){
+  const d = new Date();
+  const ymd = d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
+  const seq = String(Math.floor(Math.random()*90)+10);
+  return `ANG-${ymd}-${seq}`;
+}
+function makeCustomerNo(){
+  return `KD-${new Date().getFullYear()}-${Math.floor(1000 + Math.random()*9000)}`;
+}
+function formatDateTime(d){
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}.${p(d.getMonth()+1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
 
 /* ================================================================
    Screen navigation

@@ -30,7 +30,7 @@
     padding-bottom: 40px;
   }
 
-  /* Top Testing Switcher */
+  /* 상단 테스트용 역할 전환 */
   .role-switcher-bar {
     background: #0f172a;
     color: #94a3b8;
@@ -67,7 +67,7 @@
     font-weight: 600;
   }
 
-  /* Header */
+  /* 헤더 */
   header {
     background: var(--card);
     border-bottom: 1px solid var(--border);
@@ -121,7 +121,7 @@
   .badge-warning { background: var(--warning-light); color: var(--warning); }
   .badge-outline { border: 1px solid var(--border); background: #fff; color: var(--text-secondary); }
 
-  /* Cloud Sync Status Indicator */
+  /* 클라우드 동기화 상태 표시 */
   .sync-status {
     font-size: 11px;
     display: inline-flex;
@@ -143,14 +143,14 @@
     100% { transform: scale(0.95); opacity: 0.8; }
   }
 
-  /* Main Container */
+  /* 메인 컨테이너 */
   .container {
     max-width: 1000px;
     margin: 16px auto;
     padding: 0 16px;
   }
 
-  /* Clean UI Cards */
+  /* 카드 UI */
   .card {
     background: var(--card);
     border: 1px solid var(--border);
@@ -173,7 +173,7 @@
     letter-spacing: -0.2px;
   }
 
-  /* One-Touch Today's Job Card (Crew View) */
+  /* 오늘 작업 원터치 카드 (크루 화면) */
   .today-hero-card {
     border: 1px solid #bfdbfe;
     background: #ffffff;
@@ -198,7 +198,7 @@
     letter-spacing: -0.5px;
   }
 
-  /* Arrow Route Block */
+  /* 이동 경로 화살표 블록 */
   .arrow-route-card {
     background: #f8fafc;
     border: 1px solid var(--border);
@@ -250,7 +250,7 @@
   }
   .btn-map:hover { background: #eff6ff; }
 
-  /* 2-Column Grid for Crew & Notes */
+  /* 크루/메모 2단 그리드 */
   .grid-2col {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -260,7 +260,7 @@
     .grid-2col { grid-template-columns: 1fr; }
   }
 
-  /* Admin: Calendar + Dispatch panel */
+  /* 관리자: 캘린더 + 배차 패널 */
   .admin-layout {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -298,7 +298,7 @@
     font-weight: 700;
   }
 
-  /* Calendar */
+  /* 캘린더 */
   .calendar-container {
     background: #fff;
     border: 1px solid var(--border);
@@ -373,7 +373,7 @@
     font-weight: 800;
   }
 
-  /* Availability Badges inside Calendar */
+  /* 캘린더 안의 가능/불가 배지 */
   .avail-btn-tag {
     font-size: 10px;
     font-weight: 700;
@@ -388,7 +388,7 @@
   .avail-btn-tag.avail { background: #dcfce7; color: #15803d; }
   .avail-btn-tag.unavail { background: #fee2e2; color: #b91c1c; }
 
-  /* Availability Badge inside Day Detail Modal header */
+  /* 날짜 상세 모달 헤더의 가능/불가 배지 */
   .avail-badge {
     font-size: 11px;
     font-weight: 700;
@@ -415,7 +415,7 @@
   .cal-event-pill.deficit { background: #d97706; }
   .cal-event-pill.my-job { background: #2563eb; }
 
-  /* Admin Schedules */
+  /* 관리자 스케줄 목록 */
   .schedule-item {
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
@@ -454,7 +454,7 @@
   }
   .assign-select:disabled { background: #f1f5f9; color: var(--text-muted); cursor: not-allowed; }
 
-  /* Forms & Buttons */
+  /* 폼 / 버튼 */
   .btn {
     display: inline-flex;
     align-items: center;
@@ -491,7 +491,7 @@
   .form-control:focus { border-color: var(--accent); }
   .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-  /* Modal */
+  /* 모달 */
   .modal-overlay {
     position: fixed;
     inset: 0;
