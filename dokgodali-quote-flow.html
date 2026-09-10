@@ -6,9 +6,17 @@
 <title>Dokgodali - 이사 견적 시뮬레이터</title>
 <link rel="stylesheet" href="dokgodali-shared.css">
 <link rel="stylesheet" href="dokgodali-quote-flow.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <script>
+/* ================================================================
+   Supabase — schedule.html / delivery.html과 같은 프로젝트를 그대로 사용한다.
+   ================================================================ */
+const SUPABASE_URL = "https://wxfqakwnbqapatclybiz.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4ZnFha3duYnFhcGF0Y2x5Yml6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3NTQ5NjQsImV4cCI6MjEwMzMzMDk2NH0._YGTlvj8y2gkIMdrzArKXbwAer1ZMwQCgRN1vz7wiPc";
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 /* ================================================================
    CONFIG — 요금, 용량, 인원수 등 자주 바뀌는 숫자는 전부 여기서 관리합니다.
    값만 바꾸면 화면 전체(Step 1, Step 2, 사이드바 견적)에 자동 반영됩니다.
@@ -975,8 +983,51 @@ function renderAcceptPanel(){
       state.accepted.at = new Date();
       renderInvoice();
       renderAcceptPanel();
+      // PDF/동의 자체는 로컬에서 이미 완료된 것이므로, 관리자용 저장이 실패해도
+      // 고객 화면은 막지 않고 콘솔에만 남긴다.
+      submitMovingRequest();
     };
   }
+}
+async function submitMovingRequest(){
+  const breakdown = computePriceBreakdown();
+  const van = VANS[state.selectedVanIndex];
+  const payload = {
+    items: state.items.filter(i => i.qty > 0).map(i => ({ name: i.name, qty: i.qty })),
+    van: van.size,
+    vanModel: van.model,
+    team: state.team,
+    duration: state.duration,
+    movingDate: document.getElementById('movingDate').value,
+    movingTime: document.getElementById('movingTime').value,
+    originAddress: document.getElementById('originAddr').value.trim(),
+    originFloor: state.originFloor,
+    originElevator: state.originElevator,
+    destAddress: document.getElementById('destAddr').value.trim(),
+    destFloor: state.destFloor,
+    destElevator: state.destElevator,
+    destTBD: state.destTBD,
+    passengers: state.passengers,
+    pet: state.pet,
+    permitOn: state.permitOn,
+    specialItems: [...state.specialItems],
+    priceBreakdown: breakdown,
+    total: breakdown.total,
+    invoiceNo: state.invoiceNo,
+    customerNo: state.customerNo,
+    acceptedPlace: state.accepted.place,
+    acceptedAt: state.accepted.at,
+  };
+  const { error } = await sb.from('requests').insert({
+    id: 'req-' + Date.now(),
+    type: 'moving',
+    customer_name: state.customer.name,
+    customer_phone: state.customer.phone,
+    customer_email: state.customer.email,
+    summary: `${van.name} · 작업인원 ${state.team}명 · €${breakdown.total.toFixed(2)}`,
+    payload,
+  });
+  if (error) console.error('요청 저장 실패:', error.message);
 }
 
 /* ================================================================

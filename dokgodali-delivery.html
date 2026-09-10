@@ -7,6 +7,7 @@
         <title>Dokgodali - 배송 예약</title>
         <link rel="stylesheet" href="dokgodali-shared.css" />
         <link rel="stylesheet" href="dokgodali-delivery.css" />
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     </head>
     <body>
         <main class="page">
@@ -808,6 +809,9 @@
                                     동의를 모두 확인해 주세요.
                                 </div>
                             </div>
+                            <div class="field-error" id="submitError">
+                                전송에 실패했습니다.
+                            </div>
                             <div class="actions">
                                 <button
                                     class="btn btn-secondary"
@@ -855,6 +859,17 @@
 
         <script>
             /* ================================================================
+               Supabase — schedule.html과 같은 프로젝트를 그대로 사용한다.
+               ================================================================ */
+            const SUPABASE_URL = "https://wxfqakwnbqapatclybiz.supabase.co";
+            const SUPABASE_ANON_KEY =
+                "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4ZnFha3duYnFhcGF0Y2x5Yml6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3NTQ5NjQsImV4cCI6MjEwMzMzMDk2NH0._YGTlvj8y2gkIMdrzArKXbwAer1ZMwQCgRN1vz7wiPc";
+            const sb = window.supabase.createClient(
+                SUPABASE_URL,
+                SUPABASE_ANON_KEY,
+            );
+
+            /* ================================================================
                설정 상수 — 화물 종류 / 접수 방식은 여기서만 관리한다.
                ================================================================ */
             const packageData = {
@@ -898,6 +913,14 @@
             function calcMethodFee(subtotal) {
                 if (state.method === "fixed") return subtotal >= 50 ? 0 : 3;
                 return 0; // premium: 무료 조건 충족해야만 선택 가능. dropoff: 상자당 현금 보관비는 별도(현금)라 배송비 합계에서 제외.
+            }
+            function buildCargoSummary() {
+                return (
+                    Object.entries(state.quantities)
+                        .filter(([, qty]) => qty > 0)
+                        .map(([pkg, qty]) => `${packageData[pkg].name} ${qty}개`)
+                        .join(", ") || "화물 등록 전"
+                );
             }
             // 물건 금액이 €250 이상이면 프리미엄 픽업이 무료로 열리므로 자동 선택하고,
             // 미만이면 비활성화한다. 사용자가 이미 직접 다른 방식을 고른 뒤라면(methodTouched)
@@ -1019,11 +1042,7 @@
                       : scheduleTime
                         ? `${scheduleDateLabel} ${scheduleTime}`
                         : "미선택";
-                const cargoSummary =
-                    Object.entries(state.quantities)
-                        .filter(([, qty]) => qty > 0)
-                        .map(([pkg, qty]) => `${packageData[pkg].name} ${qty}개`)
-                        .join(", ") || "화물 등록 전";
+                const cargoSummary = buildCargoSummary();
                 const subtotal = calcSubtotal();
                 const estimatedTotal = subtotal + calcMethodFee(subtotal);
                 const conditionText =
@@ -1236,12 +1255,71 @@
                         showStep(destination);
                 }),
             );
-            $("#submitOrder").addEventListener("click", () => {
+            $("#submitOrder").addEventListener("click", async () => {
                 if (!validateAddresses() || !validatePersonal()) return;
+                const btn = $("#submitOrder");
+                btn.disabled = true;
+                btn.textContent = "전송 중...";
+                $("#submitError").classList.remove("visible");
+
+                const requestId = "req-" + Date.now();
+                const subtotal = calcSubtotal();
+                const scheduleDate = $("#pickupDate").value;
+                const payload = {
+                    cargoes: Object.entries(state.quantities)
+                        .filter(([, qty]) => qty > 0)
+                        .map(([pkg, qty]) => ({
+                            package: pkg,
+                            name: packageData[pkg].name,
+                            quantity: qty,
+                            unitPrice: packageData[pkg].base,
+                        })),
+                    method: state.method,
+                    methodName: methodData[state.method].name,
+                    scheduleDate,
+                    scheduleTime: $("#pickupTime").value,
+                    estimatedTotal: subtotal + calcMethodFee(subtotal),
+                    customerAddress: $("#customerAddress").value.trim(),
+                    pickupSameAsCustomer: $("#sameAsCustomer").checked,
+                    pickupAddress: $("#sameAsCustomer").checked
+                        ? $("#customerAddress").value.trim()
+                        : $("#pickupAddress").value.trim(),
+                    deliveryZip: $("#deliveryZip").value.trim(),
+                    deliveryAddress: $("#deliveryAddress").value.trim(),
+                    recipientNameKo: $("#recipientNameKo").value.trim(),
+                    recipientNameEn: $("#recipientNameEn").value.trim(),
+                    recipientPhone: $("#recipientPhone").value.trim(),
+                    customsCode: $("#customsCode").value.trim(),
+                    payment: $("#payment").value,
+                    movingStatus: $("#movingStatus").value,
+                    entryDate: $("#entryDate").disabled
+                        ? null
+                        : $("#entryDate").value,
+                };
+
+                const { error } = await sb.from("requests").insert({
+                    id: requestId,
+                    type: "delivery",
+                    customer_name: $("#customerName").value.trim(),
+                    customer_phone: $("#customerPhone").value.trim(),
+                    customer_email: $("#customerEmail").value.trim(),
+                    summary: `${buildCargoSummary()} · ${methodData[state.method].name} · ${scheduleDate}`,
+                    payload,
+                });
+
+                btn.disabled = false;
+                btn.textContent = "배송 예약 요청하기";
+
+                if (error) {
+                    $("#submitError").textContent =
+                        "전송에 실패했습니다: " + error.message;
+                    $("#submitError").classList.add("visible");
+                    return;
+                }
+
                 $("#personalForm").style.display = "none";
                 $("#completeView").classList.add("show");
-                $("#orderCode").textContent =
-                    `배송 요청 번호 D-${String(Date.now()).slice(-6)}`;
+                $("#orderCode").textContent = `배송 요청 번호 ${requestId}`;
                 $$(".steps .step").forEach((step) =>
                     step.classList.add("done"),
                 );

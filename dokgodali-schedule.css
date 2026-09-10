@@ -565,3 +565,16 @@
   .worklog-pending-item:last-child { border-bottom: none; }
   .worklog-reject-form { display: flex; gap: 6px; margin-top: 6px; }
   .worklog-reject-form input { flex: 1; padding: 6px; border-radius: 6px; border: 1px solid var(--border); font-size: 12.5px; }
+
+  #admin-requests-badge { margin-left: 5px; padding: 1px 6px; border-radius: 999px; background: #dc2626; color: #fff; font-size: 10.5px; font-weight: 700; }
+  .request-pending-item { padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .request-pending-item:last-child { border-bottom: none; }
+  .request-pending-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; cursor: pointer; }
+  .request-pending-type { font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 4px; background: #eef2ff; color: #4338ca; }
+  .request-pending-actions { display: flex; gap: 6px; flex: none; }
+  .request-caret { margin-left: 6px; display: inline-block; color: var(--text-muted); font-size: 11px; transition: transform 0.15s; }
+  .request-caret.open { transform: rotate(180deg); }
+  .request-detail { display: grid; grid-template-columns: 110px 1fr; row-gap: 5px; column-gap: 14px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); font-size: 12px; }
+  .request-detail-row { display: contents; }
+  .request-detail-row span { color: var(--text-secondary); }
+  .request-detail-row strong { font-weight: 600; }

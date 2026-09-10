@@ -133,6 +133,7 @@
     <div class="admin-tab-bar">
       <button class="admin-tab-btn active" id="admin-tab-dispatch-btn" onclick="switchAdminTab('dispatch')">스케줄 관리</button>
       <button class="admin-tab-btn" id="admin-tab-worklog-btn" onclick="switchAdminTab('worklog')">근무시간 승인</button>
+      <button class="admin-tab-btn" id="admin-tab-requests-btn" onclick="switchAdminTab('requests')">신규 요청<span id="admin-requests-badge" class="hidden"></span></button>
     </div>
     <div class="admin-layout">
       
@@ -177,6 +178,10 @@
         <div id="az-pdf-status" style="font-size:12px; color:var(--text-secondary); margin-top:6px;"></div>
       </div>
       <div id="admin-worklog-pending-list"></div>
+    </div>
+
+    <div id="admin-requests-section" class="hidden">
+      <div id="admin-requests-pending-list"></div>
     </div>
   </div>
 
@@ -384,6 +389,8 @@ let state = {
   schedules: [],
   availability: {},
   workLogs: [],
+  requests: [],
+  expandedRequestIds: new Set(),
   adminTab: 'dispatch',
   editingScheduleId: null
 };
@@ -616,6 +623,12 @@ async function loadDataFromSupabase(isBackground = false) {
       state.workLogs = workLogsData.map(mapWorkLogFromDB);
     }
 
+    // 4. Fetch requests (신규 요청 - moving/delivery)
+    const { data: requestsData } = await sb.from('requests').select('*');
+    if (requestsData) {
+      state.requests = requestsData;
+    }
+
     if (isBackground) {
       renderApp();
     }
@@ -761,15 +774,20 @@ function renderApp() {
 
   if (isAdmin) {
     document.getElementById('admin-worklog-section').classList.toggle('hidden', state.adminTab !== 'worklog');
+    document.getElementById('admin-requests-section').classList.toggle('hidden', state.adminTab !== 'requests');
     document.querySelector('.admin-layout').classList.toggle('hidden', state.adminTab !== 'dispatch');
     document.getElementById('admin-tab-dispatch-btn').classList.toggle('active', state.adminTab === 'dispatch');
     document.getElementById('admin-tab-worklog-btn').classList.toggle('active', state.adminTab === 'worklog');
+    document.getElementById('admin-tab-requests-btn').classList.toggle('active', state.adminTab === 'requests');
     if (state.adminTab === 'worklog') {
       renderAdminWorklogTab();
+    } else if (state.adminTab === 'requests') {
+      renderAdminRequestsTab();
     } else {
       renderAdminCalendar();
       renderAdminSelectedDateSchedules();
     }
+    renderAdminRequestsBadge();
   } else {
     renderCrewDashboard();
   }
@@ -835,6 +853,166 @@ async function submitRejectWorklog(id) {
   await sb.from('work_logs').update({ status: 'rejected', reject_reason: reason }).eq('id', id);
   await loadDataFromSupabase();
   renderApp();
+}
+
+function renderAdminRequestsBadge() {
+  const badge = document.getElementById('admin-requests-badge');
+  const pendingCount = state.requests.filter(r => r.status === 'pending').length;
+  badge.textContent = pendingCount;
+  badge.classList.toggle('hidden', pendingCount === 0);
+}
+
+function renderAdminRequestsTab() {
+  const list = document.getElementById('admin-requests-pending-list');
+  const pending = state.requests.filter(r => r.status === 'pending').sort((a, b) => a.created_at.localeCompare(b.created_at));
+
+  if (pending.length === 0) {
+    list.innerHTML = '<div class="worklog-history-empty">확인 대기중인 신규 요청이 없습니다.</div>';
+    return;
+  }
+
+  list.innerHTML = pending.map(r => {
+    const isOpen = state.expandedRequestIds.has(r.id);
+    return `
+    <div class="request-pending-item" id="request-item-${r.id}">
+      <div class="request-pending-top" onclick="toggleRequestDetail('${r.id}')">
+        <div>
+          <span class="request-pending-type">${r.type === 'moving' ? '이사' : '배송'}</span>
+          <span style="margin-left:6px; font-weight:700;">${r.customer_name || '-'}</span>
+          <span class="request-caret${isOpen ? ' open' : ''}">▾</span>
+          <div style="font-size:12px; color:var(--text-secondary); margin-top:3px;">${r.summary || ''}</div>
+          <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">${r.customer_phone || ''} · ${new Date(r.created_at).toLocaleString('ko-KR')}</div>
+        </div>
+        <div class="request-pending-actions" onclick="event.stopPropagation()">
+          <button class="btn btn-primary btn-sm" onclick="confirmRequest('${r.id}')">확정</button>
+          <button class="btn btn-secondary btn-sm" onclick="rejectRequest('${r.id}')">거절</button>
+        </div>
+      </div>
+      <div class="request-detail${isOpen ? '' : ' hidden'}" id="request-detail-${r.id}">${renderRequestDetailBody(r)}</div>
+    </div>
+  `;
+  }).join('');
+}
+
+// 신규 요청 목록은 실시간 백그라운드 폴링(loadDataFromSupabase)마다 통째로 다시 그려지므로,
+// 펼침 상태를 DOM이 아니라 state에 저장해야 폴링 중에도 펼쳐놓은 상태가 유지된다.
+function toggleRequestDetail(id) {
+  if (state.expandedRequestIds.has(id)) {
+    state.expandedRequestIds.delete(id);
+  } else {
+    state.expandedRequestIds.add(id);
+  }
+  renderAdminRequestsTab();
+}
+
+function detailRow(label, value) {
+  if (value === undefined || value === null || value === '') return '';
+  return `<div class="request-detail-row"><span>${label}</span><strong>${value}</strong></div>`;
+}
+
+// payload는 type별로 모양이 다르므로, 요청 상세 보기에서 사람이 읽기 좋은 항목만 뽑아 보여준다.
+function renderRequestDetailBody(r) {
+  const p = r.payload || {};
+  if (r.type === 'moving') {
+    const timeLabel = { morning: '오전 (08:00~12:00)', afternoon: '오후 (12:00~17:00)', evening: '저녁 (17:00~20:00)' }[p.movingTime] || p.movingTime;
+    return [
+      detailRow('이사 예정일', p.movingDate && `${p.movingDate} · ${timeLabel || ''}`),
+      detailRow('이삿짐', (p.items || []).map(i => `${i.name} ${i.qty}개`).join(', ')),
+      detailRow('차량', p.vanModel),
+      detailRow('작업 인원', p.team && `${p.team}명`),
+      detailRow('상차지', p.originAddress && `${p.originAddress} (${p.originFloor}층 · 엘베 ${p.originElevator === 'yes' ? '있음' : '없음'})`),
+      detailRow('하차지', p.destTBD ? '미정' : (p.destAddress && `${p.destAddress} (${p.destFloor}층 · 엘베 ${p.destElevator === 'yes' ? '있음' : '없음'})`)),
+      detailRow('견적 금액', p.total != null && `€${Number(p.total).toFixed(2)}`),
+      detailRow('견적서 번호', p.invoiceNo),
+      detailRow('이메일', r.customer_email),
+    ].filter(Boolean).join('');
+  }
+  // delivery
+  const methodLabel = p.methodName ? `${p.methodName}${p.scheduleDate ? ' · ' + p.scheduleDate : ''}${p.scheduleTime ? ' ' + p.scheduleTime : ''}` : '';
+  return [
+    detailRow('화물', (p.cargoes || []).map(c => `${c.name} ${c.quantity}개`).join(', ')),
+    detailRow('접수 방식', methodLabel),
+    detailRow('예상 배송비', p.estimatedTotal != null && `€${p.estimatedTotal}`),
+    detailRow('픽업/방문 주소', p.pickupAddress),
+    detailRow('배송지(한국)', (p.deliveryZip || p.deliveryAddress) && `${p.deliveryZip || ''} ${p.deliveryAddress || ''}`.trim()),
+    detailRow('수취인', p.recipientNameKo && `${p.recipientNameKo} (${p.recipientNameEn || ''}) · ${p.recipientPhone || ''}`),
+    detailRow('개인통관고유부호', p.customsCode),
+    detailRow('결제 방법', p.payment),
+    detailRow('이메일', r.customer_email),
+  ].filter(Boolean).join('');
+}
+
+// requests.payload를 schedules 컬럼으로 변환한다. type별로 payload 모양이 다르다.
+function mapRequestToScheduleFields(r) {
+  const p = r.payload;
+  if (r.type === 'moving') {
+    return {
+      quote_no: p.invoiceNo || '',
+      quote_price: p.total ?? null,
+      customer_name: r.customer_name,
+      customer_phone: r.customer_phone,
+      job_date: p.movingDate || null,
+      overall_time_range: { morning: '08:00 ~ 12:00', afternoon: '12:00 ~ 17:00', evening: '17:00 ~ 20:00' }[p.movingTime] || '',
+      origin_address: p.originAddress || '',
+      origin_spec: `${p.originFloor}층 · 엘리베이터 ${p.originElevator === 'yes' ? '있음' : '없음'}`,
+      dest_address: p.destTBD ? '미정' : (p.destAddress || ''),
+      dest_spec: p.destTBD ? '' : `${p.destFloor}층 · 엘리베이터 ${p.destElevator === 'yes' ? '있음' : '없음'}`,
+      required_workers: p.team || 2,
+      vehicles: p.vanModel ? [{ type: p.vanModel, count: 1 }] : [],
+      notes: r.summary || ''
+    };
+  }
+  // delivery
+  return {
+    quote_no: '',
+    quote_price: p.estimatedTotal ?? null,
+    customer_name: r.customer_name,
+    customer_phone: r.customer_phone,
+    job_date: p.scheduleDate || null,
+    overall_time_range: p.scheduleTime || '',
+    origin_address: p.pickupAddress || p.customerAddress || '',
+    origin_spec: p.methodName || '',
+    dest_address: `${p.deliveryZip || ''} ${p.deliveryAddress || ''}`.trim(),
+    dest_spec: `수취인 ${p.recipientNameKo || ''} (${p.recipientPhone || ''})`,
+    required_workers: 1,
+    vehicles: [],
+    notes: r.summary || ''
+  };
+}
+
+async function confirmRequest(id) {
+  const r = state.requests.find(x => x.id === id);
+  if (!r) return;
+  if (!confirm('이 요청을 확정하고 스케줄에 배정하시겠습니까?')) return;
+
+  const fields = mapRequestToScheduleFields(r);
+  const newId = 'sch-' + Date.now();
+  const { error: insertError } = await sb.from('schedules').insert({ id: newId, ...fields, assignments: [] });
+  if (insertError) {
+    alert('스케줄 등록 오류: ' + insertError.message);
+    return;
+  }
+
+  const { error: updateError } = await sb.from('requests')
+    .update({ status: 'confirmed', schedule_id: newId, confirmed_at: new Date().toISOString() })
+    .eq('id', id);
+  if (updateError) {
+    alert('요청 상태 업데이트 오류: ' + updateError.message);
+    return;
+  }
+
+  await loadDataFromSupabase();
+  renderApp();
+  broadcastChange();
+  showToast('요청이 확정되어 스케줄에 배정되었습니다.');
+}
+
+async function rejectRequest(id) {
+  if (!confirm('이 요청을 거절하시겠습니까?')) return;
+  await sb.from('requests').update({ status: 'rejected' }).eq('id', id);
+  await loadDataFromSupabase();
+  renderApp();
+  showToast('요청이 거절되었습니다.');
 }
 
 async function generateAzDocPdf() {
