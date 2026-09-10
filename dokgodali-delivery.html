@@ -134,6 +134,9 @@
                                             최대 40 × 30 × 30cm · 10kg
                                         </div>
                                     </div>
+                                    <div class="package-row-price">
+                                        박스당<br />€9
+                                    </div>
                                     <div class="qty">
                                         <button
                                             type="button"
@@ -183,6 +186,9 @@
                                             최대 80 × 60 × 60cm · 30kg
                                         </div>
                                     </div>
+                                    <div class="package-row-price">
+                                        박스당<br />€16
+                                    </div>
                                     <div class="qty">
                                         <button
                                             type="button"
@@ -231,6 +237,9 @@
                                         <div class="package-row-note">
                                             최대 120 × 80 × 80cm · 60kg
                                         </div>
+                                    </div>
+                                    <div class="package-row-price">
+                                        박스당<br />€28
                                     </div>
                                     <div class="qty">
                                         <button
@@ -308,6 +317,13 @@
                                                 아래에서 정하신 날짜·시간에
                                                 저희가 직접 찾아가 픽업해
                                                 드립니다.
+                                            </div>
+                                            <div
+                                                class="method-eligibility-hint hidden"
+                                                id="premiumEligibilityHint"
+                                            >
+                                                물건 금액 €250 이상일 때
+                                                이용 가능합니다.
                                             </div>
                                         </div>
                                         <div class="method-price">
@@ -849,17 +865,15 @@
             const methodData = {
                 premium: {
                     name: "프리미엄 픽업",
-                    condition: "베를린 내 · €250 이상 결제 시 픽업비 무료",
+                    condition: "€250 이상 결제 시 픽업비 무료",
                 },
                 fixed: {
                     name: "고정 픽업",
-                    condition:
-                        "베를린 내 · 화요일 17:00–21:00 · €3 (€50 이상 무료)",
+                    condition: "픽업비 기본 €3 (€50 이상 결제 시 무료)",
                 },
                 dropoff: {
                     name: "접수처 방문",
-                    condition:
-                        "Atti Asia Markt · 월–토 10:30–17:00 · 상자당 현금 €2",
+                    condition: "상자당 현금 €2",
                 },
             };
             /* ================================================================
@@ -869,9 +883,42 @@
                 step: 1,
                 quantities: { small: 0, medium: 0, large: 0 },
                 method: "premium",
+                methodTouched: false,
             };
+            const PREMIUM_MIN_TOTAL = 250;
             const $ = (selector) => document.querySelector(selector);
             const $$ = (selector) => [...document.querySelectorAll(selector)];
+            const currency = (n) => `€${n.toFixed(2)}`;
+            function calcSubtotal() {
+                return Object.entries(state.quantities).reduce(
+                    (sum, [pkg, qty]) => sum + qty * packageData[pkg].base,
+                    0,
+                );
+            }
+            function calcMethodFee(subtotal) {
+                if (state.method === "fixed") return subtotal >= 50 ? 0 : 3;
+                return 0; // premium: 무료 조건 충족해야만 선택 가능. dropoff: 상자당 현금 보관비는 별도(현금)라 배송비 합계에서 제외.
+            }
+            // 물건 금액이 €250 이상이면 프리미엄 픽업이 무료로 열리므로 자동 선택하고,
+            // 미만이면 비활성화한다. 사용자가 이미 직접 다른 방식을 고른 뒤라면(methodTouched)
+            // 자동 선택으로 그 선택을 덮어쓰지 않는다 — €250 미만으로 다시 떨어져
+            // 프리미엄이 더 이상 유효하지 않을 때만 강제로 다른 방식으로 전환한다.
+            function updateMethodEligibility() {
+                const eligible = calcSubtotal() >= PREMIUM_MIN_TOTAL;
+                $('.method-card[data-method="premium"]').classList.toggle(
+                    "disabled",
+                    !eligible,
+                );
+                $("#premiumEligibilityHint").classList.toggle(
+                    "hidden",
+                    eligible,
+                );
+                if (eligible && !state.methodTouched) {
+                    state.method = "premium";
+                } else if (!eligible && state.method === "premium") {
+                    state.method = "fixed";
+                }
+            }
             const escapeText = (text) =>
                 text
                     ? text.replace(
@@ -889,6 +936,15 @@
             // (toISOString은 UTC로 변환되면서 자정 날짜가 하루 밀릴 수 있어 로컬 날짜 요소로 직접 계산한다)
             function formatDateLocal(date) {
                 return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+            }
+            // 드롭다운에서 배송 불가 요일을 자동으로 보정해도 고객이 모를 수 있으므로,
+            // 요약에는 실제 선택된 날짜의 요일을 항상 함께 보여준다.
+            const WEEKDAY_KO = ["일", "월", "화", "수", "목", "금", "토"];
+            function formatDateWithWeekday(dateStr) {
+                if (!dateStr) return dateStr;
+                const [y, m, d] = dateStr.split("-").map(Number);
+                const day = new Date(y, m - 1, d, 12).getDay();
+                return `${dateStr} (${WEEKDAY_KO[day]})`;
             }
             // 고정 픽업은 화요일에만 순회하므로, 화요일이 아닌 날짜가 들어오면 다음 화요일로 보정한다.
             function snapToTuesday(dateStr) {
@@ -955,33 +1011,41 @@
                 );
                 const scheduleDate = $("#pickupDate").value;
                 const scheduleTime = $("#pickupTime").value;
+                const scheduleDateLabel = formatDateWithWeekday(scheduleDate);
                 const scheduleLabel = !scheduleDate
                     ? "미선택"
                     : state.method === "fixed"
-                      ? `${scheduleDate} (17:00–21:00 배정)`
+                      ? `${scheduleDateLabel} · 17:00–21:00 배정`
                       : scheduleTime
-                        ? `${scheduleDate} ${scheduleTime}`
+                        ? `${scheduleDateLabel} ${scheduleTime}`
                         : "미선택";
                 const cargoSummary =
                     Object.entries(state.quantities)
                         .filter(([, qty]) => qty > 0)
                         .map(([pkg, qty]) => `${packageData[pkg].name} ${qty}개`)
                         .join(", ") || "화물 등록 전";
+                const subtotal = calcSubtotal();
+                const estimatedTotal = subtotal + calcMethodFee(subtotal);
+                const conditionText =
+                    state.method === "fixed" && subtotal >= 50
+                        ? "픽업비 무료"
+                        : methodData[state.method].condition;
                 const markup = `
         <div class="summary-heading">배송 요약</div>
         <div class="summary-route"><div class="route-line"></div><div><div class="route-label">픽업지</div><div class="route-value" title="${pickup}">${pickup}</div><div class="route-label" style="margin-top:15px">배송지</div><div class="route-value" title="${delivery}">${delivery}</div></div></div>
         <div class="summary-divider"></div>
         <div class="summary-row"><span>물건 정보</span><strong>${cargoSummary}</strong></div>
         <div class="summary-row"><span>접수 방식</span><strong>${methodData[state.method].name}</strong></div>
-        <div class="summary-row"><span>이용 조건</span><strong>${methodData[state.method].condition}</strong></div>
+        <div class="summary-row"><span>요금 조건</span><strong>${conditionText}</strong></div>
         <div class="summary-row"><span>희망 일시</span><strong>${scheduleLabel}</strong></div>
-        <div class="summary-total"><div><div class="summary-total-label">최종 배송비</div><div class="summary-total-note">박스 규격·무게·물품 상세 확인 후 안내</div></div><div class="summary-status">접수 후 확정</div></div>
+        <div class="summary-total"><div><div class="summary-total-label">예상 배송비</div><div class="summary-total-note">실제 중량에 따라 달라질 수 있습니다</div></div><div class="summary-total-right"><div class="summary-total-price">${currency(estimatedTotal)}</div><div class="summary-total-basis">박스 기본가 + 픽업비 기준</div></div></div>
         <div class="delivery-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>폼의 접수 조건을 기준으로 안내합니다</div>`;
                 ["#summary1", "#summary2", "#summary3"].forEach(
                     (id) => ($(id).innerHTML = markup),
                 );
             }
             function render() {
+                updateMethodEligibility();
                 $$(".package-row").forEach((row) => {
                     const pkg = row.dataset.package;
                     const qty = state.quantities[pkg];
@@ -1121,7 +1185,9 @@
             });
             $$(".method-card").forEach((card) => {
                 const choose = () => {
+                    if (card.classList.contains("disabled")) return;
                     state.method = card.dataset.method;
+                    state.methodTouched = true;
                     enforceDateConstraint();
                     render();
                 };
