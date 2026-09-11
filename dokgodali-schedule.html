@@ -11,14 +11,24 @@
 </head>
 <body>
 
-<!-- Top Role Switcher Bar -->
-<div class="role-switcher-bar">
-  <div class="role-buttons" id="role-buttons-container">
-    <button class="role-btn active" data-role="admin" onclick="switchRole('admin')">관리자 (Admin)</button>
+<!-- 로그인 게이트: 세션 없을 때 전체 화면을 덮는다 -->
+<div id="login-screen" class="login-screen hidden">
+  <div class="login-box">
+    <div class="brand-logo" style="margin:0 auto 14px;">D</div>
+    <div style="font-weight:800; font-size:18px; text-align:center; margin-bottom:4px;">독고달이 스케줄</div>
+    <div style="color:var(--text-secondary); font-size:12.5px; text-align:center; margin-bottom:18px;">초대받은 이메일로 로그인하세요.</div>
+    <input type="email" id="login-email" class="form-control" placeholder="you@example.com" style="margin-bottom:10px;">
+    <button class="btn btn-primary" style="width:100%;" onclick="sendMagicLink()">매직링크 보내기</button>
+    <div id="login-message" style="margin-top:12px; font-size:12.5px; text-align:center;"></div>
   </div>
+</div>
+
+<!-- Top Status Bar -->
+<div class="role-switcher-bar">
+  <span id="signed-in-as"></span>
   <div style="display: flex; gap: 10px; align-items: center;">
     <span class="sync-status"><span class="sync-dot"></span> 실시간 연동됨</span>
-    <button class="btn btn-secondary btn-sm" onclick="copyInviteCode()">초대코드 복사</button>
+    <button class="btn btn-secondary btn-sm" onclick="sb.auth.signOut()">로그아웃</button>
   </div>
 </div>
 
@@ -31,6 +41,7 @@
     </div>
     <div style="display: flex; gap: 8px; align-items: center;">
       <span id="current-user-badge" class="badge badge-navy">관리자</span>
+      <button id="btn-open-invite-crew" class="btn btn-secondary btn-sm" onclick="openInviteCrewModal()">+ 크루 초대</button>
       <button id="btn-open-new-schedule" class="btn btn-primary btn-sm" onclick="openCreateScheduleModal()">+ 스케줄 등록</button>
     </div>
   </div>
@@ -134,6 +145,7 @@
       <button class="admin-tab-btn active" id="admin-tab-dispatch-btn" onclick="switchAdminTab('dispatch')">스케줄 관리</button>
       <button class="admin-tab-btn" id="admin-tab-worklog-btn" onclick="switchAdminTab('worklog')">근무시간 승인</button>
       <button class="admin-tab-btn" id="admin-tab-requests-btn" onclick="switchAdminTab('requests')">신규 요청<span id="admin-requests-badge" class="hidden"></span></button>
+      <button class="admin-tab-btn" id="admin-tab-crew-btn" onclick="switchAdminTab('crew')">크루 관리</button>
     </div>
     <div class="admin-layout">
       
@@ -182,6 +194,10 @@
 
     <div id="admin-requests-section" class="hidden">
       <div id="admin-requests-pending-list"></div>
+    </div>
+
+    <div id="admin-crew-section" class="hidden">
+      <div id="admin-crew-list"></div>
     </div>
   </div>
 
@@ -287,6 +303,71 @@
   </div>
 </div>
 
+<!-- MODAL: Invite Crew -->
+<div id="invite-crew-modal" class="modal-overlay hidden">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <div class="card-title">크루 초대</div>
+      <button class="btn btn-secondary btn-sm" onclick="closeInviteCrewModal()">닫기</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">이메일</label>
+        <input type="email" id="invite-email" class="form-control" placeholder="crew@example.com" required>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">이름</label>
+          <input type="text" id="invite-name" class="form-control" placeholder="홍길동" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">연락처</label>
+          <input type="text" id="invite-phone" class="form-control" placeholder="+49 171 1234567">
+        </div>
+      </div>
+      <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; margin-top:4px;">
+        <input type="checkbox" id="invite-can-drive"> 운전 가능
+      </label>
+      <div id="invite-crew-message" style="margin-top:10px; font-size:12.5px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" onclick="closeInviteCrewModal()">취소</button>
+      <button class="btn btn-primary btn-sm" onclick="submitInviteCrew()">초대 보내기</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Edit Crew -->
+<div id="edit-crew-modal" class="modal-overlay hidden">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <div class="card-title">크루 정보 수정</div>
+      <button class="btn btn-secondary btn-sm" onclick="closeEditCrewModal()">닫기</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-crew-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">이름</label>
+          <input type="text" id="edit-crew-name" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">연락처</label>
+          <input type="text" id="edit-crew-phone" class="form-control">
+        </div>
+      </div>
+      <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; margin-top:4px;">
+        <input type="checkbox" id="edit-crew-can-drive"> 운전 가능
+      </label>
+      <div id="edit-crew-message" style="margin-top:10px; font-size:12.5px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" onclick="closeEditCrewModal()">취소</button>
+      <button class="btn btn-primary btn-sm" onclick="submitEditCrew()">저장</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: WhatsApp Text -->
 <div id="whatsapp-modal" class="modal-overlay hidden">
   <div class="modal-dialog">
@@ -347,6 +428,7 @@ const SUPABASE_URL = "https://wxfqakwnbqapatclybiz.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4ZnFha3duYnFhcGF0Y2x5Yml6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3NTQ5NjQsImV4cCI6MjEwMzMzMDk2NH0._YGTlvj8y2gkIMdrzArKXbwAer1ZMwQCgRN1vz7wiPc";
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const MANAGE_CREW_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/manage-crew`;
 
 // 같은 브라우저의 다른 탭 간 즉시 동기화용 BroadcastChannel
 const localSyncChannel = ('BroadcastChannel' in window) ? new BroadcastChannel('dokgodali_local_sync') : null;
@@ -355,20 +437,14 @@ let realtimeChannel = null;
 // --- 회사 / 크루 정보 ---
 const COMPANY_NAME = '독고달이 Umzüge GmbH';
 
-const CREW_USERS = [
-  { id: 'crew1', name: '홍길동', phone: '+49 171 1111111', canDrive: true },
-  { id: 'crew2', name: '김철수', phone: '+49 172 2222222', canDrive: false },
-  { id: 'crew3', name: '이영희', phone: '+49 173 3333333', canDrive: true },
-  { id: 'crew4', name: '박민수', phone: '+49 174 4444444', canDrive: false }
-];
+// profiles 테이블(role='crew')에서 로드된다. loadDataFromSupabase() 참고.
+let CREW_USERS = [];
 
-// --- 날짜 / 초대 코드 ---
+// --- 날짜 ---
 function formatDateLocal(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 const TODAY_DATE = formatDateLocal(new Date());
-
-const INVITE_CODE = 'DKGD-2026-BERLIN';
 
 // --- 차량 옵션 ---
 const VEHICLE_DUTIES = [
@@ -588,15 +664,88 @@ function renderWorklogSection(myJob, currentUserId) {
 
 
 async function init() {
+  sb.auth.onAuthStateChange((_event, session) => {
+    handleAuthChange(session);
+  });
+  const { data: { session } } = await sb.auth.getSession();
+  await handleAuthChange(session);
+}
+
+let appStarted = false;
+let pollIntervalId = null;
+
+// "등록 안 된 계정" 메시지를 보여주고 signOut()하면, signOut()이 다시
+// onAuthStateChange(null)을 발생시켜 handleAuthChange(null)이 한 번 더 불린다.
+// 그때 showLoginScreen()이 메시지 없이 다시 불리면 방금 보여준 메시지가 지워지므로,
+// 이 변수에 담아뒀다가 그 다음 호출에서 대신 보여준다.
+let pendingLoginMessage = null;
+
+async function handleAuthChange(session) {
+  if (!session) {
+    if (appStarted) {
+      // 로그아웃: 폴링/실시간 구독을 정리해서 다음 로그인 때 깨끗하게 다시 시작하게 한다.
+      if (pollIntervalId) { clearInterval(pollIntervalId); pollIntervalId = null; }
+      if (realtimeChannel) { sb.removeChannel(realtimeChannel); realtimeChannel = null; }
+      appStarted = false;
+      state.currentProfile = null;
+    }
+    showLoginScreen(pendingLoginMessage);
+    pendingLoginMessage = null;
+    return;
+  }
+
+  const { data: profile } = await sb.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+  if (!profile) {
+    pendingLoginMessage = '계정은 확인됐지만 아직 관리자/크루로 등록되지 않았습니다. 관리자에게 문의해 주세요.';
+    await sb.auth.signOut();
+    return;
+  }
+
+  state.currentProfile = profile;
+  hideLoginScreen();
+
+  if (appStarted) {
+    // 이미 실행 중인 세션이면(예: 토큰 갱신) 다시 초기화하지 않는다.
+    return;
+  }
+  appStarted = true;
+
   await loadDataFromSupabase();
   setupRealtime();
   setupBroadcastListener();
-  renderApp();
+  switchRole(profile.role === 'admin' ? 'admin' : profile.id);
 
   // Polling fallback every 4 seconds
-  setInterval(async () => {
+  pollIntervalId = setInterval(async () => {
     await loadDataFromSupabase(true);
   }, 4000);
+}
+
+function showLoginScreen(message) {
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('login-message').textContent = message || '';
+}
+
+function hideLoginScreen() {
+  document.getElementById('login-screen').classList.add('hidden');
+}
+
+// window.location.href를 그대로 쓰면, 이전 시도에서 남은 해시(#error=... 등)가 붙은 채로
+// 리다이렉트 주소에 들어가서 Supabase가 붙이는 #access_token=...과 합쳐져 ##가 되는
+// 문제가 있었다. origin+pathname만 써서 항상 깨끗한 주소를 만든다.
+// 로컬(127.0.0.1:5500)에서 초대/로그인을 보내면 로컬로, 배포된 주소에서 보내면
+// 배포된 주소로 리다이렉트되어야 하므로 매번 "지금 이 페이지의 깨끗한 주소"를 사용한다.
+function cleanPageUrl() {
+  return window.location.origin + window.location.pathname;
+}
+
+async function sendMagicLink() {
+  const email = document.getElementById('login-email').value.trim();
+  const msg = document.getElementById('login-message');
+  if (!email) { msg.textContent = '이메일을 입력해 주세요.'; return; }
+  msg.textContent = '전송 중...';
+  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: cleanPageUrl() } });
+  msg.textContent = error ? `전송 실패: ${error.message}` : '메일함에서 로그인 링크를 확인해 주세요.';
 }
 
 async function loadDataFromSupabase(isBackground = false) {
@@ -627,6 +776,12 @@ async function loadDataFromSupabase(isBackground = false) {
     const { data: requestsData } = await sb.from('requests').select('*');
     if (requestsData) {
       state.requests = requestsData;
+    }
+
+    // 5. Fetch crew profiles (초대된 실제 크루 계정)
+    const { data: profilesData } = await sb.from('profiles').select('*').eq('role', 'crew');
+    if (profilesData) {
+      CREW_USERS = profilesData.map(p => ({ id: p.id, name: p.name, phone: p.phone, canDrive: p.can_drive }));
     }
 
     if (isBackground) {
@@ -724,46 +879,33 @@ function switchRole(roleKey) {
 
   const badge = document.getElementById('current-user-badge');
   const btnNew = document.getElementById('btn-open-new-schedule');
+  const btnInvite = document.getElementById('btn-open-invite-crew');
 
   if (roleKey === 'admin') {
     badge.className = 'badge badge-navy';
     badge.textContent = '관리자';
     btnNew.classList.remove('hidden');
+    btnInvite.classList.remove('hidden');
   } else {
     const crew = CREW_USERS.find(c => c.id === roleKey);
     badge.className = 'badge badge-blue';
-    badge.textContent = `${crew.name} (${crew.canDrive ? '운전가능' : '면허없음'})`;
+    badge.textContent = crew ? `${crew.name} (${crew.canDrive ? '운전가능' : '면허없음'})` : '크루';
     btnNew.classList.add('hidden');
+    btnInvite.classList.add('hidden');
   }
 
   renderApp();
 }
 
-function renderRoleSwitcherButtons() {
-  const container = document.getElementById('role-buttons-container');
-  container.querySelectorAll('.crew-role-btn').forEach(btn => btn.remove());
-
-  CREW_USERS.forEach(u => {
-    const todayJob = state.schedules.find(s => s.jobDate === TODAY_DATE && (s.assignments || []).some(a => a.userId === u.id));
-    const myAssign = todayJob ? todayJob.assignments.find(a => a.userId === u.id) : null;
-    const dutyLabel = myAssign && myAssign.vehicleDuty !== 'none' ? ` · ${vehicleDutyLabel(myAssign.vehicleDuty)}` : '';
-    const label = myAssign ? `${u.name} (${myAssign.startTime}${dutyLabel})` : `${u.name} (미배정)`;
-
-    const btn = document.createElement('button');
-    btn.className = 'role-btn crew-role-btn';
-    btn.dataset.role = u.id;
-    btn.textContent = label;
-    btn.onclick = () => switchRole(u.id);
-    container.appendChild(btn);
-  });
-
-  container.querySelectorAll('.role-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.role === state.currentRole);
-  });
+function renderSignedInAs() {
+  const el = document.getElementById('signed-in-as');
+  const p = state.currentProfile;
+  if (!el || !p) return;
+  el.textContent = `${p.name} (${p.role === 'admin' ? '관리자' : '크루'})로 로그인됨`;
 }
 
 function renderApp() {
-  renderRoleSwitcherButtons();
+  renderSignedInAs();
 
   const isAdmin = state.currentRole === 'admin';
   document.getElementById('admin-section').classList.toggle('hidden', !isAdmin);
@@ -775,14 +917,18 @@ function renderApp() {
   if (isAdmin) {
     document.getElementById('admin-worklog-section').classList.toggle('hidden', state.adminTab !== 'worklog');
     document.getElementById('admin-requests-section').classList.toggle('hidden', state.adminTab !== 'requests');
+    document.getElementById('admin-crew-section').classList.toggle('hidden', state.adminTab !== 'crew');
     document.querySelector('.admin-layout').classList.toggle('hidden', state.adminTab !== 'dispatch');
     document.getElementById('admin-tab-dispatch-btn').classList.toggle('active', state.adminTab === 'dispatch');
     document.getElementById('admin-tab-worklog-btn').classList.toggle('active', state.adminTab === 'worklog');
     document.getElementById('admin-tab-requests-btn').classList.toggle('active', state.adminTab === 'requests');
+    document.getElementById('admin-tab-crew-btn').classList.toggle('active', state.adminTab === 'crew');
     if (state.adminTab === 'worklog') {
       renderAdminWorklogTab();
     } else if (state.adminTab === 'requests') {
       renderAdminRequestsTab();
+    } else if (state.adminTab === 'crew') {
+      renderAdminCrewTab();
     } else {
       renderAdminCalendar();
       renderAdminSelectedDateSchedules();
@@ -1582,6 +1728,161 @@ function closeScheduleModal() {
   state.editingScheduleId = null;
 }
 
+function openInviteCrewModal() {
+  document.getElementById('invite-email').value = '';
+  document.getElementById('invite-name').value = '';
+  document.getElementById('invite-phone').value = '';
+  document.getElementById('invite-can-drive').checked = false;
+  document.getElementById('invite-crew-message').textContent = '';
+  document.getElementById('invite-crew-modal').classList.remove('hidden');
+}
+
+function closeInviteCrewModal() {
+  document.getElementById('invite-crew-modal').classList.add('hidden');
+}
+
+async function submitInviteCrew() {
+  const email = document.getElementById('invite-email').value.trim();
+  const name = document.getElementById('invite-name').value.trim();
+  const phone = document.getElementById('invite-phone').value.trim();
+  const canDrive = document.getElementById('invite-can-drive').checked;
+  const msg = document.getElementById('invite-crew-message');
+  if (!email || !name) {
+    msg.textContent = '이메일과 이름은 필수입니다.';
+    return;
+  }
+
+  msg.textContent = '초대 보내는 중...';
+  const { data: { session } } = await sb.auth.getSession();
+  try {
+    const res = await fetch(MANAGE_CREW_FUNCTION_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ action: 'invite', email, name, phone, canDrive, redirectUrl: cleanPageUrl() }),
+    });
+    const result = await res.json();
+    if (!res.ok) {
+      msg.textContent = result.error || '초대에 실패했습니다.';
+      return;
+    }
+    msg.textContent = `${name}님에게 초대 메일을 보냈습니다.`;
+    await loadDataFromSupabase();
+    renderApp();
+  } catch (e) {
+    msg.textContent = '초대 요청 중 오류가 발생했습니다: ' + e.message;
+  }
+}
+
+function renderAdminCrewTab() {
+  const list = document.getElementById('admin-crew-list');
+  if (CREW_USERS.length === 0) {
+    list.innerHTML = '<div class="worklog-history-empty">등록된 크루가 없습니다. "+ 크루 초대"로 추가해 주세요.</div>';
+    return;
+  }
+  list.innerHTML = CREW_USERS.map(u => `
+    <div class="request-pending-item">
+      <div class="request-pending-top">
+        <div>
+          <span style="font-weight:700;">${u.name}</span>
+          <span style="margin-left:6px; font-size:11.5px; color:var(--text-secondary);">${u.canDrive ? '운전가능' : '면허없음'}</span>
+          <div style="font-size:12px; color:var(--text-secondary); margin-top:3px;">${u.phone || ''}</div>
+        </div>
+        <div class="request-pending-actions">
+          <button class="btn btn-secondary btn-sm" onclick="resendCrewInvite('${u.id}', '${u.name}')">링크 재전송</button>
+          <button class="btn btn-secondary btn-sm" onclick="openEditCrewModal('${u.id}')">수정</button>
+          <button class="btn btn-danger-outline btn-sm" onclick="deleteCrewMember('${u.id}', '${u.name}')">삭제</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openEditCrewModal(id) {
+  const crew = CREW_USERS.find(c => c.id === id);
+  if (!crew) return;
+  document.getElementById('edit-crew-id').value = crew.id;
+  document.getElementById('edit-crew-name').value = crew.name;
+  document.getElementById('edit-crew-phone').value = crew.phone || '';
+  document.getElementById('edit-crew-can-drive').checked = !!crew.canDrive;
+  document.getElementById('edit-crew-message').textContent = '';
+  document.getElementById('edit-crew-modal').classList.remove('hidden');
+}
+
+function closeEditCrewModal() {
+  document.getElementById('edit-crew-modal').classList.add('hidden');
+}
+
+async function submitEditCrew() {
+  const id = document.getElementById('edit-crew-id').value;
+  const name = document.getElementById('edit-crew-name').value.trim();
+  const phone = document.getElementById('edit-crew-phone').value.trim();
+  const canDrive = document.getElementById('edit-crew-can-drive').checked;
+  const msg = document.getElementById('edit-crew-message');
+  if (!name) { msg.textContent = '이름은 필수입니다.'; return; }
+
+  // profiles 테이블 RLS 정책상 관리자는 직접 update 가능 (서버 함수 불필요).
+  const { error } = await sb.from('profiles').update({ name, phone: phone || null, can_drive: canDrive }).eq('id', id);
+  if (error) {
+    msg.textContent = '저장 실패: ' + error.message;
+    return;
+  }
+  closeEditCrewModal();
+  await loadDataFromSupabase();
+  renderApp();
+  showToast('크루 정보가 수정되었습니다.');
+}
+
+async function resendCrewInvite(id, name) {
+  const { data: { session } } = await sb.auth.getSession();
+  try {
+    const res = await fetch(MANAGE_CREW_FUNCTION_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ action: 'resend', userId: id, redirectUrl: cleanPageUrl() }),
+    });
+    const result = await res.json();
+    if (!res.ok) {
+      alert(result.error || '재전송에 실패했습니다.');
+      return;
+    }
+    showToast(`${name}님에게 로그인 링크를 다시 보냈습니다.`);
+  } catch (e) {
+    alert('재전송 요청 중 오류가 발생했습니다: ' + e.message);
+  }
+}
+
+async function deleteCrewMember(id, name) {
+  if (!confirm(`${name} 크루를 삭제하시겠습니까? 계정 자체가 삭제되어 더 이상 로그인할 수 없습니다.`)) return;
+
+  const { data: { session } } = await sb.auth.getSession();
+  try {
+    const res = await fetch(MANAGE_CREW_FUNCTION_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ action: 'delete', userId: id }),
+    });
+    const result = await res.json();
+    if (!res.ok) {
+      alert(result.error || '삭제에 실패했습니다.');
+      return;
+    }
+    await loadDataFromSupabase();
+    renderApp();
+    showToast('크루가 삭제되었습니다.');
+  } catch (e) {
+    alert('삭제 요청 중 오류가 발생했습니다: ' + e.message);
+  }
+}
+
 async function handleSaveSchedule(e) {
   e.preventDefault();
   const quoteNo = document.getElementById('f-quote-no').value.trim();
@@ -1746,11 +2047,6 @@ function copyWhatsappText() {
   textarea.select();
   navigator.clipboard.writeText(textarea.value);
   showToast('복사되었습니다.');
-}
-
-function copyInviteCode() {
-  navigator.clipboard.writeText(INVITE_CODE);
-  showToast('초대코드가 복사되었습니다.');
 }
 
 function changeMonth(delta) {

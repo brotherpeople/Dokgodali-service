@@ -5,3 +5,6 @@ dokgodali-quote-flow.artifact.html
 Thumbs.db
 .DS_Store
 .worktrees/
+
+# Supabase CLI 로컬 캐시/링크 정보
+supabase/.temp/

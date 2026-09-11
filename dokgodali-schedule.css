@@ -30,7 +30,7 @@
     padding-bottom: 40px;
   }
 
-  /* 상단 테스트용 역할 전환 */
+  /* 상단 로그인 상태 바 */
   .role-switcher-bar {
     background: #0f172a;
     color: #94a3b8;
@@ -43,28 +43,24 @@
     border-bottom: 1px solid #1e293b;
     flex-wrap: wrap;
   }
-  .role-buttons {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    flex-wrap: wrap;
+
+  /* 로그인 게이트 */
+  .login-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: grid;
+    place-items: center;
+    background: var(--bg);
   }
-  .role-btn {
-    background: #1e293b;
-    color: #cbd5e1;
-    border: 1px solid #334155;
-    padding: 3px 8px;
-    border-radius: 4px;
-    font-size: 11.5px;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .role-btn:hover { background: #334155; color: #fff; }
-  .role-btn.active {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #fff;
-    font-weight: 600;
+  .login-box {
+    width: 320px;
+    max-width: calc(100vw - 32px);
+    padding: 28px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--card);
+    box-shadow: var(--shadow-sm);
   }
 
   /* 헤더 */
