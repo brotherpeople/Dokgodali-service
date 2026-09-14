@@ -8,3 +8,6 @@ Thumbs.db
 
 # Supabase CLI 로컬 캐시/링크 정보
 supabase/.temp/
+
+# Python 잡파일
+__pycache__/

@@ -8,6 +8,12 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="dokgodali-schedule.css">
+<!-- 아이폰에서 "홈 화면에 추가"로 설치해야 웹 푸시가 동작하기 때문에 PWA로 설치 가능하게 만든다 -->
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f172a">
 </head>
 <body>
 
@@ -16,9 +22,20 @@
   <div class="login-box">
     <div class="brand-logo" style="margin:0 auto 14px;">D</div>
     <div style="font-weight:800; font-size:18px; text-align:center; margin-bottom:4px;">독고달이 스케줄</div>
-    <div style="color:var(--text-secondary); font-size:12.5px; text-align:center; margin-bottom:18px;">초대받은 이메일로 로그인하세요.</div>
-    <input type="email" id="login-email" class="form-control" placeholder="you@example.com" style="margin-bottom:10px;">
-    <button class="btn btn-primary" style="width:100%;" onclick="sendMagicLink()">매직링크 보내기</button>
+
+    <div id="login-email-step">
+      <div style="color:var(--text-secondary); font-size:12.5px; text-align:center; margin-bottom:18px;">초대받은 이메일로 로그인하세요.</div>
+      <input type="email" id="login-email" class="form-control" placeholder="you@example.com" style="margin-bottom:10px;">
+      <button class="btn btn-primary" style="width:100%;" onclick="sendLoginCode()">코드 받기</button>
+    </div>
+
+    <div id="login-code-step" class="hidden">
+      <div style="color:var(--text-secondary); font-size:12.5px; text-align:center; margin-bottom:18px;">메일로 받으신 6자리 코드를 입력해 주세요.</div>
+      <input type="text" inputmode="numeric" maxlength="6" id="login-code" class="form-control" placeholder="123456" style="margin-bottom:10px; text-align:center; letter-spacing:4px; font-size:18px;">
+      <button class="btn btn-primary" style="width:100%;" onclick="verifyLoginCode()">확인</button>
+      <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="backToEmailStep()">이메일 다시 입력</button>
+    </div>
+
     <div id="login-message" style="margin-top:12px; font-size:12.5px; text-align:center;"></div>
   </div>
 </div>
@@ -41,6 +58,7 @@
     </div>
     <div style="display: flex; gap: 8px; align-items: center;">
       <span id="current-user-badge" class="badge badge-navy">관리자</span>
+      <button id="btn-toggle-push" class="btn btn-secondary btn-sm" onclick="togglePushSubscription()">🔔 알림 켜기</button>
       <button id="btn-open-invite-crew" class="btn btn-secondary btn-sm" onclick="openInviteCrewModal()">+ 크루 초대</button>
       <button id="btn-open-new-schedule" class="btn btn-primary btn-sm" onclick="openCreateScheduleModal()">+ 스케줄 등록</button>
     </div>
@@ -430,6 +448,9 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const MANAGE_CREW_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/manage-crew`;
 
+// 웹 푸시 구독용 공개키 (개인키는 서버(Edge Function)에만 있음, 노출돼도 안전한 값이다).
+const VAPID_PUBLIC_KEY = "BBvwdQ0_KBeuWuU17WyzcNyG2hiqlhgIz6aCfXaXNcUOcguxRH4BIL36IuKFU9SfXvEG_cC_YF7REG1KL8hdAXI";
+
 // 같은 브라우저의 다른 탭 간 즉시 동기화용 BroadcastChannel
 const localSyncChannel = ('BroadcastChannel' in window) ? new BroadcastChannel('dokgodali_local_sync') : null;
 let realtimeChannel = null;
@@ -664,11 +685,86 @@ function renderWorklogSection(myJob, currentUserId) {
 
 
 async function init() {
+  registerServiceWorker();
   sb.auth.onAuthStateChange((_event, session) => {
     handleAuthChange(session);
   });
   const { data: { session } } = await sb.auth.getSession();
   await handleAuthChange(session);
+}
+
+async function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    await navigator.serviceWorker.register('sw.js');
+  } catch (e) {
+    console.error('서비스워커 등록 실패:', e);
+  }
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
+
+function pushSupported() {
+  return 'serviceWorker' in navigator && 'PushManager' in window;
+}
+
+async function refreshPushButtonLabel() {
+  const btn = document.getElementById('btn-toggle-push');
+  if (!btn || btn.classList.contains('hidden')) return;
+  if (!pushSupported()) {
+    btn.textContent = '🔔 이 브라우저는 알림 미지원';
+    btn.disabled = true;
+    return;
+  }
+  const reg = await navigator.serviceWorker.ready;
+  const sub = await reg.pushManager.getSubscription();
+  btn.textContent = sub ? '🔕 알림 끄기' : '🔔 알림 켜기';
+}
+
+async function togglePushSubscription() {
+  if (!pushSupported()) {
+    alert('이 브라우저/환경은 웹 푸시를 지원하지 않습니다. 아이폰이면 Safari 공유 메뉴에서 "홈 화면에 추가"로 설치한 뒤 그 아이콘으로 열어서 시도해 주세요.');
+    return;
+  }
+  const reg = await navigator.serviceWorker.ready;
+  const existing = await reg.pushManager.getSubscription();
+
+  if (existing) {
+    await sb.from('push_subscriptions').delete().eq('endpoint', existing.endpoint);
+    await existing.unsubscribe();
+    await refreshPushButtonLabel();
+    showToast('알림을 껐습니다.');
+    return;
+  }
+
+  const permission = await Notification.requestPermission();
+  if (permission !== 'granted') {
+    alert('알림 권한이 허용되지 않았습니다.');
+    return;
+  }
+
+  const sub = await reg.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+  });
+
+  const { data: { session } } = await sb.auth.getSession();
+  const { error } = await sb.from('push_subscriptions').upsert(
+    { user_id: session.user.id, endpoint: sub.endpoint, subscription: sub.toJSON() },
+    { onConflict: 'endpoint' },
+  );
+
+  if (error) {
+    alert('구독 저장 실패: ' + error.message);
+    return;
+  }
+  await refreshPushButtonLabel();
+  showToast('알림을 켰습니다.');
 }
 
 let appStarted = false;
@@ -724,28 +820,73 @@ async function handleAuthChange(session) {
 function showLoginScreen(message) {
   document.getElementById('login-screen').classList.remove('hidden');
   document.getElementById('login-message').textContent = message || '';
+  backToEmailStep();
 }
 
 function hideLoginScreen() {
   document.getElementById('login-screen').classList.add('hidden');
 }
 
-// window.location.href를 그대로 쓰면, 이전 시도에서 남은 해시(#error=... 등)가 붙은 채로
-// 리다이렉트 주소에 들어가서 Supabase가 붙이는 #access_token=...과 합쳐져 ##가 되는
-// 문제가 있었다. origin+pathname만 써서 항상 깨끗한 주소를 만든다.
-// 로컬(127.0.0.1:5500)에서 초대/로그인을 보내면 로컬로, 배포된 주소에서 보내면
-// 배포된 주소로 리다이렉트되어야 하므로 매번 "지금 이 페이지의 깨끗한 주소"를 사용한다.
+// 초대 메일에 담긴 링크(#access_token=...)를 열어야만 로그인되는 방식은 브라우저/기기가
+// 바뀌거나 이전 시도의 해시가 남아있으면 쉽게 깨졌다. 링크 대신 메일에 같이 오는 6자리
+// 코드를 직접 입력하는 방식으로 바꿔서, 어느 브라우저/기기에서든 이메일+코드만 있으면
+// 로그인되게 한다 (redirectTo/Site URL 설정에 더 이상 의존하지 않는다).
 function cleanPageUrl() {
   return window.location.origin + window.location.pathname;
 }
 
-async function sendMagicLink() {
+let loginPendingEmail = null;
+
+async function sendLoginCode() {
   const email = document.getElementById('login-email').value.trim();
   const msg = document.getElementById('login-message');
   if (!email) { msg.textContent = '이메일을 입력해 주세요.'; return; }
   msg.textContent = '전송 중...';
-  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: cleanPageUrl() } });
-  msg.textContent = error ? `전송 실패: ${error.message}` : '메일함에서 로그인 링크를 확인해 주세요.';
+  // shouldCreateUser: false로, 초대받지 않은 이메일은 계정이 새로 만들어지지 않고
+  // 바로 에러가 나게 한다 (엉뚱한 이메일에 코드 메일이 발송되는 걸 방지).
+  const { error } = await sb.auth.signInWithOtp({
+    email,
+    options: { shouldCreateUser: false, emailRedirectTo: cleanPageUrl() },
+  });
+  if (error) {
+    msg.textContent = `전송 실패: ${error.message}`;
+    return;
+  }
+  loginPendingEmail = email;
+  msg.textContent = '메일함에서 6자리 코드를 확인해 주세요.';
+  document.getElementById('login-email-step').classList.add('hidden');
+  document.getElementById('login-code-step').classList.remove('hidden');
+  document.getElementById('login-code').focus();
+}
+
+async function verifyLoginCode() {
+  const code = document.getElementById('login-code').value.trim();
+  const msg = document.getElementById('login-message');
+  if (!code) { msg.textContent = '코드를 입력해 주세요.'; return; }
+  if (!loginPendingEmail) { backToEmailStep(); return; }
+  msg.textContent = '확인 중...';
+
+  // 크루의 "최초" 로그인은 초대(invite) 메일이라 토큰 타입이 다르고, SDK 버전에 따라
+  // 일반 로그인 코드의 타입 이름도 'email' 또는 'magiclink'로 다를 수 있다. 순서대로
+  // 시도해서 맞는 걸 찾는다.
+  let error = null;
+  for (const type of ['email', 'magiclink', 'invite']) {
+    ({ error } = await sb.auth.verifyOtp({ email: loginPendingEmail, token: code, type }));
+    if (!error) break;
+  }
+  if (error) {
+    msg.textContent = '코드가 올바르지 않거나 만료되었습니다.';
+    return;
+  }
+  // 성공하면 onAuthStateChange가 나머지 로그인 처리를 이어서 한다.
+}
+
+function backToEmailStep() {
+  document.getElementById('login-code-step').classList.add('hidden');
+  document.getElementById('login-email-step').classList.remove('hidden');
+  const codeInput = document.getElementById('login-code');
+  if (codeInput) codeInput.value = '';
+  loginPendingEmail = null;
 }
 
 async function loadDataFromSupabase(isBackground = false) {
@@ -880,18 +1021,22 @@ function switchRole(roleKey) {
   const badge = document.getElementById('current-user-badge');
   const btnNew = document.getElementById('btn-open-new-schedule');
   const btnInvite = document.getElementById('btn-open-invite-crew');
+  const btnPush = document.getElementById('btn-toggle-push');
 
   if (roleKey === 'admin') {
     badge.className = 'badge badge-navy';
     badge.textContent = '관리자';
     btnNew.classList.remove('hidden');
     btnInvite.classList.remove('hidden');
+    btnPush.classList.remove('hidden');
+    refreshPushButtonLabel();
   } else {
     const crew = CREW_USERS.find(c => c.id === roleKey);
     badge.className = 'badge badge-blue';
     badge.textContent = crew ? `${crew.name} (${crew.canDrive ? '운전가능' : '면허없음'})` : '크루';
     btnNew.classList.add('hidden');
     btnInvite.classList.add('hidden');
+    btnPush.classList.add('hidden');
   }
 
   renderApp();
