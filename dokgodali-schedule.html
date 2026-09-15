@@ -23,17 +23,22 @@
     <div class="brand-logo" style="margin:0 auto 14px;">D</div>
     <div style="font-weight:800; font-size:18px; text-align:center; margin-bottom:4px;">독고달이 스케줄</div>
 
-    <div id="login-email-step">
-      <div style="color:var(--text-secondary); font-size:12.5px; text-align:center; margin-bottom:18px;">초대받은 이메일로 로그인하세요.</div>
-      <input type="email" id="login-email" class="form-control" placeholder="you@example.com" style="margin-bottom:10px;">
-      <button class="btn btn-primary" style="width:100%;" onclick="sendLoginCode()">코드 받기</button>
-    </div>
+    <input type="email" id="login-email" class="form-control" placeholder="you@example.com" style="margin-bottom:10px;">
 
-    <div id="login-code-step" class="hidden">
-      <div style="color:var(--text-secondary); font-size:12.5px; text-align:center; margin-bottom:18px;">메일로 받으신 6자리 코드를 입력해 주세요.</div>
+    <div id="login-code-step">
+      <div style="color:var(--text-secondary); font-size:12.5px; text-align:center; margin-bottom:10px;">6자리 코드를 입력하세요</div>
       <input type="text" inputmode="numeric" maxlength="6" id="login-code" class="form-control" placeholder="123456" style="margin-bottom:10px; text-align:center; letter-spacing:4px; font-size:18px;">
       <button class="btn btn-primary" style="width:100%;" onclick="verifyLoginCode()">확인</button>
-      <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="backToEmailStep()">이메일 다시 입력</button>
+      <div style="margin-top:14px; text-align:center; font-size:12px;">
+        <a href="#" onclick="showRequestCodeStep(); return false;">처음이신가요? 이메일로 로그인 코드를 받으세요</a>
+      </div>
+    </div>
+
+    <div id="login-request-step" class="hidden">
+      <button class="btn btn-primary" style="width:100%;" onclick="sendLoginCode()">코드 받기</button>
+      <div style="margin-top:14px; text-align:center; font-size:12px;">
+        <a href="#" onclick="showCodeStep(); return false;">이미 코드를 받으셨나요?</a>
+      </div>
     </div>
 
     <div id="login-message" style="margin-top:12px; font-size:12.5px; text-align:center;"></div>
@@ -659,6 +664,15 @@ function renderWorklogSection(myJob, currentUserId) {
   const statusView = document.getElementById('worklog-status-view');
   const existing = state.workLogs.find(w => w.scheduleId === myJob.id && w.userId === currentUserId);
 
+  // 오늘 작업이 아직 지나지 않았으면(오늘 일자여도 이 구역은 오늘 배정 건에만 뜨므로,
+  // 실제로는 미래 날짜 배정이 여기 섞여 들어올 일이 없지만 방어적으로 한 번 더 확인) 제출 자체를 막는다.
+  if (myJob.jobDate > TODAY_DATE) {
+    formView.classList.add('hidden');
+    statusView.classList.remove('hidden');
+    statusView.innerHTML = `<div style="font-size:12.5px; color:var(--text-muted);">아직 진행되지 않은 작업입니다. 작업일 이후에 제출할 수 있습니다.</div>`;
+    return;
+  }
+
   if (existing && existing.status !== 'rejected') {
     formView.classList.add('hidden');
     statusView.classList.remove('hidden');
@@ -667,6 +681,7 @@ function renderWorklogSection(myJob, currentUserId) {
     statusView.innerHTML = `
       <span class="worklog-status-badge ${badgeClass}">${badgeText}</span>
       <div style="font-size:13px;">${existing.actualStart} ~ ${existing.actualEnd} (휴게 ${existing.breakMinutes}분, 실근무 ${existing.workedHours}시간)</div>
+      <button class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="editWorklogSection('${myJob.id}', '${existing.actualStart}', '${existing.actualEnd}')">수정</button>
     `;
   } else {
     statusView.classList.add('hidden');
@@ -681,6 +696,19 @@ function renderWorklogSection(myJob, currentUserId) {
     document.getElementById('worklog-submit-btn').onclick = () => submitWorklog(myJob.id);
     updateWorklogPreview();
   }
+}
+
+// 이미 제출/승인된 근무시간을 다시 고칠 수 있게, 폼을 기존 값으로 채워서 다시 보여준다.
+function editWorklogSection(scheduleId, actualStart, actualEnd) {
+  document.getElementById('worklog-status-view').classList.add('hidden');
+  const formView = document.getElementById('worklog-form-view');
+  formView.classList.remove('hidden');
+  document.getElementById('worklog-start-select').value = actualStart;
+  document.getElementById('worklog-end-select').value = actualEnd;
+  document.getElementById('worklog-start-select').onchange = updateWorklogPreview;
+  document.getElementById('worklog-end-select').onchange = updateWorklogPreview;
+  document.getElementById('worklog-submit-btn').onclick = () => submitWorklog(scheduleId);
+  updateWorklogPreview();
 }
 
 
@@ -820,7 +848,7 @@ async function handleAuthChange(session) {
 function showLoginScreen(message) {
   document.getElementById('login-screen').classList.remove('hidden');
   document.getElementById('login-message').textContent = message || '';
-  backToEmailStep();
+  showCodeStep();
 }
 
 function hideLoginScreen() {
@@ -828,14 +856,26 @@ function hideLoginScreen() {
 }
 
 // 초대 메일에 담긴 링크(#access_token=...)를 열어야만 로그인되는 방식은 브라우저/기기가
-// 바뀌거나 이전 시도의 해시가 남아있으면 쉽게 깨졌다. 링크 대신 메일에 같이 오는 6자리
-// 코드를 직접 입력하는 방식으로 바꿔서, 어느 브라우저/기기에서든 이메일+코드만 있으면
-// 로그인되게 한다 (redirectTo/Site URL 설정에 더 이상 의존하지 않는다).
+// 바뀌거나 이전 시도의 해시가 남아있으면 쉽게 깨졌다. 링크 대신 메일에 같이 오는 코드를
+// 직접 입력하는 방식으로 바꿔서, 어느 브라우저/기기에서든 이메일+코드만 있으면 로그인되게
+// 한다 (redirectTo/Site URL 설정에 더 이상 의존하지 않는다). 이메일 입력창은 두 단계가
+// 공유하고, 기본 화면은 "코드 입력"이며 코드가 없는 사람만 "코드 받기" 단계로 넘어간다.
 function cleanPageUrl() {
   return window.location.origin + window.location.pathname;
 }
 
-let loginPendingEmail = null;
+function showCodeStep() {
+  document.getElementById('login-request-step').classList.add('hidden');
+  document.getElementById('login-code-step').classList.remove('hidden');
+  const codeInput = document.getElementById('login-code');
+  if (codeInput) codeInput.value = '';
+}
+
+function showRequestCodeStep() {
+  document.getElementById('login-code-step').classList.add('hidden');
+  document.getElementById('login-request-step').classList.remove('hidden');
+  document.getElementById('login-message').textContent = '';
+}
 
 async function sendLoginCode() {
   const email = document.getElementById('login-email').value.trim();
@@ -852,18 +892,17 @@ async function sendLoginCode() {
     msg.textContent = `전송 실패: ${error.message}`;
     return;
   }
-  loginPendingEmail = email;
-  msg.textContent = '메일함에서 6자리 코드를 확인해 주세요.';
-  document.getElementById('login-email-step').classList.add('hidden');
-  document.getElementById('login-code-step').classList.remove('hidden');
+  msg.textContent = '메일함에서 코드를 확인해 주세요.';
+  showCodeStep();
   document.getElementById('login-code').focus();
 }
 
 async function verifyLoginCode() {
+  const email = document.getElementById('login-email').value.trim();
   const code = document.getElementById('login-code').value.trim();
   const msg = document.getElementById('login-message');
+  if (!email) { msg.textContent = '이메일을 입력해 주세요.'; return; }
   if (!code) { msg.textContent = '코드를 입력해 주세요.'; return; }
-  if (!loginPendingEmail) { backToEmailStep(); return; }
   msg.textContent = '확인 중...';
 
   // 크루의 "최초" 로그인은 초대(invite) 메일이라 토큰 타입이 다르고, SDK 버전에 따라
@@ -871,7 +910,7 @@ async function verifyLoginCode() {
   // 시도해서 맞는 걸 찾는다.
   let error = null;
   for (const type of ['email', 'magiclink', 'invite']) {
-    ({ error } = await sb.auth.verifyOtp({ email: loginPendingEmail, token: code, type }));
+    ({ error } = await sb.auth.verifyOtp({ email, token: code, type }));
     if (!error) break;
   }
   if (error) {
@@ -879,14 +918,6 @@ async function verifyLoginCode() {
     return;
   }
   // 성공하면 onAuthStateChange가 나머지 로그인 처리를 이어서 한다.
-}
-
-function backToEmailStep() {
-  document.getElementById('login-code-step').classList.add('hidden');
-  document.getElementById('login-email-step').classList.remove('hidden');
-  const codeInput = document.getElementById('login-code');
-  if (codeInput) codeInput.value = '';
-  loginPendingEmail = null;
 }
 
 async function loadDataFromSupabase(isBackground = false) {
@@ -1781,16 +1812,28 @@ function renderDayDetailWorklog(dateStr, job, currentUserId) {
   const body = document.getElementById('daydetail-worklog-body');
   const existing = state.workLogs.find(w => w.scheduleId === job.id && w.userId === currentUserId);
 
+  // 작업일이 아직 지나지 않았으면(미래 배정) 근무시간 제출 자체를 막는다.
+  if (dateStr > TODAY_DATE) {
+    body.innerHTML = `<div style="font-size:12.5px; color:var(--text-muted);">아직 진행되지 않은 작업입니다. 작업일 이후에 제출할 수 있습니다.</div>`;
+    return;
+  }
+
   if (existing && existing.status !== 'rejected') {
     const badgeClass = existing.status === 'confirmed' ? 'worklog-status-confirmed' : 'worklog-status-pending';
     const badgeText = existing.status === 'confirmed' ? '승인됨' : '제출 완료 · 승인 대기중';
     body.innerHTML = `
       <span class="worklog-status-badge ${badgeClass}">${badgeText}</span>
       <div style="font-size:13px;">${existing.actualStart} ~ ${existing.actualEnd} (휴게 ${existing.breakMinutes}분, 실근무 ${existing.workedHours}시간)</div>
+      <button class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="renderDayDetailWorklogForm('${dateStr}', '${job.id}', '${existing.actualStart}', '${existing.actualEnd}')">수정</button>
     `;
     return;
   }
 
+  renderDayDetailWorklogForm(dateStr, job.id, null, null, existing);
+}
+
+function renderDayDetailWorklogForm(dateStr, scheduleId, prefillStart, prefillEnd, existing) {
+  const body = document.getElementById('daydetail-worklog-body');
   const rejectedBannerHtml = (existing && existing.status === 'rejected')
     ? `<div class="worklog-status-badge worklog-status-rejected" style="margin-bottom:8px;">반려됨: ${existing.rejectReason || ''}</div>`
     : '';
@@ -1806,9 +1849,11 @@ function renderDayDetailWorklog(dateStr, job, currentUserId) {
     <button class="btn btn-primary" id="daydetail-worklog-submit-btn" style="width:100%;">제출</button>
   `;
   populateDayDetailWorklogTimeSelects();
+  if (prefillStart) document.getElementById('daydetail-worklog-start-select').value = prefillStart;
+  if (prefillEnd) document.getElementById('daydetail-worklog-end-select').value = prefillEnd;
   document.getElementById('daydetail-worklog-start-select').onchange = updateDayDetailWorklogPreview;
   document.getElementById('daydetail-worklog-end-select').onchange = updateDayDetailWorklogPreview;
-  document.getElementById('daydetail-worklog-submit-btn').onclick = () => submitDayDetailWorklog(job.id, dateStr);
+  document.getElementById('daydetail-worklog-submit-btn').onclick = () => submitDayDetailWorklog(scheduleId, dateStr);
   updateDayDetailWorklogPreview();
 }
 
