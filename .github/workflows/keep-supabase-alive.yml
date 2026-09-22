@@ -1,0 +1,22 @@
+name: Keep Supabase Alive
+
+# Supabase 무료 플랜은 7일간 DB 활동이 없으면 프로젝트를 자동으로 일시정지시킨다.
+# 3일마다 가벼운 조회 요청 하나를 보내서 그 시간을 넘기지 않게 한다.
+# anon key는 어차피 dokgodali-*.html 안에 그대로 노출돼 있는 공개 키라 여기 적어도 안전하다.
+
+on:
+  schedule:
+    - cron: '0 6 */3 * *'
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST endpoint
+        env:
+          SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4ZnFha3duYnFhcGF0Y2x5Yml6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3NTQ5NjQsImV4cCI6MjEwMzMzMDk2NH0._YGTlvj8y2gkIMdrzArKXbwAer1ZMwQCgRN1vz7wiPc
+        run: |
+          curl -sf "https://wxfqakwnbqapatclybiz.supabase.co/rest/v1/profiles?select=id&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY"
