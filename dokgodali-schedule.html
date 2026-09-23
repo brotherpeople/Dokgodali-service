@@ -159,6 +159,7 @@
   <!-- CREW VIEW: Work Log History -->
   <div id="crew-history-section" class="card hidden" style="margin-top:12px;">
     <div class="card-title">내 근무 이력</div>
+    <div id="crew-month-hours"></div>
     <div id="crew-history-list"></div>
   </div>
 
@@ -1641,6 +1642,23 @@ function renderCrewHistory(currentUserId) {
     .filter(w => w.userId === currentUserId)
     .sort((a, b) => b.jobDate.localeCompare(a.jobDate));
 
+  const thisMonth = TODAY_DATE.slice(0, 7); // 'YYYY-MM'
+  const thisMonthLogs = myLogs.filter(w => w.jobDate.startsWith(thisMonth));
+  const confirmedHours = thisMonthLogs
+    .filter(w => w.status === 'confirmed')
+    .reduce((sum, w) => sum + w.workedHours, 0);
+  const pendingCount = thisMonthLogs.filter(w => w.status === 'pending').length;
+
+  document.getElementById('crew-month-hours').innerHTML = `
+    <div class="crew-month-hours-box">
+      <div>
+        <div class="crew-month-hours-label">이번 달 근무시간</div>
+        <div class="crew-month-hours-value">${confirmedHours.toFixed(1)}<span>시간</span></div>
+      </div>
+      ${pendingCount > 0 ? `<div class="crew-month-hours-note">승인 대기중 ${pendingCount}건<br>(미포함)</div>` : ''}
+    </div>
+  `;
+
   if (myLogs.length === 0) {
     list.innerHTML = '<div class="worklog-history-empty">아직 제출한 근무 기록이 없습니다.</div>';
     return;
@@ -2131,13 +2149,18 @@ async function handleSaveSchedule(e) {
 }
 
 async function deleteSchedule(scheduleId) {
-  if (!confirm('삭제하시겠습니까?')) return;
+  const linkedWorkLogs = state.workLogs.filter(w => w.scheduleId === scheduleId).length;
+  const warning = linkedWorkLogs > 0
+    ? `이 스케줄에는 이미 제출된 근무시간 기록이 ${linkedWorkLogs}건 있습니다.\n삭제하면 그 근무기록도 함께 영구 삭제됩니다. 정말 삭제하시겠습니까?`
+    : '삭제하시겠습니까?';
+  if (!confirm(warning)) return;
+
   const { error } = await sb.from('schedules').delete().eq('id', scheduleId);
   if (error) {
-    // 23503 = foreign_key_violation. 이 스케줄에 근무기록(work_logs)이나 확정된 요청(requests)이
-    // 연결되어 있으면 on delete cascade가 없어서 DB가 삭제를 거부한다.
+    // 23503 = foreign_key_violation. sql/auth.sql의 on delete cascade/set null 마이그레이션을
+    // 아직 안 돌렸으면, 연결된 work_logs/requests가 있는 스케줄은 여기서 막힌다.
     const message = error.code === '23503'
-      ? '이 스케줄에 연결된 근무기록 또는 요청이 있어 삭제할 수 없습니다.'
+      ? '이 스케줄에 연결된 근무기록 또는 요청이 있어 삭제할 수 없습니다. (관리자: sql/auth.sql의 cascade 설정을 적용해 주세요)'
       : error.message;
     alert('삭제 실패: ' + message);
     return;
