@@ -1532,6 +1532,9 @@ function renderModalCrewAssignment(scheduleId) {
     const isAvail = state.availability[`${u.id}_${sch.jobDate}`] !== false;
     return `<option value="${u.id}">${u.name} (${isAvail ? '가능' : '불가'})</option>`;
   }).join('');
+  // 드롭다운에서 크루를 고르기만 하고 옆의 "추가" 버튼을 따로 안 눌러서 배정이 안 되는
+  // 경우가 많아서, 선택하는 즉시 바로 추가되게 한다 ("추가" 버튼은 그대로 남겨둠).
+  addSelect.onchange = () => { if (addSelect.value) addCrewToSchedule(); };
 
   renderScheduleAssignmentsList(sch);
 }
