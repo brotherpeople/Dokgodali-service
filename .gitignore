@@ -11,3 +11,6 @@ supabase/.temp/
 
 # Python 잡파일
 __pycache__/
+
+# Supabase 테이블 데이터 export (실제 고객/크루 개인정보 포함 — 커밋 금지)
+sql/*_rows.csv

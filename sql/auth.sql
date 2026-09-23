@@ -50,6 +50,11 @@ create policy "본인 근무기록 읽기" on work_logs for select
   using (user_id = auth.uid()::text or is_admin());
 create policy "본인 근무기록 등록" on work_logs for insert
   with check (user_id = auth.uid()::text);
+-- 본인이 이미 제출한 근무기록을 다시 수정(재제출)할 수 있게 한다. status를 'pending'으로만
+-- 되돌릴 수 있게 제한해서, 본인이 스스로 'confirmed'로 바꿔치기하지 못하게 막는다.
+create policy "본인 근무기록 수정(재제출)" on work_logs for update
+  using (user_id = auth.uid()::text)
+  with check (user_id = auth.uid()::text and status = 'pending');
 create policy "관리자 근무기록 승인/반려" on work_logs for update
   using (is_admin()) with check (is_admin());
 
