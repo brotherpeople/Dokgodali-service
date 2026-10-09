@@ -1790,17 +1790,23 @@ async function confirmAvailabilityChange(dateStr, nextVal) {
   // 2. Broadcast immediately to all other open tabs
   broadcastChange();
 
-  // 3. Upsert to Supabase
-  try {
-    await sb.from('availability').upsert({
-      user_id: currentUserId,
-      job_date: dateStr,
-      is_available: nextVal
-    });
-    broadcastChange();
-  } catch (err) {
-    console.error('Availability update failed:', err);
+  // 3. Upsert to Supabase. supabase-js resolves with { error } instead of throwing on a
+  // failed write (RLS rejection 등), so a try/catch around it never catches anything —
+  // the UI looked saved until the next poll quietly reverted it back to the DB's real value.
+  const { error } = await sb.from('availability').upsert({
+    user_id: currentUserId,
+    job_date: dateStr,
+    is_available: nextVal
+  });
+  if (error) {
+    alert('저장 실패: ' + error.message);
+    await loadDataFromSupabase();
+    renderCrewCalendar();
+    return;
   }
+  await loadDataFromSupabase();
+  renderCrewCalendar();
+  broadcastChange();
 }
 
 function populateDayDetailWorklogTimeSelects() {
