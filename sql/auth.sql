@@ -1,8 +1,13 @@
--- schedule.html에 실제 인증/권한을 붙이기 위한 스키마.
--- 기존 schedules/work_logs/availability 테이블의 user_id 컬럼은 이미 text 타입이라
--- 컬럼 타입을 바꿀 필요 없이, 앞으로는 그 자리에 auth.uid()::text (실제 로그인 유저의 UUID)를
+-- schedule.html에 실제 인증/권한을 붙이기 위한 기반 스키마: profiles 테이블과,
+-- 다른 모든 테이블의 RLS 정책이 공통으로 쓰는 is_admin() 헬퍼 함수.
+-- schedules/availability/work_logs/requests 각각의 테이블 정의와 RLS 정책은
+-- 이제 그 테이블 이름의 SQL 파일에 있다 (schedules.sql, availability.sql, work_logs.sql, requests.sql).
+--
+-- 기존 schedules/work_logs/availability 테이블의 user_id 컬럼은 text 타입이라
+-- 컬럼 타입을 바꿀 필요 없이 auth.uid()::text (실제 로그인 유저의 UUID)를 그 자리에
 -- 넣으면 된다. 단, CREW_USERS 하드코딩 배열 기반의 기존 시드 데이터('crew1' 등)는
--- 실제 초대된 유저와 매칭되지 않으므로 실 운영 전에 정리해야 한다.
+-- 실제 초대된 유저와 매칭되지 않으므로 실 운영 전에 정리해야 한다 (availability 테이블에
+-- 아직 'crew1'/'crew2' 시드 행이 남아있는 것을 2026-10 기준 확인함).
 
 create table profiles (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -35,42 +40,4 @@ create policy "본인 프로필 읽기" on profiles for select
 create policy "관리자는 전체 프로필 읽기" on profiles for select
   using (is_admin());
 create policy "관리자는 프로필 등록/수정" on profiles for all
-  using (is_admin()) with check (is_admin());
-
--- schedules: 로그인한 사람이면 누구나 읽기(자기 일정 확인용), 쓰기는 관리자만.
-alter table schedules enable row level security;
-create policy "로그인 유저 스케줄 읽기" on schedules for select
-  using (auth.uid() is not null);
-create policy "관리자만 스케줄 쓰기" on schedules for all
-  using (is_admin()) with check (is_admin());
-
--- work_logs: 본인 것은 본인이 넣고 고칠 수 있고, 승인/반려는 관리자만.
-alter table work_logs enable row level security;
-create policy "본인 근무기록 읽기" on work_logs for select
-  using (user_id = auth.uid()::text or is_admin());
-create policy "본인 근무기록 등록" on work_logs for insert
-  with check (user_id = auth.uid()::text);
--- 본인이 이미 제출한 근무기록을 다시 수정(재제출)할 수 있게 한다. status를 'pending'으로만
--- 되돌릴 수 있게 제한해서, 본인이 스스로 'confirmed'로 바꿔치기하지 못하게 막는다.
-create policy "본인 근무기록 수정(재제출)" on work_logs for update
-  using (user_id = auth.uid()::text)
-  with check (user_id = auth.uid()::text and status = 'pending');
-create policy "관리자 근무기록 승인/반려" on work_logs for update
-  using (is_admin()) with check (is_admin());
-
--- availability: 본인 것만 쓰고, 전체는 로그인한 사람이면 읽기 가능(스케줄 배정 시 필요).
-alter table availability enable row level security;
-create policy "로그인 유저 가능여부 읽기" on availability for select
-  using (auth.uid() is not null);
-create policy "본인 가능여부 쓰기" on availability for all
-  using (user_id = auth.uid()::text) with check (user_id = auth.uid()::text);
-
--- requests: 고객(delivery.html/quote-flow.html)은 로그인하지 않으므로 anon insert는 계속 허용.
--- 읽기/확정/거절(update)은 관리자만.
-alter table requests enable row level security;
-create policy "누구나 요청 등록" on requests for insert
-  with check (true);
-create policy "관리자만 요청 읽기" on requests for select
-  using (is_admin());
-create policy "관리자만 요청 확정-거절" on requests for update
   using (is_admin()) with check (is_admin());
