@@ -290,12 +290,8 @@ const ELEVATOR_CYCLE = ['yes', 'no', 'unknown'];
           <div class="schedule-grid">
             <div><div class="field-title">이사 예정일</div><input class="text-input" id="movingDate" type="date"></div>
             <div>
-              <div class="field-title">선호 시간대</div>
-              <select class="text-input" id="movingTime">
-                <option value="morning">오전 (08:00–12:00)</option>
-                <option value="afternoon">오후 (12:00–17:00)</option>
-                <option value="evening">저녁 (17:00–20:00)</option>
-              </select>
+              <div class="field-title">선호 시작 시간</div>
+              <select class="text-input" id="movingTime"></select>
             </div>
           </div>
         </div>
@@ -1456,7 +1452,7 @@ function renderInvoice(){
     ? (document.getElementById('destAddr').value ? document.getElementById('destAddr').value + ' 부근 (목적지 확정 전)' : '(목적지 미확정)')
     : (document.getElementById('destAddr').value || '(주소 미입력)');
   const movingDate = document.getElementById('movingDate').value || '-';
-  const movingTimeLabel = { morning:'오전 (08:00–12:00)', afternoon:'오후 (12:00–17:00)', evening:'저녁 (17:00–20:00)' }[document.getElementById('movingTime').value];
+  const movingTimeLabel = document.getElementById('movingTime').value;
   const van = VANS[state.selectedVanIndex];
 
   const rowsHtml = rows.map(r => `
@@ -1563,9 +1559,17 @@ function renderInvoice(){
 
 fillFloorSelect(document.getElementById('originFloor'), state.originFloor);
 fillFloorSelect(document.getElementById('destFloor'), state.destFloor);
-document.getElementById('movingDate').value = '2026-09-01';
-document.getElementById('permitStart').value = '2026-08-30';
-document.getElementById('permitEnd').value = '2026-09-01';
+const now = new Date();
+const TODAY_STR = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+document.getElementById('movingDate').value = TODAY_STR;
+// 선호 시작 시간: 06:00~22:00, 30분 단위
+for (let m = 6 * 60; m <= 22 * 60; m += 30) {
+  const t = `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+  document.getElementById('movingTime').add(new Option(t, t));
+}
+document.getElementById('movingTime').value = '08:00';
+document.getElementById('permitStart').value = TODAY_STR;
+document.getElementById('permitEnd').value = TODAY_STR;
 
 goToScreen(1);
 renderAll();

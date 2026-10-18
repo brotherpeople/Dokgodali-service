@@ -168,7 +168,7 @@
         <div class="card-title">Monthly Work Time PDF</div>
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
           <select id="az-crew-select"></select>
-          <input type="month" id="az-month-input" value="2026-09">
+          <input type="month" id="az-month-input">
           <button class="btn btn-primary btn-sm" id="az-download-btn" onclick="generateAzDocPdf()">Download PDF</button>
         </div>
         <div id="az-pdf-status" style="font-size:12px; color:var(--text-secondary); margin-top:6px;"></div>
@@ -307,8 +307,11 @@ const CREW_USERS = [
   { id: 'crew4', name: 'Park Min-su', phone: '+49 174 4444444', canDrive: false }
 ];
 
-// 데모용 "오늘" 날짜 고정값 — 실제 서비스 전환 시 new Date() 기반으로 교체
-const TODAY_DATE = '2026-09-01';
+function formatDateLocal(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+const TODAY_DATE = formatDateLocal(new Date());
+document.getElementById('az-month-input').value = TODAY_DATE.slice(0, 7);
 
 const INVITE_CODE = 'DKGD-2026-BERLIN';
 
@@ -442,9 +445,9 @@ function renderWorklogSection(myJob, currentUserId) {
 
 let state = {
   currentRole: 'admin',
-  currentYear: 2026,
-  currentMonth: 8,
-  selectedDate: '2026-09-01',
+  currentYear: new Date().getFullYear(),
+  currentMonth: new Date().getMonth(),
+  selectedDate: TODAY_DATE,
   schedules: [],
   availability: {},
   workLogs: [],

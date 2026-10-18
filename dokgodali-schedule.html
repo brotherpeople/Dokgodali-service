@@ -208,7 +208,7 @@
         <div class="card-title">월별 근무시간 PDF</div>
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
           <select id="az-crew-select"></select>
-          <input type="month" id="az-month-input" value="2026-09">
+          <input type="month" id="az-month-input">
           <button class="btn btn-primary btn-sm" id="az-download-btn" onclick="generateAzDocPdf()">PDF 다운로드</button>
         </div>
         <div id="az-pdf-status" style="font-size:12px; color:var(--text-secondary); margin-top:6px;"></div>
@@ -261,16 +261,23 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">작업 날짜</label>
-            <input type="date" id="f-job-date" class="form-control" required>
+            <label class="form-label">시작 날짜</label>
+            <input type="date" id="f-job-date" class="form-control" required onchange="const e = document.getElementById('f-end-date'); if (e.value < this.value) e.value = this.value;">
           </div>
           <div class="form-group">
-            <label class="form-label">작업 시간</label>
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <select id="f-time-start" class="form-control" required></select>
-              <span>~</span>
-              <select id="f-time-end" class="form-control" required></select>
-            </div>
+            <label class="form-label">시작 시간</label>
+            <select id="f-time-start" class="form-control" required></select>
+          </div>
+        </div>
+        <!-- 원거리 이사(전날 밤 출발, 다음날 새벽 복귀 등)는 여러 날에 걸칠 수 있어 종료 날짜를 따로 받는다. -->
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">종료 날짜</label>
+            <input type="date" id="f-end-date" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">종료 시간</label>
+            <select id="f-time-end" class="form-control" required></select>
           </div>
         </div>
 
@@ -472,6 +479,7 @@ function formatDateLocal(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 const TODAY_DATE = formatDateLocal(new Date());
+document.getElementById('az-month-input').value = TODAY_DATE.slice(0, 7);
 
 // --- 차량 옵션 ---
 const VEHICLE_DUTIES = [
@@ -521,9 +529,9 @@ function calcWorkLog(actualStart, actualEnd) {
   return { breakMinutes, workedHours };
 }
 
-function populateTimeSelect(selectEl, defaultValue) {
+function populateTimeSelect(selectEl, defaultValue, fromMin = 6 * 60, toMin = 22 * 60) {
   if (!selectEl || selectEl.options.length > 0) return;
-  for (let m = 6 * 60; m <= 22 * 60; m += 15) {
+  for (let m = fromMin; m <= toMin; m += 15) {
     const h = String(Math.floor(m / 60)).padStart(2, '0');
     const mm = String(m % 60).padStart(2, '0');
     const label = `${h}:${mm}`;
@@ -973,6 +981,7 @@ function mapScheduleFromDB(s) {
     customerName: s.customer_name,
     customerPhone: s.customer_phone,
     jobDate: s.job_date,
+    endDate: s.end_date || s.job_date,
     overallTimeRange: s.overall_time_range,
     originAddress: s.origin_address,
     originSpec: s.origin_spec,
@@ -983,6 +992,25 @@ function mapScheduleFromDB(s) {
     notes: s.notes,
     assignments: s.assignments || []
   };
+}
+
+// 스케줄은 job_date(시작일)~end_date(종료일)에 걸칠 수 있다. 달력/오늘 작업/가용 여부는 이 범위로 판단한다.
+function scheduleCoversDate(sch, dateStr) {
+  return sch.jobDate <= dateStr && dateStr <= sch.endDate;
+}
+
+function scheduleDates(sch) {
+  const dates = [];
+  for (const d = new Date(sch.jobDate + 'T00:00:00'); formatDateLocal(d) <= sch.endDate; d.setDate(d.getDate() + 1)) {
+    dates.push(formatDateLocal(d));
+  }
+  return dates;
+}
+
+function scheduleTimeLabel(sch) {
+  if (sch.endDate === sch.jobDate) return sch.overallTimeRange;
+  const [start, end] = (sch.overallTimeRange || '').split('~').map(t => t.trim());
+  return `${sch.jobDate.slice(5)} ${start} ~ ${sch.endDate.slice(5)} ${end}`;
 }
 
 function mapWorkLogFromDB(w) {
@@ -1267,6 +1295,15 @@ function renderRequestDetailBody(r) {
   ].filter(Boolean).join('');
 }
 
+// 새 견적 폼은 'HH:MM' 시작 시간 + 예상 소요시간(duration)을 보낸다(옛 요청은 morning/afternoon/evening).
+// 하루를 넘기는 작업은 여기서 23:45로 잘리므로 관리자가 수정 화면에서 종료 날짜/시간을 조정한다.
+function movingTimeRange(start, hours) {
+  if (!/^\d{2}:\d{2}$/.test(start || '')) return '';
+  const [h, m] = start.split(':').map(Number);
+  const endMin = Math.min(h * 60 + m + (hours || 4) * 60, 23 * 60 + 45);
+  return `${start} ~ ${String(Math.floor(endMin / 60)).padStart(2, '0')}:${String(endMin % 60).padStart(2, '0')}`;
+}
+
 // requests.payload를 schedules 컬럼으로 변환한다. type별로 payload 모양이 다르다.
 function mapRequestToScheduleFields(r) {
   const p = r.payload;
@@ -1277,7 +1314,7 @@ function mapRequestToScheduleFields(r) {
       customer_name: r.customer_name,
       customer_phone: r.customer_phone,
       job_date: p.movingDate || null,
-      overall_time_range: { morning: '08:00 ~ 12:00', afternoon: '12:00 ~ 17:00', evening: '17:00 ~ 20:00' }[p.movingTime] || '',
+      overall_time_range: { morning: '08:00 ~ 12:00', afternoon: '12:00 ~ 17:00', evening: '17:00 ~ 20:00' }[p.movingTime] || movingTimeRange(p.movingTime, p.duration),
       origin_address: p.originAddress || '',
       origin_spec: `${p.originFloor}층 · 엘리베이터 ${p.originElevator === 'yes' ? '있음' : '없음'}`,
       dest_address: p.destTBD ? '미정' : (p.destAddress || ''),
@@ -1422,7 +1459,7 @@ function renderAdminCalendar() {
     dayNum.textContent = day;
     dayEl.appendChild(dayNum);
 
-    const daySchedules = state.schedules.filter(s => s.jobDate === dateStr);
+    const daySchedules = state.schedules.filter(s => scheduleCoversDate(s, dateStr));
     daySchedules.forEach(sch => {
       const pill = document.createElement('div');
       const assignedCount = sch.assignments ? sch.assignments.length : 0;
@@ -1469,7 +1506,7 @@ function renderAdminSelectedDateSchedules() {
   const listContainer = document.getElementById('admin-schedules-list');
   listContainer.innerHTML = '';
 
-  const daySchedules = state.schedules.filter(s => s.jobDate === state.selectedDate);
+  const daySchedules = state.schedules.filter(s => scheduleCoversDate(s, state.selectedDate));
 
   if (daySchedules.length === 0) {
     listContainer.innerHTML = `
@@ -1494,7 +1531,7 @@ function renderAdminSelectedDateSchedules() {
         <div>
           <span class="badge ${isFull ? 'badge-green' : 'badge-warning'}">${assignedCount}/${sch.requiredWorkers}명</span>
           <strong style="font-size: 13.5px; margin-left: 4px;">${sch.customerName}</strong>
-          <span style="font-size: 11.5px; color: var(--text-muted); margin-left: 4px;">${sch.overallTimeRange}</span>
+          <span style="font-size: 11.5px; color: var(--text-muted); margin-left: 4px;">${scheduleTimeLabel(sch)}</span>
         </div>
         <div style="display: flex; gap: 4px;">
           <button class="btn btn-whatsapp btn-sm" onclick="openWhatsappBriefing('${sch.id}')">WhatsApp</button>
@@ -1529,7 +1566,7 @@ function renderModalCrewAssignment(scheduleId) {
   addSelect.innerHTML = '<option value="">+ 크루 배정</option>' + CREW_USERS.map(u => {
     const isAssigned = (sch.assignments || []).some(a => a.userId === u.id);
     if (isAssigned) return '';
-    const isAvail = state.availability[`${u.id}_${sch.jobDate}`] !== false;
+    const isAvail = scheduleDates(sch).every(d => state.availability[`${u.id}_${d}`] !== false);
     return `<option value="${u.id}">${u.name} (${isAvail ? '가능' : '불가'})</option>`;
   }).join('');
   // 드롭다운에서 크루를 고르기만 하고 옆의 "추가" 버튼을 따로 안 눌러서 배정이 안 되는
@@ -1580,7 +1617,7 @@ function renderCrewDashboard() {
   if (!currentUser) return;
 
   const todayStr = TODAY_DATE;
-  const myJob = state.schedules.find(s => s.jobDate === todayStr && (s.assignments || []).some(a => a.userId === currentUserId));
+  const myJob = state.schedules.find(s => scheduleCoversDate(s, todayStr) && (s.assignments || []).some(a => a.userId === currentUserId));
 
   const todaySection = document.getElementById('crew-today-section');
   const todayHeroCard = todaySection.querySelector('.today-hero-card:not(#crew-today-empty)');
@@ -1593,7 +1630,7 @@ function renderCrewDashboard() {
 
     document.getElementById('crew-today-title').textContent = `${myJob.customerName} 님 이사/운송`;
     document.getElementById('crew-today-time').textContent = myAssign.startTime || '08:00';
-    document.getElementById('crew-today-overall-time').textContent = `(전체: ${myJob.overallTimeRange})`;
+    document.getElementById('crew-today-overall-time').textContent = `(전체: ${scheduleTimeLabel(myJob)})`;
 
     const dutyBadge = document.getElementById('crew-duty-badge');
     if (myAssign.vehicleDuty !== 'none') {
@@ -1708,7 +1745,7 @@ function renderCrewCalendar() {
     tag.textContent = isAvailable ? '가능' : '불가';
     dayEl.appendChild(tag);
 
-    const assignedJob = state.schedules.find(s => s.jobDate === dateStr && (s.assignments || []).some(a => a.userId === state.currentRole));
+    const assignedJob = state.schedules.find(s => scheduleCoversDate(s, dateStr) && (s.assignments || []).some(a => a.userId === state.currentRole));
     if (assignedJob) {
       const myAssign = assignedJob.assignments.find(a => a.userId === state.currentRole);
       const pill = document.createElement('div');
@@ -1729,7 +1766,7 @@ function openDayDetailModal(dateStr) {
 
   const jobInfoEl = document.getElementById('daydetail-job-info');
   const worklogSection = document.getElementById('daydetail-worklog-section');
-  const assignedJob = state.schedules.find(s => s.jobDate === dateStr && (s.assignments || []).some(a => a.userId === currentUserId));
+  const assignedJob = state.schedules.find(s => scheduleCoversDate(s, dateStr) && (s.assignments || []).some(a => a.userId === currentUserId));
   if (assignedJob) {
     const myAssign = assignedJob.assignments.find(a => a.userId === currentUserId);
     jobInfoEl.innerHTML = `
@@ -1897,13 +1934,14 @@ function openCreateScheduleModal(defaultDate) {
   document.getElementById('schedule-delete-btn').classList.add('hidden');
   document.getElementById('modal-crew-section').classList.add('hidden');
   document.getElementById('f-job-date').value = defaultDate || state.selectedDate;
+  document.getElementById('f-end-date').value = defaultDate || state.selectedDate;
   renderVehicleRows([]);
   const startSel = document.getElementById('f-time-start');
   const endSel = document.getElementById('f-time-end');
   startSel.innerHTML = '';
   endSel.innerHTML = '';
-  populateTimeSelect(startSel, '08:00');
-  populateTimeSelect(endSel, '13:00');
+  populateTimeSelect(startSel, '08:00', 0, 23 * 60 + 45);
+  populateTimeSelect(endSel, '13:00', 0, 23 * 60 + 45);
   document.getElementById('schedule-modal').classList.remove('hidden');
 }
 
@@ -1922,6 +1960,7 @@ function openEditScheduleModal(scheduleId) {
   document.getElementById('f-customer-name').value = sch.customerName || '';
   document.getElementById('f-customer-phone').value = sch.customerPhone || '';
   document.getElementById('f-job-date').value = sch.jobDate;
+  document.getElementById('f-end-date').value = sch.endDate;
   document.getElementById('f-origin-addr').value = sch.originAddress || '';
   document.getElementById('f-origin-spec').value = sch.originSpec || '';
   document.getElementById('f-dest-addr').value = sch.destAddress || '';
@@ -1935,8 +1974,8 @@ function openEditScheduleModal(scheduleId) {
   const endSel = document.getElementById('f-time-end');
   startSel.innerHTML = '';
   endSel.innerHTML = '';
-  populateTimeSelect(startSel, rangeStart || '08:00');
-  populateTimeSelect(endSel, rangeEnd || '13:00');
+  populateTimeSelect(startSel, rangeStart || '08:00', 0, 23 * 60 + 45);
+  populateTimeSelect(endSel, rangeEnd || '13:00', 0, 23 * 60 + 45);
 
   renderModalCrewAssignment(scheduleId);
   document.getElementById('schedule-modal').classList.remove('hidden');
@@ -2111,6 +2150,11 @@ async function handleSaveSchedule(e) {
   const jobDate = document.getElementById('f-job-date').value;
   const timeStart = document.getElementById('f-time-start').value;
   const timeEnd = document.getElementById('f-time-end').value;
+  const endDate = document.getElementById('f-end-date').value;
+  if (`${endDate} ${timeEnd}` <= `${jobDate} ${timeStart}`) {
+    alert('종료 일시가 시작 일시보다 뒤여야 합니다. 자정을 넘기는 작업은 종료 날짜를 다음날 이후로 설정하세요.');
+    return;
+  }
   const timeRange = `${timeStart} ~ ${timeEnd}`;
   const originAddr = document.getElementById('f-origin-addr').value.trim();
   const originSpec = document.getElementById('f-origin-spec').value.trim();
@@ -2126,6 +2170,7 @@ async function handleSaveSchedule(e) {
     customer_name: customerName,
     customer_phone: customerPhone,
     job_date: jobDate,
+    end_date: endDate,
     overall_time_range: timeRange,
     origin_address: originAddr,
     origin_spec: originSpec,
@@ -2260,7 +2305,7 @@ function openWhatsappBriefing(scheduleId) {
   }
 
   const text = `[독고달이 배정]
-일시: ${sch.jobDate} (${sch.overallTimeRange})
+일시: ${sch.jobDate} (${scheduleTimeLabel(sch)})
 고객: ${sch.customerName}
 
 상차: ${sch.originAddress} (${sch.originSpec || ''})

@@ -10,6 +10,9 @@ create table schedules (
   customer_name text,
   customer_phone text,
   job_date date not null,
+  -- 여러 날에 걸치는 작업(원거리 이사 등)의 종료일. null이면 job_date와 같은 날로 본다.
+  -- 기존 DB에는: alter table schedules add column end_date date;
+  end_date date,
   overall_time_range text,
   origin_address text,
   origin_spec text,

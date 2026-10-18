@@ -281,12 +281,8 @@ const ELEVATOR_CYCLE = ['yes', 'no', 'unknown'];
           <div class="schedule-grid">
             <div><div class="field-title">Moving Date</div><input class="text-input" id="movingDate" type="date"></div>
             <div>
-              <div class="field-title">Preferred Time</div>
-              <select class="text-input" id="movingTime">
-                <option value="morning">Morning (08:00–12:00)</option>
-                <option value="afternoon">Afternoon (12:00–17:00)</option>
-                <option value="evening">Evening (17:00–20:00)</option>
-              </select>
+              <div class="field-title">Preferred Start Time</div>
+              <select class="text-input" id="movingTime"></select>
             </div>
           </div>
         </div>
@@ -1405,7 +1401,7 @@ function renderInvoice(){
     ? (document.getElementById('destAddr').value ? document.getElementById('destAddr').value + ' area (destination not yet confirmed)' : '(destination not yet confirmed)')
     : (document.getElementById('destAddr').value || '(address not provided)');
   const movingDate = document.getElementById('movingDate').value || '-';
-  const movingTimeLabel = { morning:'Morning (08:00–12:00)', afternoon:'Afternoon (12:00–17:00)', evening:'Evening (17:00–20:00)' }[document.getElementById('movingTime').value];
+  const movingTimeLabel = document.getElementById('movingTime').value;
   const van = VANS[state.selectedVanIndex];
 
   const rowsHtml = rows.map(r => `
@@ -1512,9 +1508,17 @@ function renderInvoice(){
 
 fillFloorSelect(document.getElementById('originFloor'), state.originFloor);
 fillFloorSelect(document.getElementById('destFloor'), state.destFloor);
-document.getElementById('movingDate').value = '2026-09-01';
-document.getElementById('permitStart').value = '2026-08-30';
-document.getElementById('permitEnd').value = '2026-09-01';
+const now = new Date();
+const TODAY_STR = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+document.getElementById('movingDate').value = TODAY_STR;
+// Preferred start time: 06:00-22:00 in 30-minute steps
+for (let m = 6 * 60; m <= 22 * 60; m += 30) {
+  const t = `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+  document.getElementById('movingTime').add(new Option(t, t));
+}
+document.getElementById('movingTime').value = '08:00';
+document.getElementById('permitStart').value = TODAY_STR;
+document.getElementById('permitEnd').value = TODAY_STR;
 
 goToScreen(1);
 renderAll();
