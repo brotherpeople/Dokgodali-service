@@ -24,6 +24,9 @@ create table schedules (
   vehicles jsonb not null default '[]'
 );
 
+-- 스케줄러가 postgres_changes로 실시간 반영을 받는다 (work_logs.sql과 동일).
+alter publication supabase_realtime add table schedules;
+
 alter table schedules enable row level security;
 
 -- 로그인한 사람이면 누구나 읽기(자기 일정 확인용), 쓰기는 관리자만.

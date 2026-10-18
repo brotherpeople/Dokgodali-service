@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="dokgodali-config.js"></script>
 <link rel="stylesheet" href="dokgodali-schedule.css">
 <!-- 아이폰에서 "홈 화면에 추가"로 설치해야 웹 푸시가 동작하기 때문에 PWA로 설치 가능하게 만든다 -->
 <link rel="manifest" href="manifest.json">
@@ -454,15 +455,15 @@
    설정 상수 — 자주 바뀌는 값은 전부 여기서 관리한다.
    ================================================================ */
 
-// --- Supabase 연결 정보 ---
-const SUPABASE_URL = "https://wxfqakwnbqapatclybiz.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4ZnFha3duYnFhcGF0Y2x5Yml6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3NTQ5NjQsImV4cCI6MjEwMzMzMDk2NH0._YGTlvj8y2gkIMdrzArKXbwAer1ZMwQCgRN1vz7wiPc";
+// --- Supabase 연결 정보 (dokgodali-config.js가 배포 위치에 맞게 고른다) ---
+const SUPABASE_URL = DOKGODALI_ENV.supabaseUrl;
+const SUPABASE_ANON_KEY = DOKGODALI_ENV.supabaseAnonKey;
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const MANAGE_CREW_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/manage-crew`;
 
 // 웹 푸시 구독용 공개키 (개인키는 서버(Edge Function)에만 있음, 노출돼도 안전한 값이다).
-const VAPID_PUBLIC_KEY = "BBvwdQ0_KBeuWuU17WyzcNyG2hiqlhgIz6aCfXaXNcUOcguxRH4BIL36IuKFU9SfXvEG_cC_YF7REG1KL8hdAXI";
+const VAPID_PUBLIC_KEY = DOKGODALI_ENV.vapidPublicKey;
 
 // 같은 브라우저의 다른 탭 간 즉시 동기화용 BroadcastChannel
 const localSyncChannel = ('BroadcastChannel' in window) ? new BroadcastChannel('dokgodali_local_sync') : null;

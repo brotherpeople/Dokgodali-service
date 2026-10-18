@@ -10,6 +10,9 @@ create table availability (
   primary key (user_id, job_date)
 );
 
+-- 스케줄러가 postgres_changes로 실시간 반영을 받는다 (work_logs.sql과 동일).
+alter publication supabase_realtime add table availability;
+
 alter table availability enable row level security;
 
 -- 본인 것만 쓰고, 전체는 로그인한 사람이면 읽기 가능(스케줄 배정 시 필요).

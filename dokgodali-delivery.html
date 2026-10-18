@@ -8,6 +8,7 @@
         <link rel="stylesheet" href="dokgodali-shared.css" />
         <link rel="stylesheet" href="dokgodali-delivery.css" />
         <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+        <script src="dokgodali-config.js"></script>
     </head>
     <body>
         <main class="page">
@@ -859,11 +860,10 @@
 
         <script>
             /* ================================================================
-               Supabase — schedule.html과 같은 프로젝트를 그대로 사용한다.
+               Supabase — 연결 정보는 dokgodali-config.js가 배포 위치에 맞게 고른다.
                ================================================================ */
-            const SUPABASE_URL = "https://wxfqakwnbqapatclybiz.supabase.co";
-            const SUPABASE_ANON_KEY =
-                "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4ZnFha3duYnFhcGF0Y2x5Yml6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3NTQ5NjQsImV4cCI6MjEwMzMzMDk2NH0._YGTlvj8y2gkIMdrzArKXbwAer1ZMwQCgRN1vz7wiPc";
+            const SUPABASE_URL = DOKGODALI_ENV.supabaseUrl;
+            const SUPABASE_ANON_KEY = DOKGODALI_ENV.supabaseAnonKey;
             const sb = window.supabase.createClient(
                 SUPABASE_URL,
                 SUPABASE_ANON_KEY,
