@@ -1,8 +1,10 @@
 name: Keep Supabase Alive
 
 # Supabase 무료 플랜은 7일간 DB 활동이 없으면 프로젝트를 자동으로 일시정지시킨다.
-# 3일마다 가벼운 조회 요청 하나를 보내서 그 시간을 넘기지 않게 한다.
-# anon key는 어차피 dokgodali-*.html 안에 그대로 노출돼 있는 공개 키라 여기 적어도 안전하다.
+# 3일마다 keepalive() 함수를 호출해 DB에 실제 쓰기를 한 번 일으켜서 그 시간을 넘기지 않게 한다.
+# (예전처럼 profiles를 읽기만 하는 ping은 활동으로 인정되지 않았다 — sql/keepalive.sql 참고)
+# Dokgodali-dev(dev 브랜치)와 Dokgodali-demo(main 브랜치) 둘 다 깨워 둔다.
+# anon key는 어차피 dokgodali-config.js 안에 그대로 노출돼 있는 공개 키라 여기 적어도 안전하다.
 
 on:
   schedule:
@@ -12,11 +14,26 @@ on:
 jobs:
   ping:
     runs-on: ubuntu-latest
+    strategy:
+      # 한쪽이 실패해도 다른 쪽 ping은 계속 보낸다.
+      fail-fast: false
+      matrix:
+        include:
+          - name: Dokgodali-dev
+            url: https://wxfqakwnbqapatclybiz.supabase.co
+            anon_key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4ZnFha3duYnFhcGF0Y2x5Yml6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3NTQ5NjQsImV4cCI6MjEwMzMzMDk2NH0._YGTlvj8y2gkIMdrzArKXbwAer1ZMwQCgRN1vz7wiPc
+          - name: Dokgodali-demo
+            url: https://aahmugqchglqqavvotjm.supabase.co
+            anon_key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhaG11Z3FjaGdscXFhdnZvdGptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIzMjI2NTQsImV4cCI6MjEwNzg5ODY1NH0.2zaMFKwf9L36oRMuABeYJai4nVczbiPeY9dibGeGiy0
+    name: ping (${{ matrix.name }})
     steps:
-      - name: Ping Supabase REST endpoint
+      - name: Call keepalive() RPC
         env:
-          SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4ZnFha3duYnFhcGF0Y2x5Yml6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3NTQ5NjQsImV4cCI6MjEwMzMzMDk2NH0._YGTlvj8y2gkIMdrzArKXbwAer1ZMwQCgRN1vz7wiPc
+          SUPABASE_URL: ${{ matrix.url }}
+          SUPABASE_ANON_KEY: ${{ matrix.anon_key }}
         run: |
-          curl -sf "https://wxfqakwnbqapatclybiz.supabase.co/rest/v1/profiles?select=id&limit=1" \
+          curl -sSf -X POST "$SUPABASE_URL/rest/v1/rpc/keepalive" \
             -H "apikey: $SUPABASE_ANON_KEY" \
-            -H "Authorization: Bearer $SUPABASE_ANON_KEY"
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{}'
