@@ -65,7 +65,6 @@
     <div style="display: flex; gap: 8px; align-items: center;">
       <span id="current-user-badge" class="badge badge-navy">관리자</span>
       <button id="btn-toggle-push" class="btn btn-secondary btn-sm" onclick="togglePushSubscription()">🔔 알림 켜기</button>
-      <button id="btn-open-invite-crew" class="btn btn-secondary btn-sm" onclick="openInviteCrewModal()">+ 크루 초대</button>
     </div>
   </div>
 </header>
@@ -237,8 +236,16 @@
       <div id="admin-requests-pending-list"></div>
     </div>
 
+    <!-- 크루 관리: 왼쪽에서 크루를 고르면 그 달 근무를 캘린더로, 아래는 크루 목록(연락처·수정·삭제) -->
     <div id="admin-crew-section" class="hidden">
-      <div id="admin-crew-list"></div>
+      <div class="crew-layout">
+        <div class="crew-picker" id="admin-crew-picker"></div>
+        <div class="dash-panel" id="admin-crew-month"></div>
+      </div>
+      <div class="card" style="margin-top: 12px; padding: 14px;">
+        <div class="card-title">크루 목록</div>
+        <div id="admin-crew-list"></div>
+      </div>
     </div>
   </div>
 
@@ -537,7 +544,11 @@ let state = {
   expandedRequestIds: new Set(),
   adminTab: 'dashboard',
   editingScheduleId: null,
-  jobDetail: null // 열려 있는 작업 상세 팝업 { scheduleId, siblings }
+  jobDetail: null, // 열려 있는 작업 상세 팝업 { scheduleId, siblings }
+  // 크루 관리 탭에서 고른 크루와 보고 있는 달
+  crewViewUserId: null,
+  crewViewYear: new Date().getFullYear(),
+  crewViewMonth: new Date().getMonth()
 };
 
 function vehicleDutyLabel(value) {
@@ -1113,18 +1124,15 @@ function switchRole(roleKey) {
   state.currentRole = roleKey;
 
   const badge = document.getElementById('current-user-badge');
-  const btnInvite = document.getElementById('btn-open-invite-crew');
   const btnPush = document.getElementById('btn-toggle-push');
 
   if (roleKey === 'admin') {
     badge.className = 'badge badge-navy';
     badge.textContent = '관리자';
-    btnInvite.classList.remove('hidden');
   } else {
     const crew = CREW_USERS.find(c => c.id === roleKey);
     badge.className = 'badge badge-blue';
     badge.textContent = crew ? `${crew.name} (${crew.canDrive ? '운전가능' : '면허없음'})` : '크루';
-    btnInvite.classList.add('hidden');
   }
 
   // 알림 켜기/끄기는 관리자·크루 둘 다 필요하다 (관리자는 신규 요청/근무시간 제출 알림,
@@ -2358,6 +2366,153 @@ async function submitInviteCrew() {
 }
 
 function renderAdminCrewTab() {
+  if (!CREW_USERS.some(u => u.id === state.crewViewUserId)) {
+    state.crewViewUserId = CREW_USERS.length ? CREW_USERS[0].id : null;
+  }
+  renderAdminCrewPicker();
+  renderAdminCrewMonth();
+  renderAdminCrewList();
+}
+
+function crewViewMonthPrefix() {
+  return `${state.crewViewYear}-${String(state.crewViewMonth + 1).padStart(2, '0')}`;
+}
+
+// 왼쪽 크루 목록: 이름 + 보고 있는 달의 승인된 근무시간 (크루 화면의 "이번 달 근무시간"과 같은 기준)
+function renderAdminCrewPicker() {
+  const prefix = crewViewMonthPrefix();
+  const confirmedHours = userId => state.workLogs
+    .filter(w => w.userId === userId && w.status === 'confirmed' && w.jobDate.startsWith(prefix))
+    .reduce((sum, w) => sum + w.workedHours, 0);
+  // 휴대폰에서는 가로로 넘기는 목록이라, 4초마다 다시 그려도 넘겨 둔 위치를 유지한다
+  const picker = document.getElementById('admin-crew-picker');
+  const scrollLeft = picker.scrollLeft;
+  picker.innerHTML = `
+    <button class="crew-invite-btn" onclick="openInviteCrewModal()">+ 크루 초대</button>
+    ${CREW_USERS.map(u => `
+      <button class="crew-picker-btn${u.id === state.crewViewUserId ? ' active' : ''}" onclick="selectCrewView('${u.id}')">
+        ${escapeHtml(u.name)}<small>${formatHours(confirmedHours(u.id))}</small>
+      </button>`).join('')}
+  `;
+  picker.scrollLeft = scrollLeft;
+}
+
+// 3시간 이하 초록, 3~6시간 노랑, 6시간 이상 빨강
+function hoursColorClass(h) {
+  return h <= 3 ? 'c-g' : h < 6 ? 'c-y' : 'c-r';
+}
+
+// 고른 크루의 한 달을 일반 캘린더로 그리고, 일한 날을 근무시간 색으로 칠한다. 칸을 누르면 작업 상세 팝업.
+// 시간은 근무기록이 있으면 그 시간, 없으면 배정 시간으로 계산한 시간. 아직 안 한 날(예정)은 옅은 색 + 점선.
+function renderAdminCrewMonth() {
+  const panel = document.getElementById('admin-crew-month');
+  const userId = state.crewViewUserId;
+  if (!userId) {
+    panel.innerHTML = '<div class="worklog-history-empty">등록된 크루가 없습니다. "+ 크루 초대"로 추가해 주세요.</div>';
+    return;
+  }
+  const user = CREW_USERS.find(u => u.id === userId);
+  const prefix = crewViewMonthPrefix();
+  const daysInMonth = new Date(state.crewViewYear, state.crewViewMonth + 1, 0).getDate();
+  const firstDayIndex = (new Date(state.crewViewYear, state.crewViewMonth, 1).getDay() + 6) % 7;
+  const now = nowKey();
+  const sum = { confirmed: 0, pending: 0, planned: 0, missing: 0 };
+  // 하루에 작업이 여럿이면 칸의 상태는 미제출 > 승인 대기 > 예정 > 승인 순으로 정한다
+  const rank = { confirmed: 0, rejected: 0, planned: 1, pending: 2, missing: 3 };
+
+  const cells = ['월', '화', '수', '목', '금', '토', '일'].map((w, i) =>
+    `<div class="cc-wd${i === 5 ? ' sat' : i === 6 ? ' sun' : ''}">${w}</div>`);
+  for (let i = 0; i < firstDayIndex; i++) cells.push('<div class="cc-day blank"></div>');
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${prefix}-${String(d).padStart(2, '0')}`;
+    const wd = new Date(dateStr + 'T00:00:00').getDay();
+    const jobs = jobsOnDate(dateStr).filter(s => (s.assignments || []).some(a => a.userId === userId));
+    const cls = ['cc-day'];
+    if (wd === 6) cls.push('sat');
+    if (wd === 0) cls.push('sun');
+    if (dateStr === TODAY_DATE) cls.push('today');
+
+    let hours = 0, colorHours = 0, kind = null;
+    jobs.forEach(s => {
+      const a = s.assignments.find(x => x.userId === userId);
+      const log = state.workLogs.find(w => w.scheduleId === s.id && w.userId === userId);
+      const k = log ? (log.status === 'pending' ? 'pending' : log.status)
+                    : scheduleStatus(s, now) === 'done' ? 'missing' : 'planned';
+      const r = scheduleRange(s);
+      const start = a.startTime || r.start;
+      const end = a.endTime || r.end;
+      const h = log ? log.workedHours
+                    : timeToMinutes(end) > timeToMinutes(start) ? calcWorkLog(start, end).workedHours : 0;
+      if (kind === null || rank[k] > rank[kind]) kind = k;
+      // 여러 날 작업의 시간은 첫날에 한 번만 센다 (근무기록도 작업 하나에 하나). 이어지는 날은 같은 색만 칠한다.
+      if (dateStr !== s.jobDate) {
+        colorHours = Math.max(colorHours, h);
+        return;
+      }
+      hours += h;
+      colorHours = Math.max(colorHours, hours);
+      if (k === 'missing') sum.missing++;
+      else if (sum[k] !== undefined) sum[k] += h;
+    });
+
+    let text = '', sub = '', onclick = '';
+    if (jobs.length) {
+      cls.push('has', kind === 'missing' ? 'missing' : hoursColorClass(colorHours));
+      if (kind === 'planned') cls.push('planned');
+      text = kind === 'missing' ? '미제출' : hours ? formatHours(hours) : '';
+      sub = [jobs.length > 1 ? `${jobs.length}건` : '', kind === 'pending' ? '대기' : kind === 'rejected' ? '반려' : '']
+        .filter(Boolean).join(' · ');
+      onclick = ` onclick="openJobDetailModal('${jobs[0].id}', '${jobs.map(s => s.id).join(',')}')"`;
+    } else if (state.availability[`${userId}_${dateStr}`] === false) {
+      cls.push('off');
+      text = '불가';
+    }
+    cells.push(`
+      <div class="${cls.join(' ')}"${onclick}>
+        <span class="cc-num">${d}</span>
+        <span><span class="cc-hours">${text}</span>${sub ? `<span class="cc-sub">${sub}</span>` : ''}</span>
+      </div>`);
+  }
+
+  panel.innerHTML = `
+    <div class="cc-head">
+      <div class="cc-name">${escapeHtml(user ? user.name : userId)}</div>
+      <div class="cc-month">
+        <button class="calendar-nav-btn" onclick="changeCrewViewMonth(-1)">‹</button>
+        ${state.crewViewYear}년 ${state.crewViewMonth + 1}월
+        <button class="calendar-nav-btn" onclick="changeCrewViewMonth(1)">›</button>
+      </div>
+    </div>
+    <div class="cc-sum">
+      <span>승인<b>${formatHours(sum.confirmed)}</b></span>
+      <span>승인 대기<b>${formatHours(sum.pending)}</b></span>
+      <span>예정<b>${formatHours(sum.planned)}</b></span>
+      ${sum.missing ? `<span class="missing">미제출<b>${sum.missing}건</b></span>` : ''}
+    </div>
+    <div class="cc-grid">${cells.join('')}</div>
+    <div class="cc-legend">
+      <span><i class="c-g"></i>3시간 이하</span>
+      <span><i class="c-y"></i>3~6시간</span>
+      <span><i class="c-r"></i>6시간 이상</span>
+      <span><i class="planned"></i>예정</span>
+    </div>
+  `;
+}
+
+function selectCrewView(userId) {
+  state.crewViewUserId = userId;
+  renderAdminCrewTab();
+}
+
+function changeCrewViewMonth(delta) {
+  const d = new Date(state.crewViewYear, state.crewViewMonth + delta, 1);
+  state.crewViewYear = d.getFullYear();
+  state.crewViewMonth = d.getMonth();
+  renderAdminCrewTab();
+}
+
+function renderAdminCrewList() {
   const list = document.getElementById('admin-crew-list');
   if (CREW_USERS.length === 0) {
     list.innerHTML = '<div class="worklog-history-empty">등록된 크루가 없습니다. "+ 크루 초대"로 추가해 주세요.</div>';
