@@ -66,7 +66,6 @@
       <span id="current-user-badge" class="badge badge-navy">관리자</span>
       <button id="btn-toggle-push" class="btn btn-secondary btn-sm" onclick="togglePushSubscription()">🔔 알림 켜기</button>
       <button id="btn-open-invite-crew" class="btn btn-secondary btn-sm" onclick="openInviteCrewModal()">+ 크루 초대</button>
-      <button id="btn-open-new-schedule" class="btn btn-primary btn-sm" onclick="openCreateScheduleModal()">+ 스케줄 등록</button>
     </div>
   </div>
 </header>
@@ -184,9 +183,8 @@
       </div>
     </div>
 
-    <div class="admin-layout">
-      
-      <!-- Left: Monthly Calendar -->
+    <!-- 스케줄 관리: 넓은 캘린더, 날짜를 누르면 아래에 그날 작업 목록 -->
+    <div id="admin-dispatch-section">
       <div class="calendar-container">
         <div class="calendar-header">
           <button class="calendar-nav-btn" onclick="changeMonth(-1)">이전 달</button>
@@ -202,18 +200,24 @@
           <div class="cal-weekday sat">토</div>
           <div class="cal-weekday sun">일</div>
         </div>
-        <div id="admin-cal-days" class="calendar-grid"></div>
+        <div id="admin-cal-days" class="calendar-grid cal-full"></div>
+        <div class="cal-legend">
+          <span><i class="lg-active"></i>진행 중 · 예정</span>
+          <span><i class="lg-done"></i>완료</span>
+          <span><i class="lg-alert"></i>인원 부족 · 충돌</span>
+        </div>
       </div>
 
-      <!-- Right: Selected Date & Dispatch Panel -->
-      <div class="card" style="padding: 14px;">
+      <div class="card" id="admin-day-detail" style="padding: 14px;">
         <div class="card-header" style="margin-bottom: 10px; padding-bottom: 8px;">
-          <div class="card-title" id="admin-selected-date-title"></div>
-          <div id="admin-crew-avail-summary" style="font-size: 11.5px; color: var(--text-secondary);"></div>
+          <div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;">
+            <div class="card-title" id="admin-selected-date-title"></div>
+            <div id="admin-crew-avail-summary" style="font-size: 11.5px; color: var(--text-secondary);"></div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openCreateScheduleModal(state.selectedDate)">+ 스케줄 등록</button>
         </div>
         <div id="admin-schedules-list"></div>
       </div>
-
     </div>
 
     <div id="admin-worklog-section" class="hidden">
@@ -1109,20 +1113,17 @@ function switchRole(roleKey) {
   state.currentRole = roleKey;
 
   const badge = document.getElementById('current-user-badge');
-  const btnNew = document.getElementById('btn-open-new-schedule');
   const btnInvite = document.getElementById('btn-open-invite-crew');
   const btnPush = document.getElementById('btn-toggle-push');
 
   if (roleKey === 'admin') {
     badge.className = 'badge badge-navy';
     badge.textContent = '관리자';
-    btnNew.classList.remove('hidden');
     btnInvite.classList.remove('hidden');
   } else {
     const crew = CREW_USERS.find(c => c.id === roleKey);
     badge.className = 'badge badge-blue';
     badge.textContent = crew ? `${crew.name} (${crew.canDrive ? '운전가능' : '면허없음'})` : '크루';
-    btnNew.classList.add('hidden');
     btnInvite.classList.add('hidden');
   }
 
@@ -1156,7 +1157,7 @@ function renderApp() {
     document.getElementById('admin-worklog-section').classList.toggle('hidden', state.adminTab !== 'worklog');
     document.getElementById('admin-requests-section').classList.toggle('hidden', state.adminTab !== 'requests');
     document.getElementById('admin-crew-section').classList.toggle('hidden', state.adminTab !== 'crew');
-    document.querySelector('.admin-layout').classList.toggle('hidden', state.adminTab !== 'dispatch');
+    document.getElementById('admin-dispatch-section').classList.toggle('hidden', state.adminTab !== 'dispatch');
     document.getElementById('admin-tab-dashboard-btn').classList.toggle('active', state.adminTab === 'dashboard');
     document.getElementById('admin-tab-dispatch-btn').classList.toggle('active', state.adminTab === 'dispatch');
     document.getElementById('admin-tab-worklog-btn').classList.toggle('active', state.adminTab === 'worklog');
@@ -1772,10 +1773,14 @@ function renderJobDetailModal() {
   `;
 }
 
+// 캘린더 색은 세 가지: 진행 중·예정(초록), 완료(흐리게), 확인 필요(빨강 = 인원 부족 또는 충돌).
+// 가용 인원은 오늘 이후에 누가 '불가'로 표시한 날에만 적는다.
 function renderAdminCalendar() {
   document.getElementById('admin-cal-title').textContent = `${state.currentYear}년 ${state.currentMonth + 1}월`;
   const container = document.getElementById('admin-cal-days');
   container.innerHTML = '';
+  const now = nowKey();
+  const conflictIds = conflictScheduleIds();
 
   const daysInMonth = new Date(state.currentYear, state.currentMonth + 1, 0).getDate();
   // getDay()는 일요일=0 기준이라, 월요일 시작 그리드에 맞게 (일=0 -> 6, 월=1 -> 0, ...)로 보정합니다.
@@ -1799,103 +1804,81 @@ function renderAdminCalendar() {
     dayNum.textContent = day;
     dayEl.appendChild(dayNum);
 
-    const daySchedules = state.schedules.filter(s => scheduleCoversDate(s, dateStr));
-    daySchedules.forEach(sch => {
+    jobsOnDate(dateStr).forEach(sch => {
+      const done = scheduleStatus(sch, now) === 'done';
+      const short = !done && isUnderstaffed(sch);
       const pill = document.createElement('div');
-      const assignedCount = sch.assignments ? sch.assignments.length : 0;
-      const isDeficit = assignedCount < sch.requiredWorkers;
-      pill.className = `cal-event-pill ${isDeficit ? 'deficit' : ''}`;
-      pill.textContent = `${sch.customerName} (${assignedCount}/${sch.requiredWorkers})`;
+      pill.className = `cal-event-pill${done ? ' done' : ''}${short || conflictIds.has(sch.id) ? ' alert' : ''}`;
+      const time = sch.jobDate === dateStr && sch.overallTimeRange ? `<span class="t">${scheduleRange(sch).start}</span>` : '';
+      pill.innerHTML = `${time}${jobLabel(sch)}${short ? ` ${(sch.assignments || []).length}/${sch.requiredWorkers}` : ''}`;
       dayEl.appendChild(pill);
     });
 
-    let availCount = 0;
-    CREW_USERS.forEach(u => {
-      if (state.availability[`${u.id}_${dateStr}`] !== false) availCount++;
-    });
-    const availSummary = document.createElement('div');
-    availSummary.style.fontSize = '9px';
-    availSummary.style.color = '#94a3b8';
-    availSummary.style.marginTop = '2px';
-    availSummary.textContent = `${availCount}명 가용`;
-    dayEl.appendChild(availSummary);
+    const offCount = CREW_USERS.filter(u => state.availability[`${u.id}_${dateStr}`] === false).length;
+    if (offCount > 0 && dateStr >= TODAY_DATE) {
+      const avail = document.createElement('div');
+      avail.className = 'cal-avail-low';
+      avail.textContent = `가용 ${CREW_USERS.length - offCount}`;
+      dayEl.appendChild(avail);
+    }
 
     dayEl.onclick = () => {
       state.selectedDate = dateStr;
       renderAdminCalendar();
       renderAdminSelectedDateSchedules();
+      document.getElementById('admin-day-detail').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     };
 
     container.appendChild(dayEl);
   }
 }
 
-function renderAdminSelectedDateSchedules() {
-  document.getElementById('admin-selected-date-title').textContent = `${state.selectedDate}`;
-  
-  let availList = [];
-  let unavailList = [];
-  CREW_USERS.forEach(u => {
-    if (state.availability[`${u.id}_${state.selectedDate}`] !== false) availList.push(u);
-    else unavailList.push(u);
-  });
+const ICON_WHATSAPP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9 9.5c0 3 2.5 5.5 5.5 5.5l1-1.5-2-1-1 .8c-1-.4-1.8-1.2-2.2-2.2l.8-1-1-2Z"/></svg>';
+const ICON_EDIT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.17 6.81a2.82 2.82 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z"/><path d="m15 5 4 4"/></svg>';
 
-  document.getElementById('admin-crew-avail-summary').innerHTML = 
-    `가용 ${availList.length}명 (${availList.map(u => u.name).join(',') || '-'}) · 불가 ${unavailList.length}명`;
+// 선택한 날 작업 목록: 한 줄에 상태 동그라미 · 인원 · 이름 · 시간 · 크루 · WhatsApp · 수정. 줄을 누르면 상세 팝업.
+function renderAdminSelectedDateSchedules() {
+  const date = state.selectedDate;
+  document.getElementById('admin-selected-date-title').textContent = `${monthDayLabel(date)} ${weekdayLabel(date)}`;
+  const off = CREW_USERS.filter(u => state.availability[`${u.id}_${date}`] === false);
+  document.getElementById('admin-crew-avail-summary').textContent = off.length ? `불가: ${off.map(u => u.name).join(', ')}` : '';
 
   const listContainer = document.getElementById('admin-schedules-list');
-  listContainer.innerHTML = '';
-
-  const daySchedules = state.schedules.filter(s => scheduleCoversDate(s, state.selectedDate));
-
+  const daySchedules = jobsOnDate(date);
   if (daySchedules.length === 0) {
-    listContainer.innerHTML = `
-      <div style="text-align: center; padding: 30px 10px; color: var(--text-muted); font-size: 13px;">
-        일정이 없습니다.
-        <div style="margin-top: 8px;">
-          <button class="btn btn-primary btn-sm" onclick="openCreateScheduleModal('${state.selectedDate}')">+ 스케줄 추가</button>
-        </div>
-      </div>
-    `;
+    listContainer.innerHTML = '<div class="dash-empty" style="text-align: center; padding: 24px 0;">일정 없음</div>';
     return;
   }
 
-  daySchedules.forEach(sch => {
-    const assignedCount = sch.assignments ? sch.assignments.length : 0;
-    const isFull = assignedCount >= sch.requiredWorkers;
-
-    const item = document.createElement('div');
-    item.className = 'schedule-item';
-    item.innerHTML = `
-      <div class="schedule-item-top">
-        <div>
-          <span class="badge ${isFull ? 'badge-green' : 'badge-warning'}">${assignedCount}/${sch.requiredWorkers}명</span>
-          <strong style="font-size: 13.5px; margin-left: 4px;">${sch.customerName}</strong>
-          <span style="font-size: 11.5px; color: var(--text-muted); margin-left: 4px;">${scheduleTimeLabel(sch)}</span>
-        </div>
-        <div style="display: flex; gap: 4px;">
-          <button class="btn btn-whatsapp btn-sm" onclick="openWhatsappBriefing('${sch.id}')">WhatsApp</button>
-          <button class="btn btn-secondary btn-sm" onclick="openEditScheduleModal('${sch.id}')">수정</button>
-        </div>
-      </div>
-
-      <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; background: #f8fafc; padding: 6px 8px; border-radius: 4px;">
-        ${sch.originAddress} ➔ ${sch.destAddress}
-      </div>
-
-      <div style="font-size: 11.5px;">
-        ${(sch.assignments && sch.assignments.length > 0) ? sch.assignments.map(a => {
-          const u = CREW_USERS.find(c => c.id === a.userId);
-          const name = u ? u.name : a.userId;
-          const time = `${a.startTime || ''}${a.endTime ? ' ~ ' + a.endTime : ''}`;
-          const duty = a.vehicleDuty && a.vehicleDuty !== 'none' ? ` · ${vehicleDutyLabel(a.vehicleDuty)}` : '';
-          return `<span style="display:inline-block; background:#f1f5f9; border-radius:4px; padding:2px 6px; margin:0 4px 4px 0;">${name} ${time}${duty}</span>`;
-        }).join('') : `<span style="color: var(--text-muted);">배정 인원 없음</span>`}
-      </div>
-    `;
-
-    listContainer.appendChild(item);
-  });
+  const now = nowKey();
+  const conflictIds = conflictScheduleIds();
+  const siblings = daySchedules.map(s => s.id).join(',');
+  const statusLabel = { done: '완료', ongoing: '진행 중', upcoming: '예정' };
+  listContainer.innerHTML = daySchedules.map(sch => {
+    const st = scheduleStatus(sch, now);
+    const assigned = sch.assignments || [];
+    const staffCls = st !== 'done' && isUnderstaffed(sch) ? 'badge-warning' : 'badge-gray';
+    const crewNames = assigned.map(a => {
+      const u = CREW_USERS.find(c => c.id === a.userId);
+      return escapeHtml(u ? u.name : a.userId);
+    }).join(' · ');
+    return `
+      <div class="day-job ${st}" onclick="openJobDetailModal('${sch.id}', '${siblings}')">
+        <span class="st-dot ${st}" title="${statusLabel[st]}"></span>
+        <span class="badge ${staffCls}">${assigned.length}/${sch.requiredWorkers}</span>
+        <span class="day-job-name">${jobLabel(sch)}</span>
+        ${conflictIds.has(sch.id) ? '<span class="badge badge-red">충돌</span>' : ''}
+        <span class="day-job-time">${dayTimeLabel(sch, date)}</span>
+        <span class="day-job-crew${crewNames ? '' : ' none'}">${crewNames || '배정 없음'}</span>
+        <button class="icon-btn wa" title="WhatsApp" onclick="event.stopPropagation(); openWhatsappBriefing('${sch.id}')">${ICON_WHATSAPP}</button>
+        <button class="icon-btn" title="수정" onclick="event.stopPropagation(); openEditScheduleModal('${sch.id}')">${ICON_EDIT}</button>
+      </div>`;
+  }).join('') + `
+    <div class="day-job-legend">
+      <span><span class="st-dot ongoing"></span>진행 중</span>
+      <span><span class="st-dot upcoming"></span>예정</span>
+      <span><span class="st-dot done"></span>완료</span>
+    </div>`;
 }
 
 function renderModalCrewAssignment(scheduleId) {

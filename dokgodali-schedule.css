@@ -256,15 +256,6 @@
     .grid-2col { grid-template-columns: 1fr; }
   }
 
-  /* 관리자: 캘린더 + 배차 패널 */
-  .admin-layout {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-  }
-  @media (max-width: 800px) {
-    .admin-layout { grid-template-columns: 1fr; }
-  }
   .sub-box {
     background: #f8fafc;
     border: 1px solid var(--border);
@@ -328,7 +319,8 @@
   }
   .calendar-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    /* 1fr만 쓰면 칸 안의 이름이 길 때 그 칸만 넓어져 요일 머리와 어긋나고 휴대폰에서 화면 밖으로 밀린다 */
+    grid-template-columns: repeat(7, minmax(0, 1fr));
   }
   .cal-weekday {
     padding: 6px 2px;
@@ -662,3 +654,55 @@
   .detail-switch { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
   .detail-switch button { border: 1px solid var(--border); background: #fff; border-radius: 999px; padding: 4px 10px; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--text-secondary); cursor: pointer; }
   .detail-switch button.active { background: var(--navy); border-color: var(--navy); color: #fff; }
+
+  /* 스케줄 관리: 캘린더를 넓게. 색은 진행 중·예정(초록), 완료(흐리게), 확인 필요(빨강 = 인원 부족 또는 충돌) */
+  .cal-full .cal-day { min-height: 104px; padding: 6px; }
+  .cal-full.calendar-grid .cal-day:nth-child(7n+6),
+  .cal-full.calendar-grid .cal-day:nth-child(7n) { background: #fff; }
+  .cal-full.calendar-grid .cal-day:hover { background: #f8fafc; }
+  .cal-full.calendar-grid .cal-day.today { background: var(--accent-light); }
+  .cal-full .cal-event-pill { font-size: 11px; padding: 2px 5px; margin-top: 3px; border-radius: 3px; background: var(--success-light); color: #14532d; border-left: 3px solid var(--success); }
+  .cal-full .cal-event-pill .t { color: var(--text-muted); font-weight: 500; margin-right: 4px; font-variant-numeric: tabular-nums; }
+  .cal-full .cal-event-pill.done { background: #f8fafc; color: var(--text-muted); border-left-color: #cbd5e1; }
+  .cal-full .cal-event-pill.alert { background: var(--danger-light); color: #991b1b; border-left-color: var(--danger); }
+  .cal-avail-low { font-size: 10px; color: var(--text-muted); margin-top: 3px; }
+  .cal-legend { display: flex; flex-wrap: wrap; gap: 10px; padding: 8px 12px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-secondary); }
+  .cal-legend span { display: inline-flex; align-items: center; gap: 4px; }
+  .cal-legend i { width: 14px; height: 10px; border-radius: 2px; display: inline-block; border-left: 3px solid; }
+  .cal-legend .lg-active { background: var(--success-light); border-left-color: var(--success); }
+  .cal-legend .lg-done { background: #f8fafc; border-left-color: #cbd5e1; }
+  .cal-legend .lg-alert { background: var(--danger-light); border-left-color: var(--danger); }
+
+  /* 선택한 날 작업 목록: 한 줄에 상태 동그라미 · 인원 · 이름 · 시간 · 크루 · WhatsApp · 수정 */
+  .day-job { display: flex; align-items: center; gap: 10px; padding: 10px 4px; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
+  .day-job:hover { background: #f8fafc; }
+  .st-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .st-dot.ongoing { background: var(--success); }
+  .st-dot.upcoming { box-shadow: inset 0 0 0 2px var(--success); }
+  .st-dot.done { background: #cbd5e1; }
+  .day-job .badge { flex: none; }
+  .day-job-name { font-size: 14px; font-weight: 700; flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .day-job.done .day-job-name { color: var(--text-muted); font-weight: 600; }
+  .day-job-time { font-size: 12.5px; color: var(--text-secondary); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .day-job-crew { margin-left: auto; font-size: 11.5px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .day-job-crew.none { color: var(--text-muted); }
+  .icon-btn { width: 30px; height: 30px; flex: none; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; border: 1px solid var(--border); background: #fff; color: var(--text-secondary); cursor: pointer; padding: 0; }
+  .icon-btn:hover { border-color: var(--border-dark); color: var(--text-primary); }
+  .icon-btn.wa { background: #15803d; border-color: #15803d; color: #fff; }
+  .icon-btn.wa:hover { background: #166534; }
+  .icon-btn svg { width: 16px; height: 16px; }
+  .day-job-legend { display: flex; gap: 12px; font-size: 11px; color: var(--text-muted); margin-top: 8px; }
+  .day-job-legend span { display: inline-flex; align-items: center; gap: 4px; }
+  .day-job-legend .st-dot { width: 8px; height: 8px; }
+
+  @media (max-width: 600px) {
+    .cal-full .cal-day { min-height: 72px; padding: 3px; }
+    .cal-full .cal-event-pill { font-size: 9.5px; padding: 1px 3px; border-left-width: 2px; }
+    .cal-full .cal-event-pill .t { display: none; }
+    .day-job { gap: 7px; flex-wrap: wrap; }
+    .day-job-name { font-size: 13px; }
+    .day-job-time { font-size: 11.5px; }
+    /* 휴대폰에서는 크루 이름을 둘째 줄로 내리고 버튼은 첫 줄 오른쪽에 둔다 */
+    .day-job-crew { order: 1; flex-basis: 100%; margin: -4px 0 0 17px; }
+    .icon-btn.wa { margin-left: auto; }
+  }
