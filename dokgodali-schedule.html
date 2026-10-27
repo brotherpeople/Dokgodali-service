@@ -1557,13 +1557,17 @@ function isUnderstaffed(sch) {
 // 'unavailable' = 작업 날짜 중 오늘 이후에 '불가'로 표시한 날이 있음, 'overlap' = 시간이 겹치는 다른 작업에 배정됨
 function assignmentProblem(userId, sch) {
   if (scheduleDates(sch).some(d => d >= TODAY_DATE && state.availability[`${userId}_${d}`] === false)) return 'unavailable';
+  return overlappingSchedule(userId, sch) ? 'overlap' : null;
+}
+
+// 이 크루가 배정된 다른 작업 중 sch와 시간이 겹치는 것 (없으면 undefined)
+function overlappingSchedule(userId, sch) {
   const r = scheduleRange(sch);
-  const overlaps = state.schedules.some(o => {
+  return state.schedules.find(o => {
     if (o.id === sch.id || !(o.assignments || []).some(a => a.userId === userId)) return false;
     const ro = scheduleRange(o);
     return ro.startKey < r.endKey && r.startKey < ro.endKey;
   });
-  return overlaps ? 'overlap' : null;
 }
 
 // 아직 안 끝난 작업 중 배정된 크루에게 문제가 있는 작업 id
@@ -1911,7 +1915,8 @@ function renderModalCrewAssignment(scheduleId) {
     const isAssigned = (sch.assignments || []).some(a => a.userId === u.id);
     if (isAssigned) return '';
     const isAvail = scheduleDates(sch).every(d => state.availability[`${u.id}_${d}`] !== false);
-    return `<option value="${u.id}">${u.name} (${isAvail ? '가능' : '불가'})</option>`;
+    const label = !isAvail ? '불가' : overlappingSchedule(u.id, sch) ? '다른 작업' : '가능';
+    return `<option value="${u.id}">${u.name} (${label})</option>`;
   }).join('');
   // 드롭다운에서 크루를 고르기만 하고 옆의 "추가" 버튼을 따로 안 눌러서 배정이 안 되는
   // 경우가 많아서, 선택하는 즉시 바로 추가되게 한다 ("추가" 버튼은 그대로 남겨둠).
@@ -2741,6 +2746,25 @@ async function addCrewToSchedule() {
   if (!userId || !scheduleId) return;
   const sch = state.schedules.find(s => s.id === scheduleId);
   if (!sch) return;
+
+  // 불가로 표시한 날이거나 같은 시간에 다른 작업이 있으면 한 번 더 묻는다
+  const user = CREW_USERS.find(u => u.id === userId);
+  const name = user ? user.name : userId;
+  const offDates = scheduleDates(sch).filter(d => state.availability[`${userId}_${d}`] === false);
+  const other = overlappingSchedule(userId, sch);
+  const warnings = [];
+  if (offDates.length) {
+    warnings.push(`${name}님은 ${offDates.map(d => `${monthDayLabel(d)}(${weekdayLabel(d)})`).join(', ')}을 '불가'로 표시했습니다.`);
+  }
+  if (other) {
+    const r = scheduleRange(other);
+    const type = other.jobType === 'delivery' ? '[배송] ' : '';
+    warnings.push(`${name}님은 같은 시간에 ${type}${other.customerName || '-'} 작업(${monthDayLabel(other.jobDate)} ${r.start}–${r.end})에 배정돼 있습니다.`);
+  }
+  if (warnings.length && !confirm(`${warnings.join('\n')}\n\n그래도 배정할까요?`)) {
+    select.value = '';
+    return;
+  }
 
   const assignments = [...(sch.assignments || [])];
   const defaultStartTime = sch.overallTimeRange.split('~')[0].trim() || '08:00';
