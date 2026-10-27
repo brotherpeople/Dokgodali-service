@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>독고달이 스케줄 · 현황판 샘플</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+<link rel="stylesheet" href="dokgodali-schedule.css">
+<style>
+  /* ===== 현황판 샘플 전용 스타일 (채택되면 dokgodali-schedule.css로 옮긴다) ===== */
+  .sample-banner { background: #fef3c7; color: #92400e; font-size: 11.5px; padding: 6px 16px; text-align: center; }
+
+  /* KPI 카드 (마지막 칸은 이번 달 매출) */
+  .dash-kpis { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr); gap: 8px; margin-bottom: 10px; }
+  .dash-kpi { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 10px 12px; box-shadow: var(--shadow-sm); text-align: left; font-family: inherit; min-width: 0; }
+  button.dash-kpi { cursor: pointer; }
+  button.dash-kpi:hover { border-color: var(--border-dark); }
+  .dash-kpi-label { font-size: 11.5px; color: var(--text-secondary); font-weight: 600; }
+  .dash-kpi-value { font-size: 24px; font-weight: 800; line-height: 1.2; margin-top: 2px; }
+  .dash-kpi-value .now { color: var(--success); }
+  .dash-kpi-value .of { color: var(--text-muted); font-weight: 700; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex: none; }
+  .dot.navy { background: #1e293b; }
+  .dot.light { background: #93c5fd; }
+
+  /* 완료(어제) | 오늘 | 예정(내일·모레·글피) */
+  .dash-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 3fr); gap: 10px; }
+  .dash-panel { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 12px 14px; min-width: 0; }
+  .dash-panel-title { font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 2px; display: flex; justify-content: space-between; align-items: baseline; }
+  .dash-panel-title small { font-size: 11px; font-weight: 600; color: var(--text-muted); }
+  .dash-empty { font-size: 12px; color: var(--text-muted); padding: 6px 0; }
+  .day-date { font-size: 16px; font-weight: 800; padding-bottom: 6px; margin-bottom: 2px; border-bottom: 2px solid var(--text-primary, #0f172a); }
+  .day-date.today { font-size: 22px; border-bottom-color: var(--accent); }
+  .day-date .wd { font-weight: 600; color: var(--text-muted); margin-left: 4px; font-size: 0.8em; }
+  /* 예정: 세 단이 한 화면, 옆으로 넘기면 30일 뒤까지. 넷째 단이 살짝 보여서 넘길 수 있다는 걸 알 수 있다 */
+  #panel-upcoming { display: flex; flex-direction: column; }
+  .day-cols { flex: 1; display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - 42px) / 3.25); gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px;
+              scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+  .day-cols::-webkit-scrollbar { height: 6px; }
+  .day-cols::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+  @media (hover: none) {
+    .day-cols { scrollbar-color: transparent transparent; }
+    .day-cols::-webkit-scrollbar-thumb { background: transparent; }
+    .day-cols.scrolling { scrollbar-color: #cbd5e1 transparent; }
+    .day-cols.scrolling::-webkit-scrollbar-thumb { background: #cbd5e1; }
+  }
+  .day-cols > div { scroll-snap-align: start; min-width: 0; }
+
+  /* 한 줄 = 시간 + 이름. 상태는 이름 글자색 (진행 중 초록, 예정 검정, 완료 회색) */
+  .job-row { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
+  .job-row:last-child { border-bottom: none; }
+  .job-time { font-size: 12px; color: var(--text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; min-width: 72px; }
+  .job-name { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
+  .job-row:hover .job-name { text-decoration: underline; }
+  .job-name.ongoing { color: var(--success); }
+  .job-name.done { color: var(--text-muted); font-weight: 500; }
+
+  /* 크루 관리: 왼쪽 크루 목록 + 오른쪽 그 크루의 월 캘린더 (일한 날을 근무시간 색으로) */
+  .crew-layout { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 12px; align-items: start; }
+  .crew-list { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 6px; }
+  .crew-list-btn { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%; padding: 9px 10px; border: none; background: none; border-radius: var(--radius-sm); font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--text-primary); cursor: pointer; white-space: nowrap; }
+  .crew-list-btn:hover { background: #f8fafc; }
+  .crew-list-btn.active { background: var(--accent-light); color: var(--accent); }
+  .crew-list-btn small { font-size: 12px; font-weight: 700; color: var(--text-muted); }
+  .crew-list-btn.active small { color: var(--accent); }
+  .crew-invite-btn { width: 100%; margin-bottom: 4px; padding: 8px 10px; border: 1px dashed var(--border-dark); border-radius: var(--radius-sm); background: #fff; font-family: inherit; font-size: 12.5px; font-weight: 700; color: var(--accent); cursor: pointer; white-space: nowrap; }
+  .crew-invite-btn:hover { background: var(--accent-light); }
+
+  .tl-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+  .tl-name { font-size: 18px; font-weight: 800; }
+  .tl-month { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; }
+  .tl-sum { display: flex; gap: 16px; font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; flex-wrap: wrap; }
+  .tl-sum b { font-size: 16px; color: var(--text-primary); margin-left: 3px; }
+  .tl-sum .missing b { color: var(--danger); }
+
+  .cc-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+  .cc-wd { font-size: 11px; font-weight: 600; color: var(--text-muted); text-align: center; padding-bottom: 2px; }
+  .cc-wd.sat { color: #3b82f6; }
+  .cc-wd.sun { color: #ef4444; }
+  .cc-day { min-height: 62px; border-radius: 6px; background: #f8fafc; padding: 5px 7px; display: flex; flex-direction: column; justify-content: space-between; }
+  .cc-day.blank { background: none; }
+  .cc-num { font-size: 11.5px; font-weight: 600; color: var(--text-secondary); }
+  .cc-day.sat .cc-num { color: #3b82f6; }
+  .cc-day.sun .cc-num { color: #ef4444; }
+  .cc-day.today { box-shadow: inset 0 0 0 2px var(--accent); }
+  .cc-day.today .cc-num { color: var(--accent); font-weight: 800; }
+  .cc-hours { font-size: 15px; font-weight: 800; text-align: right; font-variant-numeric: tabular-nums; line-height: 1.2; }
+  .cc-sub { font-size: 10px; font-weight: 700; text-align: right; opacity: 0.75; }
+  .cc-day.has { cursor: pointer; }
+  .cc-day.has:hover { filter: brightness(0.95); }
+  .cc-day.has .cc-num { color: inherit; opacity: 0.7; }
+  /* 근무시간 색: 3시간 이하 초록, 3~6시간 노랑, 6시간 이상 빨강 */
+  .cc-day.c-g { background: #bbf7d0; color: #14532d; }
+  .cc-day.c-y { background: #fde68a; color: #713f12; }
+  .cc-day.c-r { background: #fecaca; color: #7f1d1d; }
+  /* 아직 안 한 날(예정)은 같은 색을 옅게 + 점선 */
+  .cc-day.planned { outline: 1.5px dashed; outline-offset: -2px; }
+  .cc-day.planned.c-g { background: #f0fdf4; outline-color: #4ade80; }
+  .cc-day.planned.c-y { background: #fffbeb; outline-color: #facc15; }
+  .cc-day.planned.c-r { background: #fef2f2; outline-color: #f87171; }
+  .cc-day.missing { background: #fff; color: var(--danger); outline: 1.5px dashed #f87171; outline-offset: -2px; }
+  .cc-day.missing .cc-hours { font-size: 12px; }
+  .cc-day.off { background: repeating-linear-gradient(135deg, #eef2f6 0 5px, #f8fafc 5px 10px); }
+  .cc-day.off .cc-hours { font-size: 11px; font-weight: 600; color: var(--text-muted); }
+  .cc-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; font-size: 11px; color: var(--text-secondary); }
+  .cc-legend span { display: inline-flex; align-items: center; gap: 4px; }
+  .cc-legend i { width: 14px; height: 10px; border-radius: 2px; display: inline-block; }
+
+  /* 한 날에 작업이 둘 이상이면 팝업 위에서 고른다 */
+  .detail-switch { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .detail-switch button { border: 1px solid var(--border); background: #fff; border-radius: 999px; padding: 4px 10px; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--text-secondary); cursor: pointer; }
+  .detail-switch button.active { background: var(--navy); border-color: var(--navy); color: #fff; }
+
+  /* 이번 달 매출 */
+  .rev-bar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: #e2e8f0; margin: 6px 0 5px; }
+  .rev-bar .done { background: #1e293b; }
+  .rev-bar .planned { background: #93c5fd; }
+  .rev-legend { display: flex; gap: 10px; font-size: 11.5px; color: var(--text-secondary); flex-wrap: wrap; }
+  .rev-legend span { display: inline-flex; align-items: center; gap: 4px; }
+
+  /* 스케줄 관리: 캘린더를 넓게. 색은 세 가지: 진행 중·예정(초록), 완료(흐리게), 확인 필요(빨강 = 인원 부족 또는 충돌) */
+  .cal-full .cal-day { min-height: 104px; padding: 6px; }
+  .cal-full.calendar-grid .cal-day:nth-child(7n+6),
+  .cal-full.calendar-grid .cal-day:nth-child(7n) { background: #fff; }
+  .cal-full.calendar-grid .cal-day:hover { background: #f8fafc; }
+  .cal-full.calendar-grid .cal-day.today { background: var(--accent-light); }
+  .cal-full .cal-event-pill { font-size: 11px; padding: 2px 5px; margin-top: 3px; border-radius: 3px; background: var(--success-light); color: #14532d; border-left: 3px solid var(--success); }
+  .cal-full .cal-event-pill .t { color: var(--text-muted); font-weight: 500; margin-right: 4px; font-variant-numeric: tabular-nums; }
+  .cal-full .cal-event-pill.done { background: #f8fafc; color: var(--text-muted); border-left-color: #cbd5e1; }
+  .cal-full .cal-event-pill.alert { background: var(--danger-light); color: #991b1b; border-left-color: var(--danger); }
+  .cal-avail-low { font-size: 10px; color: var(--text-muted); margin-top: 3px; }
+  /* 선택한 날 작업 목록: 한 줄에 상태 동그라미 · 인원 · 의뢰인 · 시간 · WhatsApp · 수정 */
+  .day-job { display: flex; align-items: center; gap: 10px; padding: 10px 4px; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
+  .day-job:last-child { border-bottom: none; }
+  .day-job:hover { background: #f8fafc; }
+  .st-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .st-dot.ongoing { background: var(--success); }
+  .st-dot.upcoming { box-shadow: inset 0 0 0 2px var(--success); }
+  .st-dot.done { background: #cbd5e1; }
+  .day-job .badge { flex: none; }
+  .day-job-name { font-size: 14px; font-weight: 700; flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .day-job.done .day-job-name { color: var(--text-muted); font-weight: 600; }
+  .day-job-time { font-size: 12.5px; color: var(--text-secondary); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .icon-btn { width: 30px; height: 30px; flex: none; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; border: 1px solid var(--border); background: #fff; color: var(--text-secondary); cursor: pointer; padding: 0; }
+  .icon-btn:hover { border-color: var(--border-dark); color: var(--text-primary); }
+  .day-job-crew { margin-left: auto; font-size: 11.5px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .day-job-crew.none { color: var(--text-muted); }
+  .icon-btn.wa { background: #15803d; border-color: #15803d; color: #fff; }
+  .icon-btn.wa:hover { background: #166534; }
+  .icon-btn svg { width: 16px; height: 16px; }
+  .day-job-legend { display: flex; gap: 12px; font-size: 11px; color: var(--text-muted); margin-top: 8px; }
+  .day-job-legend span { display: inline-flex; align-items: center; gap: 4px; }
+  .day-job-legend .st-dot { width: 8px; height: 8px; }
+  .cal-legend { display: flex; flex-wrap: wrap; gap: 10px; padding: 8px 12px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-secondary); }
+  .cal-legend span { display: inline-flex; align-items: center; gap: 4px; }
+  .cal-legend i { width: 14px; height: 10px; border-radius: 2px; display: inline-block; }
+
+  /* 기존 1fr은 일정 이름이 길면 그 칸만 넓어져서 요일 헤더와 어긋나고, 휴대폰에서 화면 밖으로 밀린다 */
+  .calendar-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  .schedule-item-top { flex-wrap: wrap; }
+
+  .container, .header-inner { max-width: 1200px; }
+  .container { padding-left: 24px; padding-right: 24px; }
+  .header-inner, .role-switcher-bar { padding-left: 24px; padding-right: 24px; }
+
+  .badge-gray { background: #f1f5f9; color: #64748b; }
+
+  /* 작업 상세 팝업: 스케줄 등록 팝업과 같은 배치, 입력칸 대신 값 */
+  .detail-status { margin-left: 6px; }
+  .detail-value { font-size: 13.5px; font-weight: 600; color: var(--text-primary); word-break: break-word; }
+  .detail-value small { display: block; font-size: 12px; font-weight: 500; color: var(--text-secondary); margin-top: 1px; }
+  .detail-value.muted { color: var(--text-muted); font-weight: 500; }
+  .detail-quote { background: #f8fafc; border: 1px solid var(--border); padding: 8px 10px; border-radius: 4px; margin-bottom: 12px; }
+  .detail-crew { margin-top: 4px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .detail-crew-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid #f1f5f9; }
+  .detail-crew-row:last-child { border-bottom: none; }
+  .detail-crew-name { font-size: 13.5px; font-weight: 700; }
+  .detail-crew-sub { font-size: 12px; color: var(--text-secondary); grid-column: 1; }
+  .detail-crew-sub a { color: inherit; }
+  .detail-crew-hours { grid-row: 1 / span 2; grid-column: 2; text-align: right; font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .detail-crew-hours small { display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); }
+  .detail-crew-hours.pending small { color: var(--warning); }
+  .detail-crew-hours.missing { color: var(--danger); font-size: 12px; }
+  .crew-tab-placeholder { margin-top: 10px; font-size: 12px; color: var(--text-muted); border: 1px dashed var(--border); border-radius: var(--radius-md); padding: 14px; text-align: center; }
+
+  @media (max-width: 900px) {
+    .dash-kpis { gap: 6px; }
+    .dash-kpi-value { font-size: 20px; }
+    .dash-cols { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 600px) {
+    .dash-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .dash-kpi { padding: 9px 10px; }
+    .dash-kpi-label { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dash-kpi-value { font-size: 18px; }
+    .rev-legend { flex-direction: column; gap: 1px; font-size: 10.5px; }
+    .day-cols { grid-auto-columns: 78%; }
+    .cal-full .cal-day { min-height: 72px; padding: 3px; }
+    .cal-full .cal-event-pill { font-size: 9.5px; padding: 1px 3px; border-left-width: 2px; }
+    .cal-full .cal-event-pill .t, .cal-full .cal-event-pill .tag { display: none; }
+    .day-job { gap: 7px; flex-wrap: wrap; }
+    .day-job-name { font-size: 13px; }
+    .day-job-time { font-size: 11.5px; }
+    /* 휴대폰에서는 크루 이름을 둘째 줄로 내리고 버튼은 첫 줄 오른쪽에 둔다 */
+    .day-job-crew { order: 1; flex-basis: 100%; margin: -4px 0 0 17px; }
+    .icon-btn.wa { margin-left: auto; }
+  }
+  @media (max-width: 680px) {
+    .crew-layout { grid-template-columns: minmax(0, 1fr); }
+    .crew-list { display: flex; overflow-x: auto; gap: 2px; }
+    .crew-list-btn { width: auto; }
+    .crew-invite-btn { width: auto; margin: 0 4px 0 0; }
+    .cc-grid { gap: 3px; }
+    .cc-day { min-height: 48px; padding: 3px 4px; }
+    .cc-hours { font-size: 12px; }
+    .cc-day.missing .cc-hours, .cc-day.off .cc-hours { font-size: 9.5px; }
+    .admin-tab-bar { overflow-x: auto; }
+    .admin-tab-btn { white-space: nowrap; }
+  }
+</style>
+</head>
+<body>
+
+<div class="sample-banner">샘플 · 가짜 데이터 · 기준 시각 오늘 11:30</div>
+
+<div class="role-switcher-bar">
+  <span>관리자 · admin@dokgodali.de</span>
+  <div style="display: flex; gap: 10px; align-items: center;">
+    <span class="sync-status"><span class="sync-dot"></span> 실시간 연동됨</span>
+    <button class="btn btn-secondary btn-sm">로그아웃</button>
+  </div>
+</div>
+
+<header>
+  <div class="header-inner">
+    <div class="brand-area">
+      <div class="brand-logo">D</div>
+      <div class="brand-name">독고달이 스케줄</div>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <span class="badge badge-navy">관리자</span>
+      <button class="btn btn-secondary btn-sm">🔔 알림 켜기</button>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+  <div class="admin-tab-bar">
+    <button class="admin-tab-btn active" id="tab-btn-dashboard" onclick="switchTab('dashboard')">대시보드</button>
+    <button class="admin-tab-btn" id="tab-btn-schedule" onclick="switchTab('schedule')">스케줄 관리</button>
+    <button class="admin-tab-btn" onclick="fakeNav('근무시간 승인')">근무시간 승인</button>
+    <button class="admin-tab-btn" onclick="fakeNav('신규 요청')">신규 요청<span id="admin-requests-badge"></span></button>
+    <button class="admin-tab-btn" id="tab-btn-crew" onclick="switchTab('crew')">크루 관리</button>
+  </div>
+
+  <!-- ===== 대시보드 탭 ===== -->
+  <section id="tab-dashboard">
+    <div class="dash-kpis" id="dash-kpis"></div>
+    <div class="dash-cols">
+      <div class="dash-panel" id="panel-done"></div>
+      <div class="dash-panel" id="panel-today"></div>
+      <div class="dash-panel" id="panel-upcoming"></div>
+    </div>
+  </section>
+
+  <!-- ===== 스케줄 관리 탭: 넓은 캘린더, 날짜를 누르면 아래에 그날 스케줄 ===== -->
+  <section id="tab-schedule" class="hidden">
+    <div class="calendar-container">
+      <div class="calendar-header">
+        <button class="calendar-nav-btn" onclick="changeMonth(-1)">이전 달</button>
+        <div id="admin-cal-title" class="calendar-month-title"></div>
+        <button class="calendar-nav-btn" onclick="changeMonth(1)">다음 달</button>
+      </div>
+      <div class="calendar-grid">
+        <div class="cal-weekday">월</div><div class="cal-weekday">화</div><div class="cal-weekday">수</div>
+        <div class="cal-weekday">목</div><div class="cal-weekday">금</div>
+        <div class="cal-weekday sat">토</div><div class="cal-weekday sun">일</div>
+      </div>
+      <div id="admin-cal-days" class="calendar-grid cal-full"></div>
+      <div class="cal-legend">
+        <span><i style="background:#f0fdf4; border-left: 3px solid #16a34a"></i>진행 중 · 예정</span>
+        <span><i style="background:#f8fafc; border-left: 3px solid #cbd5e1"></i>완료</span>
+        <span><i style="background:#fef2f2; border-left: 3px solid #dc2626"></i>인원 부족 · 충돌</span>
+      </div>
+    </div>
+
+    <div class="card" id="day-detail" style="padding: 14px;">
+      <div class="card-header" style="margin-bottom: 10px; padding-bottom: 8px;">
+        <div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;">
+          <div class="card-title" id="admin-selected-date-title"></div>
+          <div id="admin-crew-avail-summary" style="font-size: 11.5px; color: var(--text-secondary);"></div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openNewScheduleForSelectedDate()">+ 스케줄 등록</button>
+      </div>
+      <div id="admin-schedules-list"></div>
+    </div>
+  </section>
+
+  <!-- ===== 크루 관리 탭: 크루를 고르면 그 달 근무 그래프 ===== -->
+  <section id="tab-crew" class="hidden">
+    <div class="crew-layout">
+      <div class="crew-list" id="crew-list"></div>
+      <div class="dash-panel" id="crew-timeline"></div>
+    </div>
+    <div class="crew-tab-placeholder">기존 크루 목록 (연락처 · 운전 가능 · 삭제)은 이 아래에 그대로</div>
+  </section>
+</main>
+
+<!-- 작업 상세 팝업 (스케줄 등록 팝업과 같은 틀) -->
+<div id="job-modal" class="modal-overlay hidden" onclick="if (event.target === this) closeJobModal()">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <div class="card-title"><span id="job-modal-title"></span><span id="job-modal-status" class="detail-status"></span></div>
+      <button class="btn btn-secondary btn-sm" onclick="closeJobModal()">닫기</button>
+    </div>
+    <div class="modal-body" id="job-modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-whatsapp btn-sm" style="margin-right: auto;" onclick="fakeNav('WhatsApp 공유')">WhatsApp</button>
+      <button class="btn btn-secondary btn-sm" onclick="fakeNav('스케줄 수정 팝업')">수정</button>
+      <button class="btn btn-primary btn-sm" onclick="closeJobModal()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// ---------- 날짜 / 기준 시각 ----------
+function formatDateLocal(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+const DEMO_NOW = new Date();
+DEMO_NOW.setHours(11, 30, 0, 0);
+const TODAY_DATE = formatDateLocal(DEMO_NOW);
+const NOW_KEY = `${TODAY_DATE} 11:30`;
+
+function addDays(dateStr, n) {
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + n);
+  return formatDateLocal(d);
+}
+const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+function shortDate(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  return `${d.getMonth() + 1}/${d.getDate()} (${WEEKDAYS[d.getDay()]})`;
+}
+function euro(n) {
+  return '€' + Math.round(n).toLocaleString('de-DE');
+}
+
+// ---------- 가짜 데이터 (실제 앱의 state와 같은 모양) ----------
+const CREW_USERS = [
+  { id: 'u1', name: '김민수', phone: '+49 151 2345 6701', canDrive: true },
+  { id: 'u2', name: '이준호', phone: '+49 151 2345 6702', canDrive: true },
+  { id: 'u3', name: '박서연', phone: '+49 151 2345 6703', canDrive: false },
+  { id: 'u4', name: '최우진', phone: '+49 151 2345 6704', canDrive: true },
+  { id: 'u5', name: '정하늘', phone: '+49 151 2345 6705', canDrive: false }
+];
+
+const SPECS = ['2층 · 엘리베이터 있음', '4층 · 엘리베이터 없음', '1층', '3층 · 엘리베이터 있음', '5층 · 엘리베이터 없음'];
+const NOTES = ['사다리차 불가, 계단 주의', '침대 분해 필요', '', '피아노 있음 · 4인 필요', '주차 공간 미리 확인'];
+let sampleSeq = 0;
+// 이름 앞의 '배송 · '을 kind로 바꿔 둔다 (실제 앱에서는 schedules에 작업 종류 moving / delivery를 저장한다)
+function S(id, name, startOff, endOff, range, origin, dest, required, crew, price) {
+  const kind = name.startsWith('배송 · ') ? 'delivery' : 'moving';
+  const customerName = name.replace(/^배송 · /, '');
+  const [st, en] = range.split('~').map(t => t.trim());
+  const n = sampleSeq++;
+  const jobDate = addDays(TODAY_DATE, startOff);
+  return {
+    id, kind, customerName, quotePrice: price,
+    quoteNo: `ANG-${jobDate.replace(/-/g, '')}-${10 + n * 7}`,
+    customerPhone: `+49 170 ${String(1000000 + n * 137911).slice(0, 7)}`,
+    jobDate, endDate: addDays(TODAY_DATE, endOff),
+    overallTimeRange: range, originAddress: origin, destAddress: dest,
+    originSpec: SPECS[n % SPECS.length], destSpec: SPECS[(n + 2) % SPECS.length],
+    vehicles: kind === 'delivery' ? [] : [{ type: n % 3 ? 'Miles XL 사이즈 밴' : '3.5t 트럭', count: required > 2 ? 2 : 1 }],
+    notes: NOTES[n % NOTES.length],
+    requiredWorkers: required,
+    assignments: crew.map((userId, i) => ({ userId, startTime: st, endTime: en, vehicleDuty: i === 0 && kind !== 'delivery' ? 'miles_xl' : 'none' }))
+  };
+}
+
+const state = {
+  currentYear: DEMO_NOW.getFullYear(),
+  currentMonth: DEMO_NOW.getMonth(),
+  selectedDate: TODAY_DATE,
+  crewUserId: 'u1',
+  crewYear: DEMO_NOW.getFullYear(),
+  crewMonth: DEMO_NOW.getMonth(),
+  schedules: [
+    S('s00a', '정유진', -20, -20, '08:00 ~ 17:00', 'Berlin Mitte', 'Dresden Neustadt', 3, ['u1', 'u2', 'u4'], 2100),
+    S('s00b', '최민호', -16, -16, '09:00 ~ 14:00', 'Berlin Wedding', 'Berlin Tegel', 2, ['u3', 'u5'], 760),
+    S('s01', '한지민', -12, -12, '09:00 ~ 15:00', 'Berlin Pankow', 'Berlin Spandau', 3, ['u1', 'u2', 'u3'], 1450),
+    S('s02', '오세훈', -9, -9, '08:00 ~ 12:00', 'Berlin Mitte', 'Berlin Wedding', 2, ['u4', 'u5'], 680),
+    S('s03', '윤가은', -5, -5, '10:00 ~ 16:00', 'Potsdam', 'Berlin Charlottenburg', 3, ['u1', 'u3', 'u5'], 1720),
+    S('s04', '강도윤', -3, -3, '09:00 ~ 14:00', 'Berlin Friedrichshain', 'Berlin Lichtenberg', 2, ['u2', 'u4'], 890),
+    S('s05', '서예린', -2, -2, '13:00 ~ 18:00', 'Berlin Steglitz', 'Berlin Tempelhof', 3, ['u1', 'u2', 'u5'], 1380),
+    S('s05b', '김하준', -1, -1, '10:00 ~ 15:00', 'Berlin Pankow', 'Berlin Mitte', 2, ['u1', 'u5'], 940),
+    S('s05c', '배송 · 박지우', -1, -1, '16:00 ~ 18:00', 'Berlin Wedding', 'Berlin Moabit', 1, ['u2'], 180),
+    S('s06', '임채원', -1, 1, '07:00 ~ 18:00', 'Berlin Prenzlauer Berg', 'München Schwabing', 2, ['u3', 'u4'], 3900),
+    S('s07', '배송 · 송다인', 0, 0, '07:00 ~ 10:30', 'Berlin Kreuzberg', 'Berlin Neukölln', 1, ['u5'], 240),
+    S('s08', '문태호', 0, 0, '09:00 ~ 14:00', 'Berlin Moabit', 'Berlin Reinickendorf', 2, ['u1', 'u2'], 1120),
+    S('s09', '조하린', 0, 0, '15:00 ~ 19:00', 'Berlin Schöneberg', 'Berlin Zehlendorf', 3, ['u1', 'u5'], 1290),
+    S('s10', '황민재', 1, 1, '09:00 ~ 13:00', 'Berlin Treptow', 'Berlin Köpenick', 2, ['u2', 'u5'], 820),
+    S('s11', '신유나', 2, 2, '08:00 ~ 15:00', 'Berlin Mitte', 'Leipzig Zentrum', 3, ['u1'], 2350),
+    S('s12', '노승우', 3, 3, '09:00 ~ 13:00', 'Berlin Wedding', 'Berlin Pankow', 2, ['u2', 'u3'], 760),
+    S('s13', '권나래', 3, 3, '11:00 ~ 16:00', 'Berlin Spandau', 'Berlin Mitte', 2, ['u2', 'u5'], 980),
+    S('s14', '장서준', 4, 4, '10:00 ~ 15:00', 'Berlin Neukölln', 'Berlin Britz', 2, ['u3', 'u1'], 1050),
+    S('s15', '배송 · 유하은', 6, 6, '09:00 ~ 12:00', 'Berlin Mitte', 'Berlin Kreuzberg', 1, [], 210),
+    S('s16', '김도현', 9, 9, '08:00 ~ 17:00', 'Berlin Charlottenburg', 'Hamburg Altona', 4, ['u1', 'u2', 'u4', 'u5'], 2400),
+    S('s17', '이수아', 12, 12, '10:00 ~ 14:00', 'Berlin Lichtenberg', 'Berlin Marzahn', 2, [], 760),
+    S('s18', '오지훈', 16, 16, '09:00 ~ 15:00', 'Berlin Pankow', 'Potsdam', 3, ['u2', 'u3'], 1340),
+    S('s19', '배송 · 한서윤', 21, 21, '10:00 ~ 12:00', 'Berlin Mitte', 'Berlin Wedding', 1, [], 190),
+    S('s20', '류재민', 27, 27, '08:00 ~ 16:00', 'Berlin Steglitz', 'Leipzig Zentrum', 3, ['u1'], 2200)
+  ],
+  // availability[`${userId}_${date}`] === false 이면 불가 (실제 앱과 같은 규칙)
+  availability: {},
+  workLogs: [],
+  requests: [
+    { id: 'r1', type: 'moving', status: 'pending', customer_name: '홍길동', summary: 'Berlin Wedding → Hamburg · 3룸', created_at: '2시간 전' },
+    { id: 'r2', type: 'delivery', status: 'pending', customer_name: '김소희', summary: '박스 4개 · Berlin → 서울', created_at: '어제' }
+  ]
+};
+[['u3', 4], ['u4', 2], ['u5', 6], ['u2', 5], ['u4', 3]].forEach(([u, off]) => {
+  state.availability[`${u}_${addDays(TODAY_DATE, off)}`] = false;
+});
+// 근무기록: 끝난 작업은 승인됨(일부는 승인 대기). 근무시간은 실제 앱의 calcWorkLog와 같은 휴게 규칙으로 계산.
+function calcWorkedHours(start, end) {
+  const toMin = t => +t.slice(0, 2) * 60 + +t.slice(3, 5);
+  const raw = toMin(end) - toMin(start);
+  const brk = raw > 9 * 60 ? 45 : raw > 6 * 60 ? 30 : 0;
+  return Math.round((raw - brk) / 60 * 100) / 100;
+}
+const PENDING_LOGS = [['s05', 'u1'], ['s07', 'u5']];
+const MISSING_LOGS = [['s05b', 'u5']];
+['s00a', 's00b', 's01', 's02', 's03', 's04', 's05', 's05b', 's05c', 's07'].forEach(sid => {
+  const sch = state.schedules.find(s => s.id === sid);
+  sch.assignments.forEach(a => {
+    if (MISSING_LOGS.some(([s, u]) => s === sid && u === a.userId)) return;
+    const pending = PENDING_LOGS.some(([s, u]) => s === sid && u === a.userId);
+    state.workLogs.push({
+      scheduleId: sid, userId: a.userId, jobDate: sch.jobDate,
+      workedHours: calcWorkedHours(a.startTime, a.endTime), status: pending ? 'pending' : 'confirmed'
+    });
+  });
+});
+
+// ---------- 상태 계산 (실제 앱으로 옮길 로직) ----------
+function scheduleCoversDate(sch, dateStr) {
+  return sch.jobDate <= dateStr && dateStr <= sch.endDate;
+}
+function scheduleRange(sch) {
+  const [start, end] = (sch.overallTimeRange || '00:00 ~ 23:59').split('~').map(t => t.trim());
+  return { start, end, startKey: `${sch.jobDate} ${start}`, endKey: `${sch.endDate} ${end}` };
+}
+// 'done' | 'ongoing' | 'upcoming'
+function scheduleStatus(sch) {
+  const r = scheduleRange(sch);
+  if (NOW_KEY < r.startKey) return 'upcoming';
+  if (NOW_KEY >= r.endKey) return 'done';
+  return 'ongoing';
+}
+function scheduleTimeLabel(sch) {
+  if (sch.endDate === sch.jobDate) return sch.overallTimeRange;
+  const r = scheduleRange(sch);
+  return `${sch.jobDate.slice(5)} ${r.start} ~ ${sch.endDate.slice(5)} ${r.end}`;
+}
+// 화면에 쓰는 작업 이름: 배송이면 [배송] 송다인, 이사는 이름만
+function jobLabel(sch, html = false) {
+  const tag = sch.kind === 'delivery' ? '[배송] ' : '';
+  return html && tag ? `<span class="tag">${tag}</span>${sch.customerName}` : tag + sch.customerName;
+}
+function isDeficit(sch) {
+  return (sch.assignments || []).length < sch.requiredWorkers;
+}
+function crewName(id) {
+  const u = CREW_USERS.find(c => c.id === id);
+  return u ? u.name : id;
+}
+function sortByStart(a, b) {
+  return scheduleRange(a).startKey.localeCompare(scheduleRange(b).startKey);
+}
+
+// 아이디어 1: 같은 크루가 시간이 겹치는 두 작업에 배정 / 불가로 표시한 날에 배정
+function findConflicts() {
+  const overlaps = [];
+  const unavailable = [];
+  const active = state.schedules.filter(s => scheduleStatus(s) !== 'done');
+  CREW_USERS.forEach(u => {
+    const mine = active.filter(s => s.assignments.some(a => a.userId === u.id)).sort(sortByStart);
+    for (let i = 0; i < mine.length; i++) {
+      for (let j = i + 1; j < mine.length; j++) {
+        const a = scheduleRange(mine[i]), b = scheduleRange(mine[j]);
+        if (a.startKey < b.endKey && b.startKey < a.endKey) {
+          overlaps.push({ userId: u.id, schedules: [mine[i], mine[j]], date: mine[j].jobDate });
+        }
+      }
+      // 여러 날 작업이면 걸친 날짜 중 하나라도 불가면 경고
+      for (let d = mine[i].jobDate; d <= mine[i].endDate; d = addDays(d, 1)) {
+        if (d >= TODAY_DATE && state.availability[`${u.id}_${d}`] === false) {
+          unavailable.push({ userId: u.id, schedule: mine[i], date: d });
+        }
+      }
+    }
+  });
+  return { overlaps, unavailable };
+}
+function conflictScheduleIds(conflicts) {
+  const ids = new Set();
+  conflicts.overlaps.forEach(c => c.schedules.forEach(s => ids.add(s.id)));
+  conflicts.unavailable.forEach(c => ids.add(c.schedule.id));
+  return ids;
+}
+
+function md(dateStr) {
+  return `${+dateStr.slice(5, 7)}/${+dateStr.slice(8, 10)}`;
+}
+function weekday(dateStr) {
+  return WEEKDAYS[new Date(dateStr + 'T00:00:00').getDay()];
+}
+
+// ---------- 렌더 ----------
+function renderDashboard() {
+  const today = jobsOn(TODAY_DATE);
+  const ongoing = today.filter(s => scheduleStatus(s) === 'ongoing');
+  const laterToday = today.filter(s => scheduleStatus(s) === 'upcoming');
+  const tomorrow = addDays(TODAY_DATE, 1);
+  const conflictIds = conflictScheduleIds(findConflicts());
+
+  document.getElementById('admin-requests-badge').textContent = state.requests.filter(r => r.status === 'pending').length;
+
+  // 이번 달 매출: 완료 + 예정
+  const monthPrefix = TODAY_DATE.slice(0, 7);
+  const monthJobs = state.schedules.filter(s => s.jobDate.startsWith(monthPrefix));
+  const revDone = monthJobs.filter(s => scheduleStatus(s) === 'done').reduce((sum, s) => sum + (s.quotePrice || 0), 0);
+  const revPlanned = monthJobs.filter(s => scheduleStatus(s) !== 'done').reduce((sum, s) => sum + (s.quotePrice || 0), 0);
+  const total = revDone + revPlanned;
+
+  const kpi = (label, value) => `
+    <div class="dash-kpi">
+      <div class="dash-kpi-label">${label}</div>
+      <div class="dash-kpi-value">${value}</div>
+    </div>`;
+  // 오늘 작업 = 진행 중 / (진행 중 + 아직 시작 전). 끝난 작업은 세지 않는다.
+  document.getElementById('dash-kpis').innerHTML =
+    kpi('오늘 작업', `<span class="now">${ongoing.length}</span><span class="of">/${ongoing.length + laterToday.length}</span>`) +
+    kpi('내일 예정 작업', jobsOn(tomorrow).length) + `
+    <div class="dash-kpi revenue">
+      <div class="dash-kpi-label">${DEMO_NOW.getMonth() + 1}월 매출</div>
+      <div class="dash-kpi-value">${euro(total)}</div>
+      <div class="rev-bar">
+        <div class="done" style="width:${total ? revDone / total * 100 : 0}%"></div>
+        <div class="planned" style="width:${total ? revPlanned / total * 100 : 0}%"></div>
+      </div>
+      <div class="rev-legend">
+        <span><span class="dot navy"></span>완료 ${euro(revDone)}</span>
+        <span><span class="dot light"></span>예정 ${euro(revPlanned)}</span>
+      </div>
+    </div>`;
+
+  const flags = s => `${isDeficit(s) && scheduleStatus(s) !== 'done' ? `<span class="badge badge-warning">${s.assignments.length}/${s.requiredWorkers}</span>` : ''}${conflictIds.has(s.id) ? '<span class="badge badge-red">충돌</span>' : ''}`;
+  const rows = (day, jobs) => jobs.length === 0 ? '<div class="dash-empty">일정 없음</div>' : jobs.map(s => `
+    <div class="job-row" onclick="openJobModal('${s.id}')">
+      <span class="job-time">${dayTime(s, day)}</span><span class="job-name ${scheduleStatus(s)}">${jobLabel(s)}</span>${flags(s)}
+    </div>`).join('');
+  const dateHead = (day, cls = '') => `<div class="day-date ${cls}">${md(day)}<span class="wd">${weekday(day)}</span></div>`;
+
+  // 완료: 어제 끝난 작업만
+  const yesterday = addDays(TODAY_DATE, -1);
+  document.getElementById('panel-done').innerHTML = `
+    <div class="dash-panel-title">완료</div>
+    ${dateHead(yesterday)}
+    ${rows(yesterday, state.schedules.filter(s => s.endDate === yesterday).sort(sortByStart))}
+  `;
+
+  // 오늘: 날짜를 크게, 그 아래 시간순 목록
+  document.getElementById('panel-today').innerHTML = `
+    <div class="dash-panel-title">오늘</div>
+    ${dateHead(TODAY_DATE, 'today')}
+    ${rows(TODAY_DATE, today)}
+  `;
+
+  // 예정: 내일 · 모레 · 글피는 늘 보이고, 그 뒤 30일까지는 작업이 있는 날만 옆으로 이어진다
+  const days = [];
+  for (let n = 1; n <= 30; n++) {
+    const day = addDays(TODAY_DATE, n);
+    if (n <= 3 || jobsOn(day).length) days.push(day);
+  }
+  document.getElementById('panel-upcoming').innerHTML = `
+    <div class="dash-panel-title">예정</div>
+    <div class="day-cols" onscroll="showScrollbar(this)">
+      ${days.map(day => `<div>${dateHead(day)}${rows(day, jobsOn(day))}</div>`).join('')}
+    </div>
+  `;
+}
+
+// 그 날에 걸친 작업, 시작 시각순 (여러 날 작업은 걸친 날마다 나온다)
+function jobsOn(day) {
+  return state.schedules.filter(s => scheduleCoversDate(s, day)).sort(sortByStart);
+}
+// 그 날 기준 시간: 하루짜리는 09:00–14:00, 여러 날 작업은 첫날 07:00–, 마지막 날 –18:00, 중간은 종일
+function dayTime(s, day) {
+  const r = scheduleRange(s);
+  if (s.jobDate === s.endDate) return `${r.start}–${r.end}`;
+  if (day === s.jobDate) return `${r.start}–`;
+  if (day === s.endDate) return `–${r.end}`;
+  return '종일';
+}
+
+// 크루 관리: 왼쪽에서 크루를 고르면 그 달을 일반 캘린더로 보여주고, 일한 날을 근무시간 색으로 칠한다.
+// 시간 기준은 크루 화면과 같다: 승인된 근무기록만 "승인", 승인 대기는 따로, 근무기록이 없는 끝난 작업은 미제출.
+function fmtH(h) {
+  return `${Math.round(h * 10) / 10}h`;
+}
+function crewMonthPrefix() {
+  return `${state.crewYear}-${String(state.crewMonth + 1).padStart(2, '0')}`;
+}
+function renderCrewTab() {
+  const prefix = crewMonthPrefix();
+  const confirmedHours = uid => state.workLogs
+    .filter(w => w.userId === uid && w.status === 'confirmed' && w.jobDate.startsWith(prefix))
+    .reduce((sum, w) => sum + w.workedHours, 0);
+  document.getElementById('crew-list').innerHTML = `
+    <button class="crew-invite-btn" onclick="fakeNav('크루 초대 팝업')">+ 크루 초대</button>` + CREW_USERS.map(u => `
+    <button class="crew-list-btn${u.id === state.crewUserId ? ' active' : ''}" onclick="selectCrew('${u.id}')">
+      ${u.name}<small>${fmtH(confirmedHours(u.id))}</small>
+    </button>`).join('');
+  renderCrewTimeline();
+}
+// 3시간 이하 초록, 3~6시간 노랑, 6시간 이상 빨강
+function hoursColor(h) {
+  return h <= 3 ? 'c-g' : h < 6 ? 'c-y' : 'c-r';
+}
+function renderCrewTimeline() {
+  const uid = state.crewUserId;
+  const prefix = crewMonthPrefix();
+  const daysInMonth = new Date(state.crewYear, state.crewMonth + 1, 0).getDate();
+  const firstIndex = (new Date(state.crewYear, state.crewMonth, 1).getDay() + 6) % 7;
+  const sum = { confirmed: 0, pending: 0, planned: 0, missing: 0 };
+  // 하루에 작업이 여럿이면 칸의 상태는 미제출 > 승인 대기 > 예정 > 승인 순으로 정한다
+  const RANK = { confirmed: 0, planned: 1, pending: 2, missing: 3 };
+
+  const cells = ['월', '화', '수', '목', '금', '토', '일'].map((w, i) =>
+    `<div class="cc-wd${i === 5 ? ' sat' : i === 6 ? ' sun' : ''}">${w}</div>`);
+  for (let i = 0; i < firstIndex; i++) cells.push('<div class="cc-day blank"></div>');
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const day = `${prefix}-${String(d).padStart(2, '0')}`;
+    const wd = new Date(day + 'T00:00:00').getDay();
+    const jobs = state.schedules.filter(s => scheduleCoversDate(s, day) && s.assignments.some(a => a.userId === uid)).sort(sortByStart);
+    const cls = ['cc-day'];
+    if (wd === 6) cls.push('sat');
+    if (wd === 0) cls.push('sun');
+    if (day === TODAY_DATE) cls.push('today');
+
+    let hours = 0, kind = null, colorHours = 0;
+    jobs.forEach(s => {
+      const a = s.assignments.find(a => a.userId === uid);
+      const log = state.workLogs.find(w => w.scheduleId === s.id && w.userId === uid);
+      const k = log ? log.status === 'confirmed' ? 'confirmed' : 'pending'
+                    : scheduleStatus(s) === 'done' ? 'missing' : 'planned';
+      const h = log ? log.workedHours : calcWorkedHours(a.startTime, a.endTime);
+      if (kind === null || RANK[k] > RANK[kind]) kind = k;
+      // 여러 날 작업의 시간은 첫날에 한 번만 센다 (근무기록도 작업 하나에 하나). 이어지는 날은 같은 색만 칠한다.
+      if (day !== s.jobDate) {
+        colorHours = Math.max(colorHours, h);
+        return;
+      }
+      hours += h;
+      colorHours = Math.max(colorHours, hours);
+      if (k === 'missing') sum.missing++;
+      else sum[k] += h;
+    });
+
+    let text = '', sub = '', onclick = '';
+    if (jobs.length) {
+      cls.push('has', kind === 'missing' ? 'missing' : hoursColor(colorHours));
+      if (kind === 'planned') cls.push('planned');
+      text = kind === 'missing' ? '미제출' : hours ? fmtH(hours) : '';
+      sub = [jobs.length > 1 ? `${jobs.length}건` : '', kind === 'pending' ? '대기' : ''].filter(Boolean).join(' · ');
+      const ids = jobs.map(s => s.id).join(',');
+      onclick = ` onclick="openJobModal('${jobs[0].id}', '${ids}')"`;
+    } else if (state.availability[`${uid}_${day}`] === false) {
+      cls.push('off');
+      text = '불가';
+    }
+    cells.push(`
+      <div class="${cls.join(' ')}"${onclick}>
+        <span class="cc-num">${d}</span>
+        <span><div class="cc-hours">${text}</div>${sub ? `<div class="cc-sub">${sub}</div>` : ''}</span>
+      </div>`);
+  }
+
+  document.getElementById('crew-timeline').innerHTML = `
+    <div class="tl-head">
+      <div class="tl-name">${crewName(uid)}</div>
+      <div class="tl-month">
+        <button class="calendar-nav-btn" onclick="changeCrewMonth(-1)">‹</button>
+        ${state.crewYear}년 ${state.crewMonth + 1}월
+        <button class="calendar-nav-btn" onclick="changeCrewMonth(1)">›</button>
+      </div>
+    </div>
+    <div class="tl-sum">
+      <span>승인<b>${fmtH(sum.confirmed)}</b></span>
+      <span>승인 대기<b>${fmtH(sum.pending)}</b></span>
+      <span>예정<b>${fmtH(sum.planned)}</b></span>
+      ${sum.missing ? `<span class="missing">미제출<b>${sum.missing}건</b></span>` : ''}
+    </div>
+    <div class="cc-grid">${cells.join('')}</div>
+    <div class="cc-legend">
+      <span><i style="background:#bbf7d0"></i>3시간 이하</span>
+      <span><i style="background:#fde68a"></i>3~6시간</span>
+      <span><i style="background:#fecaca"></i>6시간 이상</span>
+      <span><i style="background:#fff; outline: 1.5px dashed #94a3b8; outline-offset: -1.5px"></i>예정</span>
+    </div>
+  `;
+}
+function selectCrew(uid) {
+  state.crewUserId = uid;
+  renderCrewTab();
+}
+function changeCrewMonth(delta) {
+  const d = new Date(state.crewYear, state.crewMonth + delta, 1);
+  state.crewYear = d.getFullYear();
+  state.crewMonth = d.getMonth();
+  renderCrewTab();
+}
+
+// 캘린더: 색은 완료(흐리게)와 확인 필요(인원 부족 또는 충돌, 빨강)만. 가용 인원은 누가 빠질 때만 표시.
+function renderAdminCalendar() {
+  document.getElementById('admin-cal-title').textContent = `${state.currentYear}년 ${state.currentMonth + 1}월`;
+  const container = document.getElementById('admin-cal-days');
+  container.innerHTML = '';
+  const conflictIds = conflictScheduleIds(findConflicts());
+
+  const daysInMonth = new Date(state.currentYear, state.currentMonth + 1, 0).getDate();
+  const firstDayIndex = (new Date(state.currentYear, state.currentMonth, 1).getDay() + 6) % 7;
+  for (let i = 0; i < firstDayIndex; i++) {
+    const blank = document.createElement('div');
+    blank.className = 'cal-day other-month';
+    container.appendChild(blank);
+  }
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${state.currentYear}-${String(state.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dayEl = document.createElement('div');
+    dayEl.className = 'cal-day';
+    if (dateStr === state.selectedDate) dayEl.classList.add('selected');
+    if (dateStr === TODAY_DATE) dayEl.classList.add('today');
+    dayEl.innerHTML = `<div class="cal-day-num">${day}</div>`;
+
+    state.schedules.filter(s => scheduleCoversDate(s, dateStr)).sort(sortByStart).forEach(sch => {
+      const done = scheduleStatus(sch) === 'done';
+      const deficit = !done && isDeficit(sch);
+      const pill = document.createElement('div');
+      pill.className = `cal-event-pill${done ? ' done' : ''}${deficit || conflictIds.has(sch.id) ? ' alert' : ''}`;
+      const time = sch.jobDate === dateStr ? `<span class="t">${scheduleRange(sch).start}</span>` : '';
+      pill.innerHTML = `${time}${jobLabel(sch, true)}${deficit ? ` ${sch.assignments.length}/${sch.requiredWorkers}` : ''}`;
+      dayEl.appendChild(pill);
+    });
+
+    const offCount = CREW_USERS.filter(u => state.availability[`${u.id}_${dateStr}`] === false).length;
+    if (offCount > 0 && dateStr >= TODAY_DATE) {
+      const avail = document.createElement('div');
+      avail.className = 'cal-avail-low';
+      avail.textContent = `가용 ${CREW_USERS.length - offCount}`;
+      dayEl.appendChild(avail);
+    }
+
+    dayEl.onclick = () => selectDate(dateStr);
+    container.appendChild(dayEl);
+  }
+}
+
+function renderAdminSelectedDateSchedules() {
+  document.getElementById('admin-selected-date-title').textContent = `${md(state.selectedDate)} ${weekday(state.selectedDate)}`;
+  const off = CREW_USERS.filter(u => state.availability[`${u.id}_${state.selectedDate}`] === false);
+  document.getElementById('admin-crew-avail-summary').textContent = off.length ? `불가: ${off.map(u => u.name).join(', ')}` : '';
+
+  const conflictIds = conflictScheduleIds(findConflicts());
+  const list = state.schedules.filter(s => scheduleCoversDate(s, state.selectedDate)).sort(sortByStart);
+  const container = document.getElementById('admin-schedules-list');
+  if (list.length === 0) {
+    container.innerHTML = '<div class="dash-empty" style="text-align:center; padding:30px 0;">일정 없음</div>';
+    return;
+  }
+  const ST_LABEL = { done: '완료', ongoing: '진행 중', upcoming: '예정' };
+  container.innerHTML = list.map(sch => {
+    const st = scheduleStatus(sch);
+    const staffCls = st !== 'done' && isDeficit(sch) ? 'badge-warning' : 'badge-gray';
+    return `
+    <div class="day-job ${st}" onclick="openJobModal('${sch.id}')">
+      <span class="st-dot ${st}" title="${ST_LABEL[st]}"></span>
+      <span class="badge ${staffCls}">${sch.assignments.length}/${sch.requiredWorkers}</span>
+      <span class="day-job-name">${jobLabel(sch)}</span>
+      ${conflictIds.has(sch.id) ? '<span class="badge badge-red">충돌</span>' : ''}
+      <span class="day-job-time">${dayTime(sch, state.selectedDate)}</span>
+      ${sch.assignments.length
+        ? `<span class="day-job-crew">${sch.assignments.map(a => crewName(a.userId)).join(' · ')}</span>`
+        : '<span class="day-job-crew none">배정 없음</span>'}
+      <button class="icon-btn wa" title="WhatsApp" onclick="event.stopPropagation(); fakeNav('WhatsApp 공유')">${ICON_WHATSAPP}</button>
+      <button class="icon-btn" title="수정" onclick="event.stopPropagation(); fakeNav('스케줄 수정 팝업')">${ICON_EDIT}</button>
+    </div>`;
+  }).join('') + `
+    <div class="day-job-legend">
+      <span><span class="st-dot ongoing"></span>진행 중</span>
+      <span><span class="st-dot upcoming"></span>예정</span>
+      <span><span class="st-dot done"></span>완료</span>
+    </div>`;
+}
+const ICON_WHATSAPP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9 9.5c0 3 2.5 5.5 5.5 5.5l1-1.5-2-1-1 .8c-1-.4-1.8-1.2-2.2-2.2l.8-1-1-2Z"/></svg>';
+const ICON_EDIT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.17 6.81a2.82 2.82 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z"/><path d="m15 5 4 4"/></svg>';
+
+// 선택한 날로 시작·종료 날짜가 채워진 스케줄 등록 팝업 (실제 앱에서는 openNewScheduleModal에 날짜를 넘긴다)
+function openNewScheduleForSelectedDate() {
+  fakeNav(`스케줄 등록 팝업 · ${md(state.selectedDate)}(${weekday(state.selectedDate)}) 날짜 채워짐`);
+}
+
+// ---------- 작업 상세 팝업 ----------
+// 스케줄 등록 팝업과 같은 순서로 보여주고, 맨 아래에 배정 크루와 각자의 근무시간을 붙인다.
+// siblings: 같은 날 작업 id들 (쉼표로 이음). 둘 이상이면 팝업 위에 골라 보는 버튼을 단다.
+function openJobModal(scheduleId, siblings = '') {
+  const sch = state.schedules.find(s => s.id === scheduleId);
+  const ids = siblings ? siblings.split(',') : [];
+  const switcher = ids.length > 1 ? `<div class="detail-switch">${ids.map(id => {
+    const o = state.schedules.find(s => s.id === id);
+    return `<button class="${id === scheduleId ? 'active' : ''}" onclick="openJobModal('${id}', '${siblings}')">${scheduleRange(o).start} ${jobLabel(o)}</button>`;
+  }).join('')}</div>` : '';
+  const st = scheduleStatus(sch);
+  const [stCls, stLabel] = { done: ['badge-gray', '완료'], ongoing: ['badge-green', '진행 중'], upcoming: ['badge-blue', '예정'] }[st];
+  document.getElementById('job-modal-title').textContent = jobLabel(sch);
+  document.getElementById('job-modal-status').innerHTML = `<span class="badge ${stCls}">${stLabel}</span>`;
+
+  const field = (label, value, sub = '') => `
+    <div class="form-group">
+      <label class="form-label">${label}</label>
+      <div class="detail-value${value ? '' : ' muted'}">${value || '없음'}${sub ? `<small>${sub}</small>` : ''}</div>
+    </div>`;
+  const r = scheduleRange(sch);
+  const vehicles = (sch.vehicles || []).map(v => `${v.type} × ${v.count}`).join(', ');
+  const deficit = isDeficit(sch);
+
+  const crewRows = sch.assignments.map(a => {
+    const u = CREW_USERS.find(c => c.id === a.userId) || { name: a.userId };
+    const log = state.workLogs.find(w => w.scheduleId === sch.id && w.userId === a.userId);
+    let hours;
+    if (log) {
+      hours = `<div class="detail-crew-hours ${log.status}">${fmtH(log.workedHours)}<small>${log.status === 'confirmed' ? '승인' : log.status === 'pending' ? '승인 대기' : '반려'}</small></div>`;
+    } else if (st === 'done') {
+      hours = '<div class="detail-crew-hours missing">미제출</div>';
+    } else {
+      hours = `<div class="detail-crew-hours" style="color: var(--text-muted);">${fmtH(calcWorkedHours(a.startTime, a.endTime))}<small>예정</small></div>`;
+    }
+    const duty = a.vehicleDuty && a.vehicleDuty !== 'none' ? ` · 차량 ${a.vehicleDuty === 'miles_xl' ? 'Miles XL' : 'Miles L'}` : '';
+    return `
+      <div class="detail-crew-row">
+        <div class="detail-crew-name">${u.name}</div>
+        ${hours}
+        <div class="detail-crew-sub">${a.startTime}–${a.endTime}${duty}${u.phone ? ` · <a href="tel:${u.phone.replace(/ /g, '')}">${u.phone}</a>` : ''}</div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('job-modal-body').innerHTML = `
+    ${switcher}
+    <div class="form-row detail-quote">
+      ${field('견적번호', sch.quoteNo)}
+      ${field('견적금액', sch.quotePrice ? euro(sch.quotePrice) : '')}
+    </div>
+    <div class="form-row">
+      ${field('고객명', sch.customerName)}
+      ${field('연락처', sch.customerPhone ? `<a href="tel:${sch.customerPhone.replace(/ /g, '')}" style="color: inherit;">${sch.customerPhone}</a>` : '')}
+    </div>
+    <div class="form-row">
+      ${field('시작', `${md(sch.jobDate)}(${weekday(sch.jobDate)}) ${r.start}`)}
+      ${field('종료', `${md(sch.endDate)}(${weekday(sch.endDate)}) ${r.end}`)}
+    </div>
+    ${field('상차지', sch.originAddress, sch.originSpec)}
+    ${field('하차지', sch.destAddress, sch.destSpec)}
+    <div class="form-row">
+      ${field('필요 인원', `${sch.requiredWorkers}명 ${deficit && st !== 'done' ? `<span class="badge badge-warning">${sch.assignments.length}/${sch.requiredWorkers}</span>` : ''}`)}
+      ${field('차량', vehicles)}
+    </div>
+    ${field('현장 메모', sch.notes)}
+    <div class="detail-crew">
+      <label class="form-label">배정 크루 · 근무시간</label>
+      ${crewRows || '<div class="detail-value muted">배정 없음</div>'}
+    </div>
+  `;
+  document.getElementById('job-modal').classList.remove('hidden');
+}
+function closeJobModal() {
+  document.getElementById('job-modal').classList.add('hidden');
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeJobModal(); });
+
+// ---------- 동작 ----------
+// 터치 기기에서 예정 칸 스크롤바는 넘기는 동안만 보이고, 멈추면 1초 뒤 사라진다 (데스크톱은 늘 보임)
+function showScrollbar(el) {
+  el.classList.add('scrolling');
+  clearTimeout(el.hideTimer);
+  el.hideTimer = setTimeout(() => el.classList.remove('scrolling'), 1000);
+}
+function switchTab(tab) {
+  ['dashboard', 'schedule', 'crew'].forEach(t => {
+    document.getElementById(`tab-${t}`).classList.toggle('hidden', t !== tab);
+    document.getElementById(`tab-btn-${t}`).classList.toggle('active', t === tab);
+  });
+  window.scrollTo({ top: 0 });
+}
+// 캘린더 날짜나 대시보드·크루 탭의 작업을 누르면 스케줄 관리 탭 아래쪽에 그 날짜 상세
+function selectDate(dateStr) {
+  state.selectedDate = dateStr;
+  const d = new Date(dateStr + 'T00:00:00');
+  state.currentYear = d.getFullYear();
+  state.currentMonth = d.getMonth();
+  renderAdminCalendar();
+  renderAdminSelectedDateSchedules();
+  if (document.getElementById('tab-schedule').classList.contains('hidden')) switchTab('schedule');
+  document.getElementById('day-detail').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function changeMonth(delta) {
+  const d = new Date(state.currentYear, state.currentMonth + delta, 1);
+  state.currentYear = d.getFullYear();
+  state.currentMonth = d.getMonth();
+  renderAdminCalendar();
+}
+function fakeNav(tabName) {
+  const t = document.getElementById('toast');
+  t.textContent = `→ ${tabName} 탭`;
+  t.classList.add('show');
+  clearTimeout(fakeNav.timer);
+  fakeNav.timer = setTimeout(() => t.classList.remove('show'), 1500);
+}
+
+renderDashboard();
+renderCrewTab();
+renderAdminCalendar();
+renderAdminSelectedDateSchedules();
+// 샘플 확인용: 주소 끝에 #schedule / #crew를 붙이면 그 탭으로 열린다
+if (['schedule', 'crew'].includes(location.hash.slice(1))) switchTab(location.hash.slice(1));
+if (location.hash.startsWith('#job-')) openJobModal(location.hash.slice(5).split(',')[0], location.hash.slice(5));
+</script>
+</body>
+</html>
