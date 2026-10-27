@@ -412,6 +412,22 @@
   </div>
 </div>
 
+<!-- MODAL: 작업 상세 (관리자). 스케줄 등록 팝업과 같은 순서로 값만 보여주고, 맨 아래에 배정 크루별 근무시간 -->
+<div id="job-detail-modal" class="modal-overlay hidden" onclick="if (event.target === this) closeJobDetailModal()">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <div class="card-title"><span id="job-detail-title"></span><span id="job-detail-status" style="margin-left: 6px;"></span></div>
+      <button class="btn btn-secondary btn-sm" onclick="closeJobDetailModal()">닫기</button>
+    </div>
+    <div class="modal-body" id="job-detail-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-whatsapp btn-sm" style="margin-right: auto;" id="job-detail-wa-btn">WhatsApp</button>
+      <button class="btn btn-secondary btn-sm" id="job-detail-edit-btn">수정</button>
+      <button class="btn btn-primary btn-sm" onclick="closeJobDetailModal()">닫기</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: WhatsApp Text -->
 <div id="whatsapp-modal" class="modal-overlay hidden">
   <div class="modal-dialog">
@@ -516,7 +532,8 @@ let state = {
   requests: [],
   expandedRequestIds: new Set(),
   adminTab: 'dashboard',
-  editingScheduleId: null
+  editingScheduleId: null,
+  jobDetail: null // 열려 있는 작업 상세 팝업 { scheduleId, siblings }
 };
 
 function vehicleDutyLabel(value) {
@@ -1158,6 +1175,7 @@ function renderApp() {
       renderAdminSelectedDateSchedules();
     }
     renderAdminRequestsBadge();
+    if (state.jobDetail) renderJobDetailModal();
   } else {
     renderCrewDashboard();
   }
@@ -1597,7 +1615,7 @@ function renderAdminDashboard() {
   const rows = (dateStr, jobs) => jobs.length === 0
     ? '<div class="dash-empty">일정 없음</div>'
     : jobs.map(s => `
-      <div class="dash-job" onclick="openDashboardJob('${s.id}', '${dateStr}')">
+      <div class="dash-job" onclick="openJobDetailModal('${s.id}')">
         <span class="dash-job-time">${dayTimeLabel(s, dateStr)}</span><span class="dash-job-name ${scheduleStatus(s, now)}">${jobLabel(s)}</span>${flags(s)}
       </div>`).join('');
   const dateHead = (dateStr, cls = '') => `<div class="dash-date ${cls}">${monthDayLabel(dateStr)}<span class="wd">${weekdayLabel(dateStr)}</span></div>`;
@@ -1642,12 +1660,116 @@ function showScrollbarWhileScrolling(el) {
   el.hideScrollbarTimer = setTimeout(() => el.classList.remove('scrolling'), 1000);
 }
 
-// 대시보드에서 작업을 누르면 스케줄 관리 탭의 그 날짜로 간다
-function openDashboardJob(scheduleId, dateStr) {
-  state.selectedDate = dateStr;
-  state.currentYear = Number(dateStr.slice(0, 4));
-  state.currentMonth = Number(dateStr.slice(5, 7)) - 1;
-  switchAdminTab('dispatch');
+/* ================================================================
+   작업 상세 팝업 — 대시보드·스케줄 관리·크루 관리에서 작업을 누르면 뜬다
+   ================================================================ */
+function formatHours(h) {
+  return `${Math.round(h * 10) / 10}h`;
+}
+
+// siblings: 같은 날 작업 id들을 쉼표로 이은 것. 둘 이상이면 팝업 맨 위에 골라 보는 버튼을 단다.
+// 4초 폴링으로 데이터가 바뀌면 renderApp()이 열려 있는 팝업도 다시 그린다.
+function openJobDetailModal(scheduleId, siblings = '') {
+  state.jobDetail = { scheduleId, siblings };
+  renderJobDetailModal();
+  document.getElementById('job-detail-modal').classList.remove('hidden');
+}
+
+function closeJobDetailModal() {
+  state.jobDetail = null;
+  document.getElementById('job-detail-modal').classList.add('hidden');
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && state.jobDetail) closeJobDetailModal();
+});
+
+function renderJobDetailModal() {
+  const { scheduleId, siblings } = state.jobDetail;
+  const sch = state.schedules.find(s => s.id === scheduleId);
+  if (!sch) {
+    // 다른 기기에서 지워진 경우
+    closeJobDetailModal();
+    return;
+  }
+  const st = scheduleStatus(sch);
+  const [stCls, stLabel] = { done: ['badge-gray', '완료'], ongoing: ['badge-green', '진행 중'], upcoming: ['badge-blue', '예정'] }[st];
+  document.getElementById('job-detail-title').innerHTML = jobLabel(sch);
+  document.getElementById('job-detail-status').innerHTML = `<span class="badge ${stCls}">${stLabel}</span>`;
+  document.getElementById('job-detail-wa-btn').onclick = () => openWhatsappBriefing(sch.id);
+  document.getElementById('job-detail-edit-btn').onclick = () => { closeJobDetailModal(); openEditScheduleModal(sch.id); };
+
+  const ids = siblings ? siblings.split(',') : [];
+  const switcher = ids.length > 1 ? `<div class="detail-switch">${ids.map(id => {
+    const o = state.schedules.find(s => s.id === id);
+    if (!o) return '';
+    return `<button class="${id === scheduleId ? 'active' : ''}" onclick="openJobDetailModal('${id}', '${siblings}')">${scheduleRange(o).start} ${jobLabel(o)}</button>`;
+  }).join('')}</div>` : '';
+
+  const field = (label, value, sub = '') => `
+    <div class="form-group">
+      <label class="form-label">${label}</label>
+      <div class="detail-value${value ? '' : ' muted'}">${value || '없음'}${sub ? `<small>${sub}</small>` : ''}</div>
+    </div>`;
+  const tel = phone => phone ? `<a href="tel:${escapeHtml(phone.replace(/\s/g, ''))}">${escapeHtml(phone)}</a>` : '';
+  const r = scheduleRange(sch);
+  const when = dateStr => `${monthDayLabel(dateStr)}(${weekdayLabel(dateStr)})`;
+  const vehicles = (sch.vehicles || []).map(v => `${escapeHtml(v.type)} × ${v.count}`).join(', ');
+  const assigned = sch.assignments || [];
+
+  // 크루별 근무시간: 근무기록이 있으면 그 시간과 상태, 끝났는데 없으면 미제출, 아직 안 했으면 배정 시간으로 계산한 예정 시간
+  const crewRows = assigned.map(a => {
+    const u = CREW_USERS.find(c => c.id === a.userId);
+    const log = state.workLogs.find(w => w.scheduleId === sch.id && w.userId === a.userId);
+    const start = a.startTime || r.start;
+    const end = a.endTime || r.end;
+    let hours;
+    if (log) {
+      const label = { confirmed: '승인', pending: '승인 대기', rejected: '반려' }[log.status] || log.status;
+      hours = `<div class="detail-crew-hours ${log.status}">${formatHours(log.workedHours)}<small>${label}</small></div>`;
+    } else if (st === 'done') {
+      hours = '<div class="detail-crew-hours missing">미제출</div>';
+    } else {
+      const planned = timeToMinutes(end) > timeToMinutes(start) ? formatHours(calcWorkLog(start, end).workedHours) : '-';
+      hours = `<div class="detail-crew-hours planned">${planned}<small>예정</small></div>`;
+    }
+    const duty = a.vehicleDuty && a.vehicleDuty !== 'none' ? ` · 차량 ${vehicleDutyLabel(a.vehicleDuty)}` : '';
+    const phone = u && u.phone ? ` · ${tel(u.phone)}` : '';
+    return `
+      <div class="detail-crew-row">
+        <div class="detail-crew-name">${escapeHtml(u ? u.name : a.userId)}</div>
+        ${hours}
+        <div class="detail-crew-sub">${start}–${end}${duty}${phone}</div>
+      </div>`;
+  }).join('');
+
+  const short = st !== 'done' && isUnderstaffed(sch) ? ` <span class="badge badge-warning">${assigned.length}/${sch.requiredWorkers}</span>` : '';
+  document.getElementById('job-detail-body').innerHTML = `
+    ${switcher}
+    <div class="form-row detail-quote">
+      ${field('견적번호', escapeHtml(sch.quoteNo))}
+      ${field('견적금액', sch.quotePrice != null && sch.quotePrice !== '' ? formatEuro(Number(sch.quotePrice)) : '')}
+    </div>
+    <div class="form-row">
+      ${field('고객명', escapeHtml(sch.customerName))}
+      ${field('연락처', tel(sch.customerPhone))}
+    </div>
+    <div class="form-row">
+      ${field('시작', `${when(sch.jobDate)} ${sch.overallTimeRange ? r.start : ''}`)}
+      ${field('종료', `${when(sch.endDate)} ${sch.overallTimeRange ? r.end : ''}`)}
+    </div>
+    ${field('상차지', escapeHtml(sch.originAddress), escapeHtml(sch.originSpec))}
+    ${field('하차지', escapeHtml(sch.destAddress), escapeHtml(sch.destSpec))}
+    <div class="form-row">
+      ${field('필요 인원', `${sch.requiredWorkers || 0}명${short}`)}
+      ${field('차량', vehicles)}
+    </div>
+    ${field('현장 메모', escapeHtml(sch.notes))}
+    <div class="detail-crew">
+      <label class="form-label">배정 크루 · 근무시간</label>
+      ${crewRows || '<div class="detail-value muted">배정 없음</div>'}
+    </div>
+  `;
 }
 
 function renderAdminCalendar() {
