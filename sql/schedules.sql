@@ -9,6 +9,13 @@ create table schedules (
   quote_price numeric,
   customer_name text,
   customer_phone text,
+  -- 작업 종류: 'moving'(이사) / 'delivery'(배송). 화면에서 배송은 "[배송] 고객명"으로 표시한다.
+  -- 기존 DB에는:
+  --   alter table schedules add column job_type text not null default 'moving'
+  --     check (job_type in ('moving', 'delivery'));
+  --   update schedules set job_type = 'delivery'
+  --     where id in (select schedule_id from requests where type = 'delivery' and schedule_id is not null);
+  job_type text not null default 'moving' check (job_type in ('moving', 'delivery')),
   job_date date not null,
   -- 여러 날에 걸치는 작업(원거리 이사 등)의 종료일. null이면 job_date와 같은 날로 본다.
   -- 기존 DB에는: alter table schedules add column end_date date;

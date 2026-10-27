@@ -698,7 +698,7 @@
   @media (max-width: 600px) {
     .cal-full .cal-day { min-height: 72px; padding: 3px; }
     .cal-full .cal-event-pill { font-size: 9.5px; padding: 1px 3px; border-left-width: 2px; }
-    .cal-full .cal-event-pill .t { display: none; }
+    .cal-full .cal-event-pill .t, .cal-full .cal-event-pill .job-tag { display: none; }
     .day-job { gap: 7px; flex-wrap: wrap; }
     .day-job-name { font-size: 13px; }
     .day-job-time { font-size: 11.5px; }

@@ -261,6 +261,14 @@
     <form id="schedule-form" onsubmit="handleSaveSchedule(event)">
       <div class="modal-body">
         
+        <div class="form-group">
+          <label class="form-label">작업 종류</label>
+          <select id="f-job-type" class="form-control">
+            <option value="moving">이사</option>
+            <option value="delivery">배송</option>
+          </select>
+        </div>
+
         <div class="form-row" style="background: #f8fafc; border: 1px solid var(--border); padding: 8px 10px; border-radius: 4px; margin-bottom: 12px;">
           <div>
             <label class="form-label">견적번호 (관리자용)</label>
@@ -1021,6 +1029,7 @@ async function loadDataFromSupabase(isBackground = false) {
 function mapScheduleFromDB(s) {
   return {
     id: s.id,
+    jobType: s.job_type || 'moving',
     quoteNo: s.quote_no,
     quotePrice: s.quote_price,
     customerName: s.customer_name,
@@ -1353,6 +1362,7 @@ function mapRequestToScheduleFields(r) {
   const p = r.payload;
   if (r.type === 'moving') {
     return {
+      job_type: 'moving',
       quote_no: p.invoiceNo || '',
       quote_price: p.total ?? null,
       customer_name: r.customer_name,
@@ -1370,6 +1380,7 @@ function mapRequestToScheduleFields(r) {
   }
   // delivery
   return {
+    job_type: 'delivery',
     quote_no: '',
     quote_price: p.estimatedTotal ?? null,
     customer_name: r.customer_name,
@@ -1505,9 +1516,11 @@ function escapeHtml(str) {
   return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-// 화면에 쓰는 작업 이름 (HTML 이스케이프됨)
+// 화면에 쓰는 작업 이름 (HTML 이스케이프됨). 배송이면 "[배송] 송다인", 이사는 이름만.
+// 태그는 span으로 감싸 휴대폰 캘린더처럼 좁은 곳에서는 숨길 수 있게 한다.
 function jobLabel(sch) {
-  return escapeHtml(sch.customerName || '-');
+  const name = escapeHtml(sch.customerName || '-');
+  return sch.jobType === 'delivery' ? `<span class="job-tag">[배송] </span>${name}` : name;
 }
 
 // overall_time_range('HH:MM ~ HH:MM')를 비교용 키('YYYY-MM-DD HH:MM')로 푼다.
@@ -1959,7 +1972,7 @@ function renderCrewDashboard() {
     todayEmpty.classList.add('hidden');
     const myAssign = myJob.assignments.find(a => a.userId === currentUserId);
 
-    document.getElementById('crew-today-title').textContent = `${myJob.customerName} 님 이사/운송`;
+    document.getElementById('crew-today-title').textContent = `${myJob.customerName} 님 ${myJob.jobType === 'delivery' ? '배송' : '이사/운송'}`;
     document.getElementById('crew-today-time').textContent = myAssign.startTime || '08:00';
     document.getElementById('crew-today-overall-time').textContent = `(전체: ${scheduleTimeLabel(myJob)})`;
 
@@ -2101,7 +2114,7 @@ function openDayDetailModal(dateStr) {
   if (assignedJob) {
     const myAssign = assignedJob.assignments.find(a => a.userId === currentUserId);
     jobInfoEl.innerHTML = `
-      <div style="font-size: 13px; font-weight: 700; margin-bottom: 4px;">${assignedJob.customerName} 님 이사/운송</div>
+      <div style="font-size: 13px; font-weight: 700; margin-bottom: 4px;">${escapeHtml(assignedJob.customerName)} 님 ${assignedJob.jobType === 'delivery' ? '배송' : '이사/운송'}</div>
       <div style="font-size: 12.5px; color: var(--text-secondary);">배정 시간: ${myAssign.startTime} · ${assignedJob.originAddress} → ${assignedJob.destAddress}</div>
     `;
     renderDayDetailWorklog(dateStr, assignedJob, currentUserId);
@@ -2286,6 +2299,7 @@ function openEditScheduleModal(scheduleId) {
   deleteBtn.onclick = () => deleteSchedule(scheduleId);
   document.getElementById('modal-crew-section').classList.remove('hidden');
 
+  document.getElementById('f-job-type').value = sch.jobType;
   document.getElementById('f-quote-no').value = sch.quoteNo || '';
   document.getElementById('f-quote-price').value = sch.quotePrice != null ? sch.quotePrice : '';
   document.getElementById('f-customer-name').value = sch.customerName || '';
@@ -2643,6 +2657,7 @@ async function handleSaveSchedule(e) {
   const notes = document.getElementById('f-notes').value.trim();
 
   const fieldsPayload = {
+    job_type: document.getElementById('f-job-type').value,
     quote_no: quoteNo,
     quote_price: quotePrice ? parseFloat(quotePrice) : null,
     customer_name: customerName,
