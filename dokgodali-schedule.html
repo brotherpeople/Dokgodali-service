@@ -230,6 +230,10 @@
         <div id="az-pdf-status" style="font-size:12px; color:var(--text-secondary); margin-top:6px;"></div>
       </div>
       <div id="admin-worklog-pending-list"></div>
+      <div class="card" style="margin-top:14px; padding:14px;">
+        <div class="card-title">근무시간 미제출 <span style="font-size:12px; font-weight:500; color:var(--text-muted);">최근 30일</span></div>
+        <div id="admin-worklog-missing-list"></div>
+      </div>
     </div>
 
     <div id="admin-requests-section" class="hidden">
@@ -1210,6 +1214,8 @@ function renderAdminWorklogTab() {
     CREW_USERS.forEach(u => crewSelect.appendChild(new Option(u.name, u.id)));
   }
 
+  renderAdminWorklogMissing();
+
   const list = document.getElementById('admin-worklog-pending-list');
   const pending = state.workLogs.filter(w => w.status === 'pending').sort((a, b) => a.jobDate.localeCompare(b.jobDate));
 
@@ -1230,6 +1236,39 @@ function renderAdminWorklogTab() {
           <button class="btn btn-primary btn-sm" onclick="approveWorklog('${w.id}')">승인</button>
           <button class="btn btn-secondary btn-sm" onclick="openRejectWorklog('${w.id}')">반려</button>
         </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// 끝난 작업인데 배정된 크루가 근무시간을 안 낸 건. 근무기록 기능 이전의 옛 작업이 계속 뜨지 않게 최근 30일만 본다.
+// 줄을 누르면 작업 상세 팝업 (크루 연락처가 있다).
+function renderAdminWorklogMissing() {
+  const since = addDays(TODAY_DATE, -30);
+  const now = nowKey();
+  const missing = [];
+  state.schedules
+    .filter(s => s.endDate >= since && scheduleStatus(s, now) === 'done')
+    .forEach(s => (s.assignments || []).forEach(a => {
+      if (!state.workLogs.some(w => w.scheduleId === s.id && w.userId === a.userId)) missing.push({ sch: s, a });
+    }));
+  missing.sort((x, y) => y.sch.endDate.localeCompare(x.sch.endDate));
+
+  const list = document.getElementById('admin-worklog-missing-list');
+  if (missing.length === 0) {
+    list.innerHTML = '<div class="worklog-history-empty">미제출 건이 없습니다.</div>';
+    return;
+  }
+  list.innerHTML = missing.map(({ sch, a }) => {
+    const u = CREW_USERS.find(c => c.id === a.userId);
+    const r = scheduleRange(sch);
+    return `
+      <div class="worklog-pending-item" style="cursor:pointer;" onclick="openJobDetailModal('${sch.id}')">
+        <div>
+          <div><strong>${escapeHtml(u ? u.name : a.userId)}</strong> · ${monthDayLabel(sch.jobDate)}(${weekdayLabel(sch.jobDate)}) ${jobLabel(sch)}</div>
+          <div style="font-size:12px; color:var(--text-secondary);">배정 ${a.startTime || r.start}–${a.endTime || r.end}</div>
+        </div>
+        <span class="badge badge-red">미제출</span>
       </div>
     `;
   }).join('');
