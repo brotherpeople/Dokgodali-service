@@ -34,7 +34,7 @@
   .role-switcher-bar {
     background: #0f172a;
     color: #94a3b8;
-    padding: 8px 16px;
+    padding: 8px 24px;
     font-size: 12px;
     display: flex;
     align-items: center;
@@ -72,9 +72,9 @@
     z-index: 40;
   }
   .header-inner {
-    max-width: 1000px;
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 12px 16px;
+    padding: 12px 24px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -141,9 +141,9 @@
 
   /* 메인 컨테이너 */
   .container {
-    max-width: 1000px;
+    max-width: 1200px;
     margin: 16px auto;
-    padding: 0 16px;
+    padding: 0 24px;
   }
 
   /* 카드 UI */
@@ -560,8 +560,8 @@
   .crew-month-hours-value span { font-size: 13px; font-weight: 600; margin-left: 2px; }
   .crew-month-hours-note { font-size: 11px; color: var(--text-muted); text-align: right; line-height: 1.4; }
 
-  .admin-tab-bar { display: flex; gap: 8px; margin-bottom: 12px; }
-  .admin-tab-btn { padding: 8px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: #fff; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text-secondary); }
+  .admin-tab-bar { display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto; }
+  .admin-tab-btn { white-space: nowrap; padding: 8px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: #fff; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text-secondary); }
   .admin-tab-btn.active { background: var(--navy); color: #fff; border-color: transparent; }
   .worklog-pending-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
   .worklog-pending-item:last-child { border-bottom: none; }
@@ -580,3 +580,62 @@
   .request-detail-row { display: contents; }
   .request-detail-row span { color: var(--text-secondary); }
   .request-detail-row strong { font-weight: 600; }
+
+  /* 관리자 대시보드: 숫자 카드 3개 (마지막 칸은 이번 달 매출) */
+  .dash-kpis { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr); gap: 8px; margin-bottom: 10px; }
+  .dash-kpi { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 10px 12px; box-shadow: var(--shadow-sm); min-width: 0; }
+  .dash-kpi-label { font-size: 11.5px; color: var(--text-secondary); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dash-kpi-value { font-size: 24px; font-weight: 800; line-height: 1.2; margin-top: 2px; }
+  .dash-kpi-value .now { color: var(--success); }
+  .dash-kpi-value .of { color: var(--text-muted); font-weight: 700; }
+  .rev-bar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: #e2e8f0; margin: 6px 0 5px; }
+  .rev-bar .done { background: #1e293b; }
+  .rev-bar .planned { background: #93c5fd; }
+  .rev-legend { display: flex; gap: 10px; font-size: 11.5px; color: var(--text-secondary); flex-wrap: wrap; }
+  .rev-legend > span { display: inline-flex; align-items: center; gap: 4px; }
+  .rev-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .rev-dot.done { background: #1e293b; }
+  .rev-dot.planned { background: #93c5fd; }
+
+  /* 완료(어제) | 오늘 | 예정(내일·모레·글피가 한 화면, 옆으로 넘기면 30일 뒤까지) */
+  .dash-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 3fr); gap: 10px; }
+  .dash-panel { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 12px 14px; min-width: 0; }
+  .dash-panel-title { font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 2px; }
+  .dash-empty { font-size: 12px; color: var(--text-muted); padding: 6px 0; }
+  .dash-date { font-size: 16px; font-weight: 800; padding-bottom: 6px; margin-bottom: 2px; border-bottom: 2px solid var(--text-primary); }
+  .dash-date.today { font-size: 22px; border-bottom-color: var(--accent); }
+  .dash-date .wd { font-weight: 600; color: var(--text-muted); margin-left: 4px; font-size: 0.8em; }
+  #dash-panel-upcoming { display: flex; flex-direction: column; }
+  /* 넷째 날이 오른쪽에 살짝 걸쳐 보여서 옆으로 넘길 수 있다는 걸 알 수 있다 */
+  .dash-days { flex: 1; display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - 42px) / 3.25); gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+  .dash-days::-webkit-scrollbar { height: 6px; }
+  .dash-days::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+  .dash-days > div { scroll-snap-align: start; min-width: 0; }
+  @media (hover: none) {
+    .dash-days { scrollbar-color: transparent transparent; }
+    .dash-days::-webkit-scrollbar-thumb { background: transparent; }
+    .dash-days.scrolling { scrollbar-color: #cbd5e1 transparent; }
+    .dash-days.scrolling::-webkit-scrollbar-thumb { background: #cbd5e1; }
+  }
+
+  /* 한 줄 = 시간 + 이름. 상태는 이름 글자색 (진행 중 초록, 예정 검정, 완료 회색) */
+  .dash-job { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
+  .dash-job:last-child { border-bottom: none; }
+  .dash-job-time { font-size: 12px; color: var(--text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; min-width: 72px; }
+  .dash-job-name { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
+  .dash-job:hover .dash-job-name { text-decoration: underline; }
+  .dash-job-name.ongoing { color: var(--success); }
+  .dash-job-name.done { color: var(--text-muted); font-weight: 500; }
+
+  @media (max-width: 900px) {
+    .dash-kpis { gap: 6px; }
+    .dash-kpi-value { font-size: 20px; }
+    .dash-cols { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 600px) {
+    .dash-kpi { padding: 9px 10px; }
+    .dash-kpi-label { font-size: 11px; white-space: normal; }
+    .dash-kpi-value { font-size: 18px; }
+    .rev-legend { flex-direction: column; gap: 1px; font-size: 10.5px; }
+    .dash-days { grid-auto-columns: 78%; }
+  }

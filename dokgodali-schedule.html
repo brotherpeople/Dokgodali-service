@@ -167,11 +167,23 @@
   <!-- ADMIN VIEW -->
   <div id="admin-section">
     <div class="admin-tab-bar">
-      <button class="admin-tab-btn active" id="admin-tab-dispatch-btn" onclick="switchAdminTab('dispatch')">스케줄 관리</button>
+      <button class="admin-tab-btn active" id="admin-tab-dashboard-btn" onclick="switchAdminTab('dashboard')">대시보드</button>
+      <button class="admin-tab-btn" id="admin-tab-dispatch-btn" onclick="switchAdminTab('dispatch')">스케줄 관리</button>
       <button class="admin-tab-btn" id="admin-tab-worklog-btn" onclick="switchAdminTab('worklog')">근무시간 승인</button>
       <button class="admin-tab-btn" id="admin-tab-requests-btn" onclick="switchAdminTab('requests')">신규 요청<span id="admin-requests-badge" class="hidden"></span></button>
       <button class="admin-tab-btn" id="admin-tab-crew-btn" onclick="switchAdminTab('crew')">크루 관리</button>
     </div>
+
+    <!-- 대시보드: 위에 숫자 카드 3개, 아래에 완료(어제) | 오늘 | 예정(옆으로 넘기면 30일 뒤까지) -->
+    <div id="admin-dashboard-section">
+      <div class="dash-kpis" id="dash-kpis"></div>
+      <div class="dash-cols">
+        <div class="dash-panel" id="dash-panel-done"></div>
+        <div class="dash-panel" id="dash-panel-today"></div>
+        <div class="dash-panel" id="dash-panel-upcoming"></div>
+      </div>
+    </div>
+
     <div class="admin-layout">
       
       <!-- Left: Monthly Calendar -->
@@ -503,7 +515,7 @@ let state = {
   workLogs: [],
   requests: [],
   expandedRequestIds: new Set(),
-  adminTab: 'dispatch',
+  adminTab: 'dashboard',
   editingScheduleId: null
 };
 
@@ -1123,15 +1135,19 @@ function renderApp() {
   document.getElementById('crew-history-section').classList.toggle('hidden', isAdmin);
 
   if (isAdmin) {
+    document.getElementById('admin-dashboard-section').classList.toggle('hidden', state.adminTab !== 'dashboard');
     document.getElementById('admin-worklog-section').classList.toggle('hidden', state.adminTab !== 'worklog');
     document.getElementById('admin-requests-section').classList.toggle('hidden', state.adminTab !== 'requests');
     document.getElementById('admin-crew-section').classList.toggle('hidden', state.adminTab !== 'crew');
     document.querySelector('.admin-layout').classList.toggle('hidden', state.adminTab !== 'dispatch');
+    document.getElementById('admin-tab-dashboard-btn').classList.toggle('active', state.adminTab === 'dashboard');
     document.getElementById('admin-tab-dispatch-btn').classList.toggle('active', state.adminTab === 'dispatch');
     document.getElementById('admin-tab-worklog-btn').classList.toggle('active', state.adminTab === 'worklog');
     document.getElementById('admin-tab-requests-btn').classList.toggle('active', state.adminTab === 'requests');
     document.getElementById('admin-tab-crew-btn').classList.toggle('active', state.adminTab === 'crew');
-    if (state.adminTab === 'worklog') {
+    if (state.adminTab === 'dashboard') {
+      renderAdminDashboard();
+    } else if (state.adminTab === 'worklog') {
       renderAdminWorklogTab();
     } else if (state.adminTab === 'requests') {
       renderAdminRequestsTab();
@@ -1431,6 +1447,207 @@ async function generateAzDocPdf() {
     btn.disabled = false;
     btn.textContent = 'PDF 다운로드';
   }
+}
+
+/* ================================================================
+   관리자 대시보드 — 숫자 카드 3개 + 완료(어제) | 오늘 | 예정(30일)
+   ================================================================ */
+const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
+
+function addDays(dateStr, n) {
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + n);
+  return formatDateLocal(d);
+}
+
+// 'YYYY-MM-DD' → '10/27'
+function monthDayLabel(dateStr) {
+  return `${Number(dateStr.slice(5, 7))}/${Number(dateStr.slice(8, 10))}`;
+}
+
+function weekdayLabel(dateStr) {
+  return WEEKDAY_LABELS[new Date(dateStr + 'T00:00:00').getDay()];
+}
+
+function formatEuro(n) {
+  return '€' + Math.round(n).toLocaleString('de-DE');
+}
+
+// 고객 이름은 공개 견적 폼에서 들어오므로 HTML로 끼워 넣기 전에 이스케이프한다.
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// 화면에 쓰는 작업 이름 (HTML 이스케이프됨)
+function jobLabel(sch) {
+  return escapeHtml(sch.customerName || '-');
+}
+
+// overall_time_range('HH:MM ~ HH:MM')를 비교용 키('YYYY-MM-DD HH:MM')로 푼다.
+// 시간이 비어 있는 스케줄(시간 미정인 배송 요청 등)은 그날 하루 전체로 본다.
+function scheduleRange(sch) {
+  const [start, end] = (sch.overallTimeRange || '').split('~').map(t => t.trim());
+  const s = /^\d{2}:\d{2}$/.test(start || '') ? start : '00:00';
+  const e = /^\d{2}:\d{2}$/.test(end || '') ? end : '23:59';
+  return { start: s, end: e, startKey: `${sch.jobDate} ${s}`, endKey: `${sch.endDate} ${e}` };
+}
+
+function nowKey() {
+  const d = new Date();
+  return `${formatDateLocal(d)} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+// schedules에는 상태 칸이 없어서 지금 시각을 시작/종료 일시와 비교해 정한다: 'done' | 'ongoing' | 'upcoming'
+function scheduleStatus(sch, now = nowKey()) {
+  const r = scheduleRange(sch);
+  if (now < r.startKey) return 'upcoming';
+  if (now >= r.endKey) return 'done';
+  return 'ongoing';
+}
+
+function compareScheduleStart(a, b) {
+  return scheduleRange(a).startKey.localeCompare(scheduleRange(b).startKey);
+}
+
+function isUnderstaffed(sch) {
+  return (sch.assignments || []).length < (sch.requiredWorkers || 0);
+}
+
+// 이 크루가 이 작업에 배정돼 있을 때(또는 배정하면) 생기는 문제:
+// 'unavailable' = 작업 날짜 중 오늘 이후에 '불가'로 표시한 날이 있음, 'overlap' = 시간이 겹치는 다른 작업에 배정됨
+function assignmentProblem(userId, sch) {
+  if (scheduleDates(sch).some(d => d >= TODAY_DATE && state.availability[`${userId}_${d}`] === false)) return 'unavailable';
+  const r = scheduleRange(sch);
+  const overlaps = state.schedules.some(o => {
+    if (o.id === sch.id || !(o.assignments || []).some(a => a.userId === userId)) return false;
+    const ro = scheduleRange(o);
+    return ro.startKey < r.endKey && r.startKey < ro.endKey;
+  });
+  return overlaps ? 'overlap' : null;
+}
+
+// 아직 안 끝난 작업 중 배정된 크루에게 문제가 있는 작업 id
+function conflictScheduleIds() {
+  const now = nowKey();
+  return new Set(state.schedules
+    .filter(s => scheduleStatus(s, now) !== 'done' && (s.assignments || []).some(a => assignmentProblem(a.userId, s)))
+    .map(s => s.id));
+}
+
+// 그날에 걸친 작업, 시작 시각순 (여러 날 작업은 걸친 날마다 나온다)
+function jobsOnDate(dateStr) {
+  return state.schedules.filter(s => scheduleCoversDate(s, dateStr)).sort(compareScheduleStart);
+}
+
+// 그날 기준 시간: 하루짜리는 09:00–14:00, 여러 날 작업은 첫날 07:00–, 마지막 날 –18:00, 가운데 날은 종일
+function dayTimeLabel(sch, dateStr) {
+  if (!sch.overallTimeRange) return '시간 미정';
+  const r = scheduleRange(sch);
+  if (sch.jobDate === sch.endDate) return `${r.start}–${r.end}`;
+  if (dateStr === sch.jobDate) return `${r.start}–`;
+  if (dateStr === sch.endDate) return `–${r.end}`;
+  return '종일';
+}
+
+function renderAdminDashboard() {
+  const now = nowKey();
+  const today = jobsOnDate(TODAY_DATE);
+  const ongoingCount = today.filter(s => scheduleStatus(s, now) === 'ongoing').length;
+  const notStartedCount = today.filter(s => scheduleStatus(s, now) === 'upcoming').length;
+
+  // 이번 달 매출: 시작일이 이번 달인 작업의 견적금액, 끝난 것(완료)과 아닌 것(예정)으로 나눈다
+  const monthPrefix = TODAY_DATE.slice(0, 7);
+  let revDone = 0, revPlanned = 0;
+  state.schedules.filter(s => s.jobDate.startsWith(monthPrefix)).forEach(s => {
+    const price = Number(s.quotePrice) || 0;
+    if (scheduleStatus(s, now) === 'done') revDone += price;
+    else revPlanned += price;
+  });
+  const revTotal = revDone + revPlanned;
+  const revPct = n => revTotal ? n / revTotal * 100 : 0;
+
+  // 오늘 작업 = 진행 중 / (진행 중 + 아직 시작 전). 이미 끝난 오늘 작업은 세지 않는다.
+  document.getElementById('dash-kpis').innerHTML = `
+    <div class="dash-kpi">
+      <div class="dash-kpi-label">오늘 작업</div>
+      <div class="dash-kpi-value"><span class="now">${ongoingCount}</span><span class="of">/${ongoingCount + notStartedCount}</span></div>
+    </div>
+    <div class="dash-kpi">
+      <div class="dash-kpi-label">내일 예정 작업</div>
+      <div class="dash-kpi-value">${jobsOnDate(addDays(TODAY_DATE, 1)).length}</div>
+    </div>
+    <div class="dash-kpi">
+      <div class="dash-kpi-label">${Number(monthPrefix.slice(5))}월 매출</div>
+      <div class="dash-kpi-value">${formatEuro(revTotal)}</div>
+      <div class="rev-bar"><div class="done" style="width:${revPct(revDone)}%"></div><div class="planned" style="width:${revPct(revPlanned)}%"></div></div>
+      <div class="rev-legend">
+        <span><span class="rev-dot done"></span>완료 ${formatEuro(revDone)}</span>
+        <span><span class="rev-dot planned"></span>예정 ${formatEuro(revPlanned)}</span>
+      </div>
+    </div>
+  `;
+
+  const conflictIds = conflictScheduleIds();
+  const flags = s => {
+    const short = scheduleStatus(s, now) !== 'done' && isUnderstaffed(s)
+      ? `<span class="badge badge-warning">${(s.assignments || []).length}/${s.requiredWorkers}</span>` : '';
+    return short + (conflictIds.has(s.id) ? '<span class="badge badge-red">충돌</span>' : '');
+  };
+  // 한 줄 = 시간 + 이름. 상태는 이름 글자색 (진행 중 초록, 예정 검정, 완료 회색)
+  const rows = (dateStr, jobs) => jobs.length === 0
+    ? '<div class="dash-empty">일정 없음</div>'
+    : jobs.map(s => `
+      <div class="dash-job" onclick="openDashboardJob('${s.id}', '${dateStr}')">
+        <span class="dash-job-time">${dayTimeLabel(s, dateStr)}</span><span class="dash-job-name ${scheduleStatus(s, now)}">${jobLabel(s)}</span>${flags(s)}
+      </div>`).join('');
+  const dateHead = (dateStr, cls = '') => `<div class="dash-date ${cls}">${monthDayLabel(dateStr)}<span class="wd">${weekdayLabel(dateStr)}</span></div>`;
+
+  // 완료: 어제 끝난 작업만
+  const yesterday = addDays(TODAY_DATE, -1);
+  document.getElementById('dash-panel-done').innerHTML = `
+    <div class="dash-panel-title">완료</div>
+    ${dateHead(yesterday)}
+    ${rows(yesterday, jobsOnDate(yesterday).filter(s => s.endDate === yesterday))}
+  `;
+
+  document.getElementById('dash-panel-today').innerHTML = `
+    <div class="dash-panel-title">오늘</div>
+    ${dateHead(TODAY_DATE, 'today')}
+    ${rows(TODAY_DATE, today)}
+  `;
+
+  // 예정: 내일 · 모레 · 글피는 늘 보이고, 그 뒤 30일까지는 작업이 있는 날만 옆으로 이어진다.
+  // 4초마다 다시 그려지므로 옆으로 넘겨 둔 위치를 기억했다가 되돌린다.
+  const upcomingPanel = document.getElementById('dash-panel-upcoming');
+  const oldDays = upcomingPanel.querySelector('.dash-days');
+  const scrollLeft = oldDays ? oldDays.scrollLeft : 0;
+  const days = [];
+  for (let n = 1; n <= 30; n++) {
+    const d = addDays(TODAY_DATE, n);
+    if (n <= 3 || jobsOnDate(d).length) days.push(d);
+  }
+  upcomingPanel.innerHTML = `
+    <div class="dash-panel-title">예정</div>
+    <div class="dash-days" onscroll="showScrollbarWhileScrolling(this)">
+      ${days.map(d => `<div>${dateHead(d)}${rows(d, jobsOnDate(d))}</div>`).join('')}
+    </div>
+  `;
+  upcomingPanel.querySelector('.dash-days').scrollLeft = scrollLeft;
+}
+
+// 터치 기기에서는 예정 칸 스크롤바가 넘기는 동안만 보이고 멈추면 1초 뒤 사라진다 (마우스 기기는 늘 보임, CSS 참고)
+function showScrollbarWhileScrolling(el) {
+  el.classList.add('scrolling');
+  clearTimeout(el.hideScrollbarTimer);
+  el.hideScrollbarTimer = setTimeout(() => el.classList.remove('scrolling'), 1000);
+}
+
+// 대시보드에서 작업을 누르면 스케줄 관리 탭의 그 날짜로 간다
+function openDashboardJob(scheduleId, dateStr) {
+  state.selectedDate = dateStr;
+  state.currentYear = Number(dateStr.slice(0, 4));
+  state.currentMonth = Number(dateStr.slice(5, 7)) - 1;
+  switchAdminTab('dispatch');
 }
 
 function renderAdminCalendar() {
