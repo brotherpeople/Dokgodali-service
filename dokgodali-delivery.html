@@ -117,7 +117,9 @@
                                 주세요. 최대 50개까지 추가할 수 있습니다.
                                 운임은 부피 무게(가로×세로×높이÷6000)와
                                 실중량 중 큰 값으로 계산되며, 실측 후 달라질
-                                수 있습니다.
+                                수 있습니다.<br />물품은 '옷' 대신 '바지',
+                                '티셔츠'처럼 구체적으로 적어 주세요. 신상품은
+                                상품 URL이 꼭 필요합니다.
                             </div>
                             <div class="box-list" id="boxList"></div>
                             <div class="box-list-footer">
@@ -131,8 +133,9 @@
                                 <span class="box-count" id="boxCount"></span>
                             </div>
                             <div class="field-error" id="cargoError">
-                                모든 박스의 가로·세로·높이와 실중량을 입력해
-                                주세요.
+                                모든 박스의 가로·세로·높이·실중량과 물품의
+                                영문명·수량·단가를 입력해 주세요. 신상품은
+                                상품 URL도 필요합니다.
                             </div>
                         </div>
                         <div class="actions">
@@ -737,13 +740,57 @@
                ================================================================ */
             const Pricing = window.DokgodaliPricing;
             const BOX_FIELDS = ["length", "width", "height", "weight"];
+            // 물품 구분: 제한 품목(건강기능식품·분유·주류)은 경고 대상이다.
+            const ITEM_CATEGORIES = {
+                general: "일반",
+                health: "건강기능식품",
+                formula: "분유",
+                alcohol: "주류",
+            };
+            // 신고가액(단가)은 보상 기준이므로 영문명·수량·단가는 필수.
+            // TODO(클라이언트 확인) #16: 브랜드·색상·사이즈·이미지 URL은 선택
+            const ITEM_REQUIRED = ["nameEn", "quantity", "unitPrice"];
+            const emptyItem = () => ({
+                category: "general",
+                nameEn: "",
+                brand: "",
+                color: "",
+                size: "",
+                quantity: "1",
+                unitPrice: "",
+                imageUrl: "",
+                productUrl: "",
+                isNew: false,
+            });
             const emptyBox = () => ({
                 length: "",
                 width: "",
                 height: "",
                 weight: "",
                 carrier: false,
+                items: [emptyItem()],
             });
+            const itemMissing = (item) => [
+                ...ITEM_REQUIRED.filter((field) =>
+                    field === "nameEn"
+                        ? !item.nameEn.trim()
+                        : !(Number(item[field]) > 0),
+                ),
+                ...(item.isNew && !item.productUrl.trim()
+                    ? ["productUrl"]
+                    : []),
+            ];
+            const isBoxValid = (box) =>
+                isBoxComplete(box) &&
+                box.items.every((item) => !itemMissing(item).length);
+            const itemsValue = (box) =>
+                box.items.reduce(
+                    (sum, item) =>
+                        sum +
+                        (Number(item.quantity) || 0) *
+                            (Number(item.unitPrice) || 0),
+                    0,
+                );
             const methodData = {
                 premium: {
                     name: "프리미엄 픽업",
@@ -962,6 +1009,11 @@
               </div>
               <div class="box-fields">${field(box, "length", "가로 (cm)")}${field(box, "width", "세로 (cm)")}${field(box, "height", "높이 (cm)")}${field(box, "weight", "실중량 (kg)")}</div>
               <label class="box-carrier"><input type="checkbox" data-field="carrier" ${box.carrier ? "checked" : ""} /><span>캐리어(여행 가방)로 보냅니다 (핸들링 비용 €${Pricing.RATES.carrierHandling})</span></label>
+              <div class="item-section">
+                <div class="item-section-head"><span class="item-section-title">박스 ${n} 물품 목록</span><span class="item-section-value" data-items-value></span></div>
+                ${box.items.map((item, i) => renderItem(item, i, n, box.items.length > 1)).join("")}
+                <button class="item-add" type="button">+ 물품 추가</button>
+              </div>
             </div>`;
                     })
                     .join("");
@@ -970,10 +1022,40 @@
                 $("#boxCount").textContent =
                     `${state.boxes.length} / ${Pricing.RATES.maxBoxes}개`;
             }
+            function renderItem(item, i, boxNo, canRemove) {
+                const input = (name, label, attrs = "") =>
+                    `<label class="item-field item-field-${name}"><span class="box-field-label">${label}</span><input class="text-input${name === "productUrl" && item.isNew ? " is-required" : ""}" data-item-field="${name}" value="${escapeAttr(item[name])}" ${attrs} /></label>`;
+                const options = Object.entries(ITEM_CATEGORIES)
+                    .map(
+                        ([value, label]) =>
+                            `<option value="${value}" ${item.category === value ? "selected" : ""}>${label}</option>`,
+                    )
+                    .join("");
+                return `
+                <div class="item-row" data-item="${i}">
+                  <div class="item-grid">
+                    <label class="item-field item-field-category"><span class="box-field-label">구분</span><select class="select-input" data-item-field="category">${options}</select></label>
+                    ${input("nameEn", "영문 품명 *", 'type="text" placeholder="예: Cotton T-shirt"')}
+                    ${input("brand", "브랜드", 'type="text"')}
+                    ${input("color", "색상", 'type="text"')}
+                    ${input("size", "사이즈", 'type="text"')}
+                    ${input("quantity", "수량 *", 'type="number" inputmode="numeric" min="1" step="1"')}
+                    ${input("unitPrice", "단가 (€) *", 'type="number" inputmode="decimal" min="0" step="0.01"')}
+                  </div>
+                  <div class="item-grid item-grid-urls">
+                    ${input("imageUrl", "이미지 URL", 'type="url" placeholder="https://"')}
+                    ${input("productUrl", "상품 URL", 'type="url" placeholder="https://"')}
+                    <label class="item-new"><input type="checkbox" data-item-field="isNew" ${item.isNew ? "checked" : ""} /><span>신상품 (상품 URL 필수)</span></label>
+                    ${canRemove ? `<button class="item-remove" type="button" aria-label="박스 ${boxNo} 물품 ${i + 1} 삭제">삭제</button>` : ""}
+                  </div>
+                </div>`;
+            }
             // 입력 중에는 박스별 계산 결과 줄만 갱신한다.
             function updateBoxCalcs() {
                 $$("#boxList .box-row").forEach((row, index) => {
                     const box = state.boxes[index];
+                    row.querySelector("[data-items-value]").textContent =
+                        `신고가 합계 ${currency(itemsValue(box))}`;
                     const calc = row.querySelector("[data-calc]");
                     if (!isBoxComplete(box)) {
                         calc.textContent =
@@ -1046,12 +1128,25 @@
             function validateCargoes() {
                 let valid = true;
                 $$("#boxList .box-row").forEach((row, index) => {
+                    const box = state.boxes[index];
                     BOX_FIELDS.forEach((field) => {
-                        const ok = Number(state.boxes[index][field]) > 0;
+                        const ok = Number(box[field]) > 0;
                         row.querySelector(
                             `[data-field="${field}"]`,
                         ).classList.toggle("input-error", !ok);
                         if (!ok) valid = false;
+                    });
+                    row.querySelectorAll(".item-row").forEach((itemRow, i) => {
+                        const missing = itemMissing(box.items[i]);
+                        itemRow
+                            .querySelectorAll("[data-item-field]")
+                            .forEach((input) =>
+                                input.classList.toggle(
+                                    "input-error",
+                                    missing.includes(input.dataset.itemField),
+                                ),
+                            );
+                        if (missing.length) valid = false;
                     });
                 });
                 $("#cargoError").classList.toggle("visible", !valid);
@@ -1116,6 +1211,34 @@
                 }
             }
             $("#boxList").addEventListener("input", (event) => {
+                const itemInput = event.target.closest("[data-item-field]");
+                if (itemInput) {
+                    const box =
+                        state.boxes[
+                            Number(itemInput.closest(".box-row").dataset.index)
+                        ];
+                    const item =
+                        box.items[
+                            Number(itemInput.closest(".item-row").dataset.item)
+                        ];
+                    const field = itemInput.dataset.itemField;
+                    item[field] =
+                        field === "isNew" ? itemInput.checked : itemInput.value;
+                    if (!itemMissing(item).includes(field))
+                        itemInput.classList.remove("input-error");
+                    if (state.boxes.every(isBoxValid))
+                        $("#cargoError").classList.remove("visible");
+                    if (field === "isNew") {
+                        const urlInput = itemInput
+                            .closest(".item-row")
+                            .querySelector('[data-item-field="productUrl"]');
+                        urlInput.classList.toggle("is-required", item.isNew);
+                        if (!item.isNew)
+                            urlInput.classList.remove("input-error");
+                    }
+                    render();
+                    return;
+                }
                 const input = event.target.closest("[data-field]");
                 if (!input) return;
                 const index = Number(input.closest(".box-row").dataset.index);
@@ -1124,11 +1247,35 @@
                     field === "carrier" ? input.checked : input.value;
                 if (Number(input.value) > 0)
                     input.classList.remove("input-error");
-                if (state.boxes.every(isBoxComplete))
+                if (state.boxes.every(isBoxValid))
                     $("#cargoError").classList.remove("visible");
                 render();
             });
             $("#boxList").addEventListener("click", (event) => {
+                const addItem = event.target.closest(".item-add");
+                const removeItem = event.target.closest(".item-remove");
+                if (addItem || removeItem) {
+                    const boxIndex = Number(
+                        event.target.closest(".box-row").dataset.index,
+                    );
+                    const items = state.boxes[boxIndex].items;
+                    if (addItem) items.push(emptyItem());
+                    else if (items.length > 1)
+                        items.splice(
+                            Number(removeItem.closest(".item-row").dataset.item),
+                            1,
+                        );
+                    renderBoxes();
+                    render();
+                    if (addItem)
+                        $$(
+                            `#boxList .box-row[data-index="${boxIndex}"] .item-row`,
+                        )
+                            .at(-1)
+                            .querySelector('[data-item-field="nameEn"]')
+                            .focus();
+                    return;
+                }
                 const btn = event.target.closest(".box-remove");
                 if (!btn || state.boxes.length <= 1) return;
                 state.boxes.splice(
