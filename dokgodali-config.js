@@ -19,4 +19,22 @@
         supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4ZnFha3duYnFhcGF0Y2x5Yml6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3NTQ5NjQsImV4cCI6MjEwMzMzMDk2NH0._YGTlvj8y2gkIMdrzArKXbwAer1ZMwQCgRN1vz7wiPc',
         vapidPublicKey: 'BBvwdQ0_KBeuWuU17WyzcNyG2hiqlhgIz6aCfXaXNcUOcguxRH4BIL36IuKFU9SfXvEG_cC_YF7REG1KL8hdAXI',
       };
+
+  // 테스트 DB에 붙는 페이지(github.io 테스트 사이트, 로컬)는 최상단에 경고 띠를 그려
+  // 실사용 페이지와 한눈에 구분되게 한다. 운영(prod)에서는 아무것도 그리지 않는다.
+  if (window.DOKGODALI_ENV.name !== 'test') return;
+  const showBanner = () => {
+    const banner = document.createElement('div');
+    banner.setAttribute('role', 'status');
+    banner.textContent = '개발 중인 테스트 페이지입니다 · 입력한 내용은 테스트 DB에만 저장되며 실제로 접수되지 않습니다';
+    banner.style.cssText = [
+      'position: relative', 'z-index: 10000', 'width: 100%', 'box-sizing: border-box',
+      'padding: 10px 16px', 'text-align: center', 'font: 700 14px/1.4 system-ui, sans-serif',
+      'color: #1a1a1a', 'background: repeating-linear-gradient(-45deg, #facc15 0 18px, #fde047 18px 36px)',
+      'border-bottom: 3px solid #1a1a1a', 'word-break: keep-all',
+    ].join(';');
+    document.body.prepend(banner);
+  };
+  if (document.body) showBanner();
+  else document.addEventListener('DOMContentLoaded', showBanner);
 })();
