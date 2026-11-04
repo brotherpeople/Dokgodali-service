@@ -1650,6 +1650,22 @@
             $$("input, select, textarea").forEach((input) =>
                 input.addEventListener("input", render),
             );
+            // 한 번 오류를 보여 준 뒤에는 입력할 때마다 다시 검증해서,
+            // 고친 칸의 빨간 테두리와 오류 문구가 바로 사라지게 한다.
+            const revalidate = () => {
+                if ($("#methodError").classList.contains("visible"))
+                    validateMethodDetails();
+                if ($("#addressError").classList.contains("visible"))
+                    validateAddresses();
+                if ($("#personalError").classList.contains("visible"))
+                    validatePersonal();
+            };
+            ["input", "change"].forEach((type) =>
+                $("#screen2").addEventListener(type, revalidate),
+            );
+            ["input", "change"].forEach((type) =>
+                $("#screen3").addEventListener(type, revalidate),
+            );
             $("#sameAsCustomer").addEventListener("change", updateSameAddress);
             $("#deliveryUndecided").addEventListener(
                 "change",
