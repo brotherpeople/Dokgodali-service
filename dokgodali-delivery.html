@@ -216,10 +216,7 @@
                                                 >
                                             </div>
                                             <div class="method-note">
-                                                매주 화요일 17:00–21:00,
-                                                정해진 순회 경로로만
-                                                픽업합니다. <br />시간대는 저희가
-                                                배정해 드립니다.
+                                                매주 화요일에 픽업합니다.
                                             </div>
                                         </div>
                                         <div class="method-price">
@@ -267,12 +264,93 @@
                                                 고객님께서 접수처에 직접
                                                 방문하셔서 접수합니다.
                                                  <br />상자당
-                                                현금 €2 보관비가 발생합니다.
+                                                현금 €2 접수비가 발생합니다.
                                             </div>
                                         </div>
                                         <div class="method-price">
-                                            보관비<br />상자당 현금 €2
+                                            접수비<br />상자당 현금 €2
                                         </div>
+                                    </div>
+                                    <div class="method-schedule-slot"></div>
+                                </div>
+                                <div
+                                    class="method-card"
+                                    data-method="region"
+                                    role="button"
+                                    tabindex="0"
+                                >
+                                    <div class="method-card-top">
+                                        <span class="method-radio"></span>
+                                        <div>
+                                            <div class="method-name">
+                                                타지역 픽업
+                                                <span class="method-area"
+                                                    >베를린 외</span
+                                                >
+                                            </div>
+                                            <div class="method-note">
+                                                베를린 외 지역에서 픽업합니다.
+                                                프랑크푸르트 허브 노선 도시는
+                                                목록에서 고르고, 그 외 지역은
+                                                도시명을 직접 입력해 주세요.
+                                            </div>
+                                        </div>
+                                        <div class="method-price">
+                                            창고 기준 1km당 €1<br />(견적 시
+                                            산정)
+                                        </div>
+                                    </div>
+                                    <div
+                                        class="region-fields hidden"
+                                        id="regionFields"
+                                    >
+                                        <div class="field-grid">
+                                            <div>
+                                                <div class="field-title">
+                                                    픽업 도시
+                                                    <span class="required"
+                                                        >*필수</span
+                                                    >
+                                                </div>
+                                                <select
+                                                    class="select-input"
+                                                    id="regionHub"
+                                                ></select>
+                                            </div>
+                                            <div>
+                                                <div class="field-title">
+                                                    우편번호
+                                                    <span class="required"
+                                                        >*필수</span
+                                                    >
+                                                </div>
+                                                <input
+                                                    class="text-input"
+                                                    id="regionZip"
+                                                    type="text"
+                                                    inputmode="numeric"
+                                                    placeholder="예: 60311"
+                                                />
+                                            </div>
+                                            <div
+                                                class="field-full hidden"
+                                                id="regionCityField"
+                                            >
+                                                <div class="field-title">
+                                                    도시명
+                                                    <span class="required"
+                                                        >*필수</span
+                                                    >
+                                                </div>
+                                                <input
+                                                    class="text-input"
+                                                    id="regionCity"
+                                                    type="text"
+                                                    placeholder="예: Stuttgart"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div class="schedule-hint" id="regionHint"></div>
                                     </div>
                                     <div class="method-schedule-slot"></div>
                                 </div>
@@ -303,7 +381,8 @@
                                 </div>
                             </div>
                             <div class="field-error" id="methodError">
-                                희망 날짜와 시간을 선택해 주세요.
+                                희망 날짜와 시간, 타지역 픽업은 도시와
+                                우편번호를 입력해 주세요.
                             </div>
                         </div>
                         <div class="actions">
@@ -800,9 +879,13 @@
                     name: "고정 픽업",
                     condition: "픽업비 기본 €3 (€50 이상 결제 시 무료)",
                 },
+                region: {
+                    name: "타지역 픽업",
+                    condition: "창고 기준 거리 1km당 €1 (견적 시 산정)",
+                },
                 dropoff: {
                     name: "접수처 방문",
-                    condition: "상자당 현금 €2",
+                    condition: "접수비 상자당 현금 €2",
                 },
             };
             /* ================================================================
@@ -815,6 +898,35 @@
                 methodTouched: false,
             };
             const PREMIUM_MIN_TOTAL = 250;
+            // 프랑크푸르트 허브 노선: 배송비 합계가 기준 이상이면 픽업비 무료.
+            // TODO(클라이언트 확인) #7: "인근" 범위를 Frankfurt, Marburg, Gießen으로 가정
+            const REGION_OTHER = "other";
+            const REGION_HUBS = [
+                ["Frankfurt", "near"],
+                ["Marburg", "near"],
+                ["Gießen", "near"],
+                ["Halle", "far"],
+                ["Leipzig", "far"],
+                ["Hannover", "far"],
+                ["Braunschweig", "far"],
+                ["Magdeburg", "far"],
+                ["Göttingen", "far"],
+                ["Kassel", "far"],
+                ["Jena", "far"],
+                ["Erfurt", "far"],
+                ["Dessau-Roßlau", "far"],
+            ];
+            const REGION_FREE_MIN = { near: 70, far: 350 };
+            function regionCondition(subtotal) {
+                const hub = REGION_HUBS.find(
+                    ([city]) => city === $("#regionHub").value,
+                );
+                if (!hub) return methodData.region.condition;
+                const min = REGION_FREE_MIN[hub[1]];
+                return subtotal >= min
+                    ? `허브 노선 픽업비 무료 (€${min} 이상)`
+                    : `허브 노선 €${min} 이상 시 무료, 미만은 1km당 €1`;
+            }
             const $ = (selector) => document.querySelector(selector);
             const $$ = (selector) => [...document.querySelectorAll(selector)];
             const currency = (n) => `€${n.toFixed(2)}`;
@@ -873,7 +985,7 @@
             }
             function calcMethodFee(subtotal) {
                 if (state.method === "fixed") return subtotal >= 50 ? 0 : 3;
-                return 0; // premium: 무료 조건 충족해야만 선택 가능. dropoff: 상자당 현금 보관비는 별도(현금)라 배송비 합계에서 제외.
+                return 0; // premium: 무료 조건 충족해야만 선택 가능. dropoff: 상자당 현금 접수비는 현장 결제라 배송비 합계에서 제외. region: 거리 요금은 견적 시 산정.
             }
             function buildCargoSummary() {
                 const quote = quoteBoxes();
@@ -1001,7 +1113,7 @@
                 const scheduleLabel = !scheduleDate
                     ? "미선택"
                     : state.method === "fixed"
-                      ? `${scheduleDateLabel} · 17:00–21:00 배정`
+                      ? scheduleDateLabel
                       : scheduleTime
                         ? `${scheduleDateLabel} ${scheduleTime}`
                         : "미선택";
@@ -1039,7 +1151,9 @@
                 const conditionText =
                     state.method === "fixed" && subtotal >= 50
                         ? "픽업비 무료"
-                        : methodData[state.method].condition;
+                        : state.method === "region"
+                          ? regionCondition(subtotal)
+                          : methodData[state.method].condition;
                 const markup = `
         <div class="summary-heading">배송 요약</div>
         <div class="summary-route"><div class="route-line"></div><div><div class="route-label">픽업지</div><div class="route-value" title="${pickup}">${pickup}</div><div class="route-label" style="margin-top:15px">배송지</div><div class="route-value" title="${delivery}">${delivery}</div></div></div>
@@ -1158,6 +1272,15 @@
                 if (!scheduleSlot.contains($("#methodSchedule"))) {
                     scheduleSlot.appendChild($("#methodSchedule"));
                 }
+                const isRegion = state.method === "region";
+                $("#regionFields").classList.toggle("hidden", !isRegion);
+                $("#regionCityField").classList.toggle(
+                    "hidden",
+                    $("#regionHub").value !== REGION_OTHER,
+                );
+                $("#regionHint").textContent = isRegion
+                    ? regionCondition(calcSubtotal())
+                    : "";
                 const isFixed = state.method === "fixed";
                 $("#pickupTime").classList.toggle("hidden", isFixed);
                 $("#pickupTime").disabled = isFixed;
@@ -1169,7 +1292,7 @@
                 const hint = $("#scheduleHint");
                 if (isFixed) {
                     hint.textContent =
-                        "화요일만 선택 가능합니다. 시간은 17:00–21:00 사이 자동 배정됩니다.";
+                        "고정 픽업은 매주 화요일에만 진행됩니다.";
                     hint.classList.remove("hidden");
                 } else if (state.method === "dropoff") {
                     hint.textContent =
@@ -1242,7 +1365,18 @@
                 const timeInput = $("#pickupTime");
                 const isFixed = state.method === "fixed";
                 const timeOk = isFixed || !!timeInput.value;
-                const valid = !!dateInput.value && timeOk;
+                let regionOk = true;
+                if (state.method === "region") {
+                    const fields = [$("#regionHub"), $("#regionZip")];
+                    if ($("#regionHub").value === REGION_OTHER)
+                        fields.push($("#regionCity"));
+                    fields.forEach((field) => {
+                        const ok = !!field.value.trim();
+                        field.classList.toggle("input-error", !ok);
+                        if (!ok) regionOk = false;
+                    });
+                }
+                const valid = !!dateInput.value && timeOk && regionOk;
                 dateInput.classList.toggle("input-error", !dateInput.value);
                 timeInput.classList.toggle("input-error", !timeOk);
                 $("#methodError").classList.toggle("visible", !valid);
@@ -1373,6 +1507,7 @@
                 };
                 card.addEventListener("click", choose);
                 card.addEventListener("keydown", (event) => {
+                    if (event.target !== card) return;
                     if (event.key === "Enter" || event.key === " ") {
                         event.preventDefault();
                         choose();
@@ -1433,6 +1568,20 @@
                     })),
                     method: state.method,
                     methodName: methodData[state.method].name,
+                    pickupRegion:
+                        state.method === "region"
+                            ? {
+                                  hub:
+                                      $("#regionHub").value === REGION_OTHER
+                                          ? null
+                                          : $("#regionHub").value,
+                                  zip: $("#regionZip").value.trim(),
+                                  city:
+                                      $("#regionHub").value === REGION_OTHER
+                                          ? $("#regionCity").value.trim()
+                                          : $("#regionHub").value,
+                              }
+                            : null,
                     scheduleDate,
                     scheduleTime: $("#pickupTime").value,
                     estimatedTotal: subtotal + calcMethodFee(subtotal),
@@ -1489,6 +1638,17 @@
             $("#pickupDate").min = tomorrowStr;
             $("#pickupDate").value = tomorrowStr;
 
+            $("#regionHub").append(
+                new Option("선택", ""),
+                ...REGION_HUBS.map(
+                    ([city, zone]) =>
+                        new Option(
+                            `${city} (허브 노선, €${REGION_FREE_MIN[zone]} 이상 무료)`,
+                            city,
+                        ),
+                ),
+                new Option("그 외 지역 (직접 입력)", REGION_OTHER),
+            );
             renderBoxes();
             render();
         </script>
