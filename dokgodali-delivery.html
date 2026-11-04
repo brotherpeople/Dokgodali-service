@@ -429,6 +429,18 @@
                                             placeholder="예: Musterstr. 1, 10115 Berlin"
                                         />
                                     </div>
+                                    <div>
+                                        <div class="field-title">
+                                            카카오톡 아이디
+                                        </div>
+                                        <input
+                                            class="text-input"
+                                            id="kakaoId"
+                                            type="text"
+                                            autocomplete="off"
+                                            placeholder="예: dokgodali"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                             <div class="section-block section-box">
@@ -496,6 +508,15 @@
                                             /></svg
                                         >배송지 (대한민국)
                                     </div>
+                                    <label class="same-address-check"
+                                        ><input
+                                            id="deliveryUndecided"
+                                            type="checkbox"
+                                        /><span
+                                            >배송지를 아직 모릅니다 (미정, 나중에
+                                            알려 주세요)</span
+                                        ></label
+                                    >
                                     <div class="field-grid">
                                         <div>
                                             <div class="field-title">
@@ -640,19 +661,12 @@
                                         />
                                     </div>
                                     <div>
-                                        <div class="field-title">
-                                            결제 방법
-                                            <span class="required">*필수</span>
+                                        <div class="field-title">결제 방법</div>
+                                        <div class="payment-fixed">
+                                            <strong>계좌이체만 가능합니다.</strong>
+                                            결제 계좌는 견적서 하단에서 확인하실
+                                            수 있습니다.
                                         </div>
-                                        <select
-                                            class="select-input personal-required"
-                                            id="payment"
-                                        >
-                                            <option value="">선택</option>
-                                            <option>카드 결제</option>
-                                            <option>PayPal</option>
-                                            <option>계좌이체 (SEPA)</option>
-                                        </select>
                                     </div>
                                     <div>
                                         <div class="field-title">
@@ -697,6 +711,86 @@
                                     비용 €30(건당)이 예상 배송비에 함께
                                     계산됩니다. 한국 입국일은 이삿짐 통관서류를
                                     요청하기 위해 필요합니다.
+                                </div>
+                                <div class="choice-group" id="customsTypeGroup">
+                                    <div class="field-title">
+                                        통관 구분
+                                        <span class="required">*필수</span>
+                                    </div>
+                                    <div class="choice-options">
+                                        <label class="choice"
+                                            ><input
+                                                type="radio"
+                                                name="customsType"
+                                                value="ecommerce"
+                                            /><span>전자상거래</span></label
+                                        ><label class="choice"
+                                            ><input
+                                                type="radio"
+                                                name="customsType"
+                                                value="general"
+                                            /><span>일반통관</span></label
+                                        >
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="section-block section-box">
+                                <div class="section-label">
+                                    마케팅 활용 및 유입 경로
+                                </div>
+                                <div class="choice-group" id="mediaConsentGroup">
+                                    <div class="field-title">
+                                        SNS 공유용 사진·동영상 촬영 동의
+                                        <span class="required">*필수</span>
+                                    </div>
+                                    <div class="section-hint">
+                                        개인을 특정할 수 없는 형태로 촬영하여
+                                        소셜 미디어(SNS)에 공유하는 데 동의하십니까?
+                                    </div>
+                                    <div class="choice-options">
+                                        <label class="choice"
+                                            ><input
+                                                type="radio"
+                                                name="mediaConsent"
+                                                value="yes"
+                                            /><span>네</span></label
+                                        ><label class="choice"
+                                            ><input
+                                                type="radio"
+                                                name="mediaConsent"
+                                                value="no"
+                                            /><span>아니오</span></label
+                                        >
+                                    </div>
+                                </div>
+                                <div class="field-grid">
+                                    <div>
+                                        <div class="field-title">
+                                            서비스를 알게 된 경로
+                                        </div>
+                                        <select
+                                            class="select-input"
+                                            id="referral"
+                                        >
+                                            <option value="">선택</option>
+                                            <option>지인/친구 추천</option>
+                                            <option>인스타그램</option>
+                                            <option>스레드</option>
+                                            <option>페이스북</option>
+                                            <option>네이버 블로그/카페</option>
+                                            <option>인터넷 검색</option>
+                                            <option value="other">기타</option>
+                                        </select>
+                                    </div>
+                                    <div class="hidden" id="referralOtherField">
+                                        <div class="field-title">기타 경로</div>
+                                        <input
+                                            class="text-input"
+                                            id="referralOther"
+                                            type="text"
+                                            placeholder="직접 입력"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                             <div class="section-block section-box">
@@ -751,8 +845,9 @@
                                     ></label
                                 >
                                 <div class="field-error" id="personalError">
-                                    필수 개인정보, 위험물·포장 확인, 약관
-                                    동의를 모두 확인해 주세요.
+                                    필수 개인정보, 통관 구분, 촬영 동의 여부,
+                                    위험물·포장 확인, 약관 동의를 모두 확인해
+                                    주세요.
                                 </div>
                             </div>
                             <div class="field-error" id="submitError">
@@ -1099,7 +1194,9 @@
                         : $("#pickupAddress").value
                     ).trim(),
                 );
-                const delivery = escapeText(
+                const delivery = $("#deliveryUndecided").checked
+                    ? "미정"
+                    : escapeText(
                     [
                         $("#deliveryZip").value.trim(),
                         $("#deliveryAddress").value.trim(),
@@ -1346,8 +1443,29 @@
                 $("#cargoError").classList.toggle("visible", !valid);
                 return valid;
             }
+            // 배송지를 '미정'으로 두면 배송지·수취인 칸은 검증·제출에서 빠진다.
+            const DELIVERY_FIELD_IDS = [
+                "#deliveryZip",
+                "#deliveryAddress",
+                "#recipientNameKo",
+                "#recipientNameEn",
+                "#recipientPhone",
+                "#customsCode",
+            ];
+            function updateDeliveryUndecided() {
+                const undecided = $("#deliveryUndecided").checked;
+                DELIVERY_FIELD_IDS.forEach((id) => {
+                    $(id).disabled = undecided;
+                    if (undecided) $(id).classList.remove("input-error");
+                });
+                render();
+            }
+            const radioValue = (name) =>
+                $(`input[name="${name}"]:checked`)?.value || "";
             function validateAddresses() {
-                const inputs = $$(".address-required");
+                const inputs = $$(".address-required").filter(
+                    (input) => !input.disabled,
+                );
                 if (!$("#sameAsCustomer").checked)
                     inputs.push($("#pickupAddress"));
                 const invalid = inputs.filter((input) => !input.value.trim());
@@ -1390,8 +1508,16 @@
                 inputs.forEach((input) =>
                     input.classList.toggle("input-error", !input.value.trim()),
                 );
+                const radiosOk = ["customsType", "mediaConsent"]
+                    .map((name) => {
+                        const ok = !!radioValue(name);
+                        $(`#${name}Group`).classList.toggle("choice-error", !ok);
+                        return ok;
+                    })
+                    .every(Boolean);
                 const valid =
                     invalid.length === 0 &&
+                    radiosOk &&
                     $("#privacy").checked &&
                     $("#hazmatCheck").checked &&
                     $("#packagingCheck").checked;
@@ -1525,6 +1651,22 @@
                 input.addEventListener("input", render),
             );
             $("#sameAsCustomer").addEventListener("change", updateSameAddress);
+            $("#deliveryUndecided").addEventListener(
+                "change",
+                updateDeliveryUndecided,
+            );
+            $$('input[name="customsType"], input[name="mediaConsent"]').forEach(
+                (radio) =>
+                    radio.addEventListener("change", () =>
+                        $(`#${radio.name}Group`).classList.remove("choice-error"),
+                    ),
+            );
+            $("#referral").addEventListener("change", () =>
+                $("#referralOtherField").classList.toggle(
+                    "hidden",
+                    $("#referral").value !== "other",
+                ),
+            );
             $("#movingStatus").addEventListener("change", () => {
                 updateMovingStatus();
                 render();
@@ -1552,7 +1694,10 @@
                 }),
             );
             $("#submitOrder").addEventListener("click", async () => {
-                if (!validateAddresses() || !validatePersonal()) return;
+                // 두 검증을 모두 돌려 한 번에 모든 오류를 보여 준다.
+                const addressesOk = validateAddresses();
+                const personalOk = validatePersonal();
+                if (!addressesOk || !personalOk) return;
                 const btn = $("#submitOrder");
                 btn.disabled = true;
                 btn.textContent = "전송 중...";
@@ -1590,13 +1735,22 @@
                     pickupAddress: $("#sameAsCustomer").checked
                         ? $("#customerAddress").value.trim()
                         : $("#pickupAddress").value.trim(),
+                    kakaoId: $("#kakaoId").value.trim(),
+                    deliveryUndecided: $("#deliveryUndecided").checked,
                     deliveryZip: $("#deliveryZip").value.trim(),
                     deliveryAddress: $("#deliveryAddress").value.trim(),
                     recipientNameKo: $("#recipientNameKo").value.trim(),
                     recipientNameEn: $("#recipientNameEn").value.trim(),
                     recipientPhone: $("#recipientPhone").value.trim(),
                     customsCode: $("#customsCode").value.trim(),
-                    payment: $("#payment").value,
+                    payment: "계좌이체",
+                    customsType: radioValue("customsType"),
+                    mediaConsent: radioValue("mediaConsent") === "yes",
+                    referral: $("#referral").value,
+                    referralOther:
+                        $("#referral").value === "other"
+                            ? $("#referralOther").value.trim()
+                            : "",
                     movingStatus: $("#movingStatus").value,
                     entryDate: $("#entryDate").disabled
                         ? null

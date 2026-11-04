@@ -84,6 +84,17 @@
 .same-address-check input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
 .pickup-address-field { margin-bottom: 14px !important; }
 
+/* Step 3: 결제 안내 / 라디오 선택 */
+.payment-fixed { padding: 11px 14px; border: 1px solid var(--border); border-radius: 8px; background: #fafbfe; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.payment-fixed strong { color: var(--text); }
+.choice-group { margin-top: 16px; }
+.choice-options { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.choice { display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; background: #fff; font-size: 13.5px; cursor: pointer; }
+.choice:has(input:checked) { border-color: var(--accent); background: var(--accent-light); }
+.choice input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
+.choice-error .choice { border-color: var(--red); }
+.text-input:disabled { opacity: .6; }
+
 /* 안내 문구 */
 .notice { display: flex; gap: 10px; align-items: flex-start; margin-top: 16px; padding: 12px 14px; border: 1px solid var(--accent-border); border-radius: 9px; background: #fff8f2; color: #80502f; font-size: 12.5px; line-height: 1.5; }
 .notice svg { flex: none; width: 17px; margin-top: 1px; color: var(--accent); }
