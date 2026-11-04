@@ -27,20 +27,25 @@
 /* 섹션 블록 색 채우기 (Step 1의 화물 선택, Step 3의 4개 블록에서 공용으로 씀) */
 .section-box { padding: 20px; border: 1px solid var(--border); border-radius: 12px; background: #fbfcff; }
 
-/* Step 1: 화물 크기 / 수량 선택 */
-.package-list { display: grid; gap: 10px; margin-top: 14px; }
-.package-row { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 10px; background: #fff; transition: .15s ease; }
-.package-row.active { border-color: var(--accent); background: var(--accent-light); }
-.package-icon { display: grid; place-items: center; height: 42px; width: 42px; flex: none; border-radius: 9px; background: #fff4ed; color: var(--accent); }
-.package-icon svg { width: 24px; height: 24px; }
-.package-row-info { flex: 1; min-width: 0; }
-.package-row-name { font-size: 14px; font-weight: 800; }
-.package-row-note { margin-top: 2px; color: var(--muted); font-size: 12px; }
-.package-row-price { flex: none; color: var(--accent); font-size: 12px; font-weight: 700; text-align: right; line-height: 1.4; }
-.qty button { width: 30px; height: 30px; border: 1px solid #cfd4e5; border-radius: 6px; background: #fff; color: var(--accent); font-size: 16px; line-height: 1; }
-.qty button:hover:not(:disabled) { background: var(--accent-light); border-color: var(--accent-border); }
-.qty button:disabled { opacity: .4; cursor: not-allowed; }
-.qty-value { min-width: 16px; font-size: 14.5px; font-weight: 800; text-align: center; }
+/* Step 1: 박스 목록 */
+.box-list { display: grid; gap: 10px; margin-top: 14px; }
+.box-row { padding: 14px 16px; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
+.box-row-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 10px; }
+.box-row-name { flex: none; font-size: 14px; font-weight: 800; }
+.box-row-calc { flex: 1; min-width: 0; color: var(--faint); font-size: 12px; }
+.box-row-calc.ready { color: var(--accent); font-weight: 700; }
+.box-remove { flex: none; border: 0; background: none; color: var(--muted); font-size: 12px; text-decoration: underline; }
+.box-remove:hover { color: var(--red); }
+.box-fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.box-field { display: block; }
+.box-field-label { display: block; margin-bottom: 5px; color: var(--muted); font-size: 11.5px; font-weight: 700; }
+.box-carrier { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--muted); font-size: 12.5px; cursor: pointer; }
+.box-carrier input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
+.box-list-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
+.box-add { padding: 10px 14px; border: 1px dashed var(--accent-border); border-radius: 8px; background: #fff; color: var(--accent); font-size: 13px; font-weight: 700; }
+.box-add:hover:not(:disabled) { background: var(--accent-light); }
+.box-add:disabled { opacity: .4; cursor: not-allowed; }
+.box-count { color: var(--muted); font-size: 12px; }
 
 /* 폼 필드 (배송지/신청인 정보) */
 .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
@@ -140,6 +145,9 @@
   .card { padding: 22px 18px; }
   .section-box { padding: 16px; }
   .field-grid, .date-row, .option-list { grid-template-columns: 1fr; }
+  .box-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .box-row-head { flex-wrap: wrap; }
+  .box-row-calc { order: 3; flex-basis: 100%; }
   .summary-route { margin: 14px 0; }
   .actions { margin-top: 24px; }
   .btn { padding: 12px 14px; }

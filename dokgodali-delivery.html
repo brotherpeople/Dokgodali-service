@@ -9,6 +9,7 @@
         <link rel="stylesheet" href="dokgodali-delivery.css" />
         <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
         <script src="dokgodali-config.js"></script>
+        <script src="dokgodali-delivery-pricing.js"></script>
     </head>
     <body>
         <main class="page">
@@ -110,166 +111,28 @@
                         <hr class="sep" />
 
                         <div class="section-block section-box">
-                            <div class="section-label">물건 크기 및 수량</div>
+                            <div class="section-label">박스 정보</div>
                             <div class="section-hint">
-                                각 크기별로 필요한 수량만큼 담아 주세요. 여러
-                                크기를 함께 담을 수 있습니다.
+                                박스마다 가로·세로·높이와 실중량을 입력해
+                                주세요. 최대 50개까지 추가할 수 있습니다.
+                                운임은 부피 무게(가로×세로×높이÷6000)와
+                                실중량 중 큰 값으로 계산되며, 실측 후 달라질
+                                수 있습니다.
                             </div>
-                            <div class="package-list" id="packageList">
-                                <div class="package-row" data-package="small">
-                                    <span class="package-icon"
-                                        ><svg
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            stroke-width="1.8"
-                                        >
-                                            <path d="m3 7 9-4 9 4-9 4-9-4Z" />
-                                            <path d="M3 7v10l9 4 9-4V7" />
-                                            <path d="M12 11v10" /></svg
-                                    ></span>
-                                    <div class="package-row-info">
-                                        <div class="package-row-name">
-                                            소형
-                                        </div>
-                                        <div class="package-row-note">
-                                            최대 40 × 30 × 30cm · 10kg
-                                        </div>
-                                    </div>
-                                    <div class="package-row-price">
-                                        박스당<br />€9
-                                    </div>
-                                    <div class="qty">
-                                        <button
-                                            type="button"
-                                            class="qty-btn"
-                                            data-action="minus"
-                                            data-package="small"
-                                            aria-label="소형 수량 줄이기"
-                                        >
-                                            −</button
-                                        ><span
-                                            class="qty-value"
-                                            data-package="small"
-                                            >0</span
-                                        ><button
-                                            type="button"
-                                            class="qty-btn"
-                                            data-action="plus"
-                                            data-package="small"
-                                            aria-label="소형 수량 늘리기"
-                                        >
-                                            +
-                                        </button>
-                                    </div>
-                                </div>
-                                <div
-                                    class="package-row"
-                                    data-package="medium"
+                            <div class="box-list" id="boxList"></div>
+                            <div class="box-list-footer">
+                                <button
+                                    class="box-add"
+                                    id="addBox"
+                                    type="button"
                                 >
-                                    <span class="package-icon"
-                                        ><svg
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            stroke-width="1.8"
-                                        >
-                                            <path
-                                                d="m2 7 10-5 10 5-10 5L2 7Z"
-                                            />
-                                            <path d="M2 7v10l10 5 10-5V7" />
-                                            <path d="M12 12v10" /></svg
-                                    ></span>
-                                    <div class="package-row-info">
-                                        <div class="package-row-name">
-                                            중형
-                                        </div>
-                                        <div class="package-row-note">
-                                            최대 80 × 60 × 60cm · 30kg
-                                        </div>
-                                    </div>
-                                    <div class="package-row-price">
-                                        박스당<br />€16
-                                    </div>
-                                    <div class="qty">
-                                        <button
-                                            type="button"
-                                            class="qty-btn"
-                                            data-action="minus"
-                                            data-package="medium"
-                                            aria-label="중형 수량 줄이기"
-                                        >
-                                            −</button
-                                        ><span
-                                            class="qty-value"
-                                            data-package="medium"
-                                            >0</span
-                                        ><button
-                                            type="button"
-                                            class="qty-btn"
-                                            data-action="plus"
-                                            data-package="medium"
-                                            aria-label="중형 수량 늘리기"
-                                        >
-                                            +
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="package-row" data-package="large">
-                                    <span class="package-icon"
-                                        ><svg
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            stroke-width="1.8"
-                                        >
-                                            <rect
-                                                x="3"
-                                                y="5"
-                                                width="18"
-                                                height="14"
-                                                rx="1"
-                                            />
-                                            <path d="M3 10h18M12 5v14" /></svg
-                                    ></span>
-                                    <div class="package-row-info">
-                                        <div class="package-row-name">
-                                            대형
-                                        </div>
-                                        <div class="package-row-note">
-                                            최대 120 × 80 × 80cm · 60kg
-                                        </div>
-                                    </div>
-                                    <div class="package-row-price">
-                                        박스당<br />€28
-                                    </div>
-                                    <div class="qty">
-                                        <button
-                                            type="button"
-                                            class="qty-btn"
-                                            data-action="minus"
-                                            data-package="large"
-                                            aria-label="대형 수량 줄이기"
-                                        >
-                                            −</button
-                                        ><span
-                                            class="qty-value"
-                                            data-package="large"
-                                            >0</span
-                                        ><button
-                                            type="button"
-                                            class="qty-btn"
-                                            data-action="plus"
-                                            data-package="large"
-                                            aria-label="대형 수량 늘리기"
-                                        >
-                                            +
-                                        </button>
-                                    </div>
-                                </div>
+                                    + 박스 추가
+                                </button>
+                                <span class="box-count" id="boxCount"></span>
                             </div>
                             <div class="field-error" id="cargoError">
-                                최소 한 개 이상의 물건을 담아 주세요.
+                                모든 박스의 가로·세로·높이와 실중량을 입력해
+                                주세요.
                             </div>
                         </div>
                         <div class="actions">
@@ -872,11 +735,15 @@
             /* ================================================================
                설정 상수 — 화물 종류 / 접수 방식은 여기서만 관리한다.
                ================================================================ */
-            const packageData = {
-                small: { name: "소형", base: 9 },
-                medium: { name: "중형", base: 16 },
-                large: { name: "대형", base: 28 },
-            };
+            const Pricing = window.DokgodaliPricing;
+            const BOX_FIELDS = ["length", "width", "height", "weight"];
+            const emptyBox = () => ({
+                length: "",
+                width: "",
+                height: "",
+                weight: "",
+                carrier: false,
+            });
             const methodData = {
                 premium: {
                     name: "프리미엄 픽업",
@@ -896,7 +763,7 @@
                ================================================================ */
             const state = {
                 step: 1,
-                quantities: { small: 0, medium: 0, large: 0 },
+                boxes: [emptyBox()],
                 method: "premium",
                 methodTouched: false,
             };
@@ -904,23 +771,32 @@
             const $ = (selector) => document.querySelector(selector);
             const $$ = (selector) => [...document.querySelectorAll(selector)];
             const currency = (n) => `€${n.toFixed(2)}`;
+            // 치수·실중량이 모두 0보다 큰 박스만 운임 계산에 들어간다.
+            const isBoxComplete = (box) =>
+                BOX_FIELDS.every((field) => Number(box[field]) > 0);
+            const toPricingBox = (box) => ({
+                length: Number(box.length),
+                width: Number(box.width),
+                height: Number(box.height),
+                weight: Number(box.weight),
+                carrier: box.carrier,
+            });
+            function quoteBoxes() {
+                return Pricing.quoteOrder({
+                    boxes: state.boxes.filter(isBoxComplete).map(toPricingBox),
+                });
+            }
             function calcSubtotal() {
-                return Object.entries(state.quantities).reduce(
-                    (sum, [pkg, qty]) => sum + qty * packageData[pkg].base,
-                    0,
-                );
+                return quoteBoxes().total;
             }
             function calcMethodFee(subtotal) {
                 if (state.method === "fixed") return subtotal >= 50 ? 0 : 3;
                 return 0; // premium: 무료 조건 충족해야만 선택 가능. dropoff: 상자당 현금 보관비는 별도(현금)라 배송비 합계에서 제외.
             }
             function buildCargoSummary() {
-                return (
-                    Object.entries(state.quantities)
-                        .filter(([, qty]) => qty > 0)
-                        .map(([pkg, qty]) => `${packageData[pkg].name} ${qty}개`)
-                        .join(", ") || "화물 등록 전"
-                );
+                const quote = quoteBoxes();
+                if (!quote.boxes.length) return "화물 등록 전";
+                return `박스 ${quote.boxes.length}개 · 청구 ${quote.chargeableKg}kg`;
             }
             // 물건 금액이 €250 이상이면 프리미엄 픽업이 무료로 열리므로 자동 선택하고,
             // 미만이면 비활성화한다. 사용자가 이미 직접 다른 방식을 고른 뒤라면(methodTouched)
@@ -942,6 +818,11 @@
                     state.method = "fixed";
                 }
             }
+            const escapeAttr = (value) =>
+                String(value ?? "").replace(
+                    /[&<>"']/g,
+                    (char) => `&#${char.charCodeAt(0)};`,
+                );
             const escapeText = (text) =>
                 text
                     ? text.replace(
@@ -1057,23 +938,61 @@
         <div class="summary-row"><span>접수 방식</span><strong>${methodData[state.method].name}</strong></div>
         <div class="summary-row"><span>요금 조건</span><strong>${conditionText}</strong></div>
         <div class="summary-row"><span>희망 일시</span><strong>${scheduleLabel}</strong></div>
-        <div class="summary-total"><div><div class="summary-total-label">예상 배송비</div><div class="summary-total-note">실제 중량에 따라 달라질 수 있습니다</div></div><div class="summary-total-right"><div class="summary-total-price">${currency(estimatedTotal)}</div><div class="summary-total-basis">박스 기본가 + 픽업비 기준</div></div></div>
+        <div class="summary-total"><div><div class="summary-total-label">예상 배송비</div><div class="summary-total-note">실제 중량에 따라 달라질 수 있습니다</div></div><div class="summary-total-right"><div class="summary-total-price">${currency(estimatedTotal)}</div><div class="summary-total-basis">중량별 운임 + 추가 운임 + 픽업비 기준</div></div></div>
         <div class="delivery-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>폼의 접수 조건을 기준으로 안내합니다</div>`;
                 ["#summary1", "#summary2", "#summary3"].forEach(
                     (id) => ($(id).innerHTML = markup),
                 );
             }
+            // 박스 목록 DOM은 추가·삭제 때만 다시 그린다.
+            // (입력할 때마다 다시 그리면 입력 중인 칸의 포커스가 풀린다.)
+            function renderBoxes() {
+                const canRemove = state.boxes.length > 1;
+                const field = (box, name, label) =>
+                    `<label class="box-field"><span class="box-field-label">${label}</span><input class="text-input" data-field="${name}" type="number" inputmode="decimal" min="0" step="0.1" value="${escapeAttr(box[name])}" /></label>`;
+                $("#boxList").innerHTML = state.boxes
+                    .map((box, index) => {
+                        const n = index + 1;
+                        return `
+            <div class="box-row" data-index="${index}">
+              <div class="box-row-head">
+                <span class="box-row-name">박스 ${n}</span>
+                <span class="box-row-calc" data-calc></span>
+                ${canRemove ? `<button class="box-remove" type="button" aria-label="박스 ${n} 삭제">삭제</button>` : ""}
+              </div>
+              <div class="box-fields">${field(box, "length", "가로 (cm)")}${field(box, "width", "세로 (cm)")}${field(box, "height", "높이 (cm)")}${field(box, "weight", "실중량 (kg)")}</div>
+              <label class="box-carrier"><input type="checkbox" data-field="carrier" ${box.carrier ? "checked" : ""} /><span>캐리어(여행 가방)로 보냅니다 (핸들링 비용 €${Pricing.RATES.carrierHandling})</span></label>
+            </div>`;
+                    })
+                    .join("");
+                $("#addBox").disabled =
+                    state.boxes.length >= Pricing.RATES.maxBoxes;
+                $("#boxCount").textContent =
+                    `${state.boxes.length} / ${Pricing.RATES.maxBoxes}개`;
+            }
+            // 입력 중에는 박스별 계산 결과 줄만 갱신한다.
+            function updateBoxCalcs() {
+                $$("#boxList .box-row").forEach((row, index) => {
+                    const box = state.boxes[index];
+                    const calc = row.querySelector("[data-calc]");
+                    if (!isBoxComplete(box)) {
+                        calc.textContent =
+                            "치수와 실중량을 입력하면 운임이 계산됩니다";
+                        calc.classList.remove("ready");
+                        return;
+                    }
+                    const q = Pricing.quoteBox(toPricingBox(box));
+                    const flags = [
+                        q.isOversize && "규격 초과",
+                        q.isOverweight && "중량 초과",
+                    ].filter(Boolean);
+                    calc.textContent = `청구 ${q.chargeable}kg (부피 ${q.volumetric}kg, 실중량 ${q.actual}kg) · ${currency(q.total)}${flags.length ? " · " + flags.join(", ") : ""}`;
+                    calc.classList.add("ready");
+                });
+            }
             function render() {
                 updateMethodEligibility();
-                $$(".package-row").forEach((row) => {
-                    const pkg = row.dataset.package;
-                    const qty = state.quantities[pkg];
-                    row.classList.toggle("active", qty > 0);
-                    $(`.qty-value[data-package="${pkg}"]`).textContent = qty;
-                    $(
-                        `.qty-btn[data-action="minus"][data-package="${pkg}"]`,
-                    ).disabled = qty <= 0;
-                });
+                updateBoxCalcs();
                 $$(".method-card").forEach((card) =>
                     card.classList.toggle(
                         "selected",
@@ -1125,9 +1044,16 @@
                 render();
             }
             function validateCargoes() {
-                const valid = Object.values(state.quantities).some(
-                    (qty) => qty > 0,
-                );
+                let valid = true;
+                $$("#boxList .box-row").forEach((row, index) => {
+                    BOX_FIELDS.forEach((field) => {
+                        const ok = Number(state.boxes[index][field]) > 0;
+                        row.querySelector(
+                            `[data-field="${field}"]`,
+                        ).classList.toggle("input-error", !ok);
+                        if (!ok) valid = false;
+                    });
+                });
                 $("#cargoError").classList.toggle("visible", !valid);
                 return valid;
             }
@@ -1189,18 +1115,35 @@
                     entryDate.classList.remove("input-error");
                 }
             }
-            $("#packageList").addEventListener("click", (event) => {
-                const btn = event.target.closest(".qty-btn");
-                if (!btn) return;
-                const pkg = btn.dataset.package;
-                const delta = btn.dataset.action === "plus" ? 1 : -1;
-                state.quantities[pkg] = Math.max(
-                    0,
-                    Math.min(10, state.quantities[pkg] + delta),
-                );
-                if (state.quantities[pkg] > 0)
+            $("#boxList").addEventListener("input", (event) => {
+                const input = event.target.closest("[data-field]");
+                if (!input) return;
+                const index = Number(input.closest(".box-row").dataset.index);
+                const field = input.dataset.field;
+                state.boxes[index][field] =
+                    field === "carrier" ? input.checked : input.value;
+                if (Number(input.value) > 0)
+                    input.classList.remove("input-error");
+                if (state.boxes.every(isBoxComplete))
                     $("#cargoError").classList.remove("visible");
                 render();
+            });
+            $("#boxList").addEventListener("click", (event) => {
+                const btn = event.target.closest(".box-remove");
+                if (!btn || state.boxes.length <= 1) return;
+                state.boxes.splice(
+                    Number(btn.closest(".box-row").dataset.index),
+                    1,
+                );
+                renderBoxes();
+                render();
+            });
+            $("#addBox").addEventListener("click", () => {
+                if (state.boxes.length >= Pricing.RATES.maxBoxes) return;
+                state.boxes.push(emptyBox());
+                renderBoxes();
+                render();
+                $$("#boxList .box-row").at(-1).querySelector("input").focus();
             });
             $$(".method-card").forEach((card) => {
                 const choose = () => {
@@ -1266,14 +1209,10 @@
                 const subtotal = calcSubtotal();
                 const scheduleDate = $("#pickupDate").value;
                 const payload = {
-                    cargoes: Object.entries(state.quantities)
-                        .filter(([, qty]) => qty > 0)
-                        .map(([pkg, qty]) => ({
-                            package: pkg,
-                            name: packageData[pkg].name,
-                            quantity: qty,
-                            unitPrice: packageData[pkg].base,
-                        })),
+                    boxes: state.boxes.map((box) => ({
+                        ...box,
+                        quote: Pricing.quoteBox(toPricingBox(box)),
+                    })),
                     method: state.method,
                     methodName: methodData[state.method].name,
                     scheduleDate,
@@ -1332,6 +1271,7 @@
             $("#pickupDate").min = tomorrowStr;
             $("#pickupDate").value = tomorrowStr;
 
+            renderBoxes();
             render();
         </script>
     </body>
