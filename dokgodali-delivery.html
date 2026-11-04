@@ -614,9 +614,9 @@
                                     독일에 3개월 이상 거주하다 한국으로
                                     귀국하시는 경우, 또는 귀국 후 6개월 이내에
                                     짐을 들여오시는 경우 '이사화물'로 신고하면
-                                    관세가 면제될 수 있습니다. 신고서 작성
-                                    대행 수수료로 이사통관서류비 €30가 별도
-                                    청구됩니다. 한국 입국일은 이삿짐 통관서류를
+                                    관세가 면제될 수 있습니다. 이삿짐 통관
+                                    비용 €30(건당)이 예상 배송비에 함께
+                                    계산됩니다. 한국 입국일은 이삿짐 통관서류를
                                     요청하기 위해 필요합니다.
                                 </div>
                             </div>
@@ -828,10 +828,45 @@
                 weight: Number(box.weight),
                 carrier: box.carrier,
             });
+            // 이사화물·반입 건은 이삿짐 통관 비용(건당)이 붙는다.
+            const isMovingCustoms = () =>
+                ["moving", "import"].includes($("#movingStatus").value);
             function quoteBoxes() {
                 return Pricing.quoteOrder({
                     boxes: state.boxes.filter(isBoxComplete).map(toPricingBox),
+                    movingCustoms: isMovingCustoms(),
                 });
+            }
+            // 물품가 + 국제운송비가 USD 150을 넘으면 관부가세 대상.
+            // TODO(클라이언트 확인) #12: 환율 없이 €140으로 근사
+            const DUTY_WARN_EUR = 140;
+            // 공식 안내 페이지의 반입 제한 (박스 단위)
+            const ITEM_LIMITS = { healthPerBox: 6, alcoholBottlesPerBox: 1 };
+            function boxWarnings(box) {
+                const qtyOf = (category) =>
+                    box.items
+                        .filter((item) => item.category === category)
+                        .reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
+                const warnings = [];
+                const health = qtyOf("health");
+                if (health > ITEM_LIMITS.healthPerBox)
+                    warnings.push(
+                        `건강기능식품은 박스당 ${ITEM_LIMITS.healthPerBox}개까지 통관됩니다. 현재 ${health}개로, 초과분은 폐기됩니다.`,
+                    );
+                if (qtyOf("formula") > 0)
+                    warnings.push(
+                        "분유는 박스당 5kg까지 통관됩니다. 초과분은 전량 폐기됩니다.",
+                    );
+                const alcohol = qtyOf("alcohol");
+                if (alcohol > ITEM_LIMITS.alcoholBottlesPerBox)
+                    warnings.push(
+                        `주류는 박스당 1L 이하 1병만 면세됩니다. 현재 ${alcohol}병으로, 주세·교육세가 부과됩니다.`,
+                    );
+                else if (alcohol > 0)
+                    warnings.push(
+                        "주류는 1L 이하 1병, 박스 금액 USD 150 이하일 때만 면세됩니다.",
+                    );
+                return warnings;
             }
             function calcSubtotal() {
                 return quoteBoxes().total;
@@ -971,8 +1006,36 @@
                         ? `${scheduleDateLabel} ${scheduleTime}`
                         : "미선택";
                 const cargoSummary = buildCargoSummary();
-                const subtotal = calcSubtotal();
-                const estimatedTotal = subtotal + calcMethodFee(subtotal);
+                const quote = quoteBoxes();
+                const subtotal = quote.total;
+                const methodFee = calcMethodFee(subtotal);
+                const estimatedTotal = subtotal + methodFee;
+                const declaredTotal = state.boxes.reduce(
+                    (sum, box) => sum + itemsValue(box),
+                    0,
+                );
+                const breakdown = [
+                    ["중량별 운임", quote.totals.base, true],
+                    ["규격 초과 (OVER SIZE)", quote.totals.oversize],
+                    ["중량 초과 (OVER WEIGHT)", quote.totals.overweight],
+                    ["캐리어 핸들링", quote.totals.carrier],
+                    ["멀티 화물 할증", quote.totals.multiBox],
+                    ["이삿짐 통관", quote.totals.movingCustoms],
+                    ["픽업비", methodFee],
+                ]
+                    .filter(([, amount, always]) => always || amount > 0)
+                    .map(
+                        ([label, amount]) =>
+                            `<div class="summary-line"><span>${label}</span><span>${currency(amount)}</span></div>`,
+                    )
+                    .join("");
+                const hasOverCharge =
+                    quote.totals.oversize > 0 || quote.totals.overweight > 0;
+                const dutyWarning =
+                    declaredTotal > 0 &&
+                    declaredTotal + estimatedTotal > DUTY_WARN_EUR
+                        ? `<div class="summary-warning">물품가와 운송비 합계가 USD 150(약 €${DUTY_WARN_EUR})을 넘으면 한국에서 관부가세가 부과됩니다. (현재 물품가 ${currency(declaredTotal)} + 운송비 ${currency(estimatedTotal)})</div>`
+                        : "";
                 const conditionText =
                     state.method === "fixed" && subtotal >= 50
                         ? "픽업비 무료"
@@ -985,7 +1048,9 @@
         <div class="summary-row"><span>접수 방식</span><strong>${methodData[state.method].name}</strong></div>
         <div class="summary-row"><span>요금 조건</span><strong>${conditionText}</strong></div>
         <div class="summary-row"><span>희망 일시</span><strong>${scheduleLabel}</strong></div>
+        <div class="summary-breakdown">${breakdown}${hasOverCharge ? `<div class="summary-line-note">OVER SIZE와 OVER WEIGHT는 각각 합산 청구되며, 한국 착불 요금은 없습니다.</div>` : ""}</div>
         <div class="summary-total"><div><div class="summary-total-label">예상 배송비</div><div class="summary-total-note">실제 중량에 따라 달라질 수 있습니다</div></div><div class="summary-total-right"><div class="summary-total-price">${currency(estimatedTotal)}</div><div class="summary-total-basis">중량별 운임 + 추가 운임 + 픽업비 기준</div></div></div>
+        ${dutyWarning}
         <div class="delivery-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>폼의 접수 조건을 기준으로 안내합니다</div>`;
                 ["#summary1", "#summary2", "#summary3"].forEach(
                     (id) => ($(id).innerHTML = markup),
@@ -1009,6 +1074,7 @@
               </div>
               <div class="box-fields">${field(box, "length", "가로 (cm)")}${field(box, "width", "세로 (cm)")}${field(box, "height", "높이 (cm)")}${field(box, "weight", "실중량 (kg)")}</div>
               <label class="box-carrier"><input type="checkbox" data-field="carrier" ${box.carrier ? "checked" : ""} /><span>캐리어(여행 가방)로 보냅니다 (핸들링 비용 €${Pricing.RATES.carrierHandling})</span></label>
+              <div class="box-warnings" data-warnings></div>
               <div class="item-section">
                 <div class="item-section-head"><span class="item-section-title">박스 ${n} 물품 목록</span><span class="item-section-value" data-items-value></span></div>
                 ${box.items.map((item, i) => renderItem(item, i, n, box.items.length > 1)).join("")}
@@ -1056,6 +1122,11 @@
                     const box = state.boxes[index];
                     row.querySelector("[data-items-value]").textContent =
                         `신고가 합계 ${currency(itemsValue(box))}`;
+                    row.querySelector("[data-warnings]").innerHTML = boxWarnings(
+                        box,
+                    )
+                        .map((text) => `<div class="box-warning">${text}</div>`)
+                        .join("");
                     const calc = row.querySelector("[data-calc]");
                     if (!isBoxComplete(box)) {
                         calc.textContent =
