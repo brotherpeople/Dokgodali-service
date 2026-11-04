@@ -1372,19 +1372,67 @@ function renderRequestDetailBody(r) {
       detailRow('이메일', r.customer_email),
     ].filter(Boolean).join('');
   }
-  // delivery
+  // delivery — 고객 입력값이 그대로 들어오므로 전부 escapeHtml을 거친다.
+  // 옛 요청은 cargoes(소형/중형/대형), 새 요청은 boxes(박스별 치수·물품)를 보낸다.
+  const e = escapeHtml;
+  const euro = n => (n != null && n !== '' ? `€${Number(n).toFixed(2)}` : '');
   const methodLabel = p.methodName ? `${p.methodName}${p.scheduleDate ? ' · ' + p.scheduleDate : ''}${p.scheduleTime ? ' ' + p.scheduleTime : ''}` : '';
+  const boxes = p.boxes || [];
+  const boxRows = boxes.map((b, i) => {
+    const q = b.quote || {};
+    const flags = [q.isOversize && '규격 초과', q.isOverweight && '중량 초과', b.carrier && '캐리어'].filter(Boolean).join(', ');
+    const items = (b.items || []).map(it => {
+      const extra = [it.brand, it.color, it.size].filter(Boolean).join(' / ');
+      const links = [it.productUrl && `<a href="${e(it.productUrl)}" target="_blank" rel="noopener">상품</a>`, it.imageUrl && `<a href="${e(it.imageUrl)}" target="_blank" rel="noopener">이미지</a>`].filter(Boolean).join(' ');
+      return `${e(it.nameEn)}${extra ? ` (${e(extra)})` : ''} ×${e(it.quantity)} · ${euro(it.unitPrice)}${it.isNew ? ' · 신상품' : ''}${links ? ' · ' + links : ''}`;
+    }).join('<br>');
+    return detailRow(`박스 ${i + 1}`, `${e(b.length)}×${e(b.width)}×${e(b.height)}cm · ${e(b.weight)}kg → 청구 ${e(q.chargeable)}kg · ${euro(q.total)}${flags ? ` · ${flags}` : ''}${items ? `<br>${items}` : ''}`);
+  }).join('');
+  const t = p.quoteTotals || {};
+  const surcharges = [['규격 초과', t.oversize], ['중량 초과', t.overweight], ['캐리어', t.carrier], ['멀티 화물', t.multiBox], ['이삿짐 통관', t.movingCustoms], ['픽업비', p.methodFee]]
+    .filter(([, v]) => v > 0).map(([k, v]) => `${k} ${euro(v)}`).join(', ');
+  const region = p.pickupRegion ? `${p.pickupRegion.zip || ''} ${p.pickupRegion.city || ''}`.trim() : '';
+  const customsTypeLabel = { ecommerce: '전자상거래', general: '일반통관' }[p.customsType] || p.customsType;
+  const referral = p.referral === 'other' ? `기타: ${p.referralOther || ''}` : p.referral;
   return [
-    detailRow('화물', (p.cargoes || []).map(c => `${c.name} ${c.quantity}개`).join(', ')),
-    detailRow('접수 방식', methodLabel),
-    detailRow('예상 배송비', p.estimatedTotal != null && `€${p.estimatedTotal}`),
-    detailRow('픽업/방문 주소', p.pickupAddress),
-    detailRow('배송지(한국)', (p.deliveryZip || p.deliveryAddress) && `${p.deliveryZip || ''} ${p.deliveryAddress || ''}`.trim()),
-    detailRow('수취인', p.recipientNameKo && `${p.recipientNameKo} (${p.recipientNameEn || ''}) · ${p.recipientPhone || ''}`),
-    detailRow('개인통관고유부호', p.customsCode),
-    detailRow('결제 방법', p.payment),
-    detailRow('이메일', r.customer_email),
+    detailRow('화물', e((p.cargoes || []).map(c => `${c.name} ${c.quantity}개`).join(', '))),
+    boxes.length ? detailRow('박스 합계', `${boxes.length}개 · 청구 ${e(p.chargeableKg)}kg · 신고가 ${euro(p.declaredTotal)}`) : '',
+    boxRows,
+    detailRow('접수 방식', e(methodLabel)),
+    detailRow('타지역 픽업', e(region)),
+    detailRow('예상 배송비', euro(p.estimatedTotal)),
+    detailRow('추가 운임', surcharges),
+    detailRow('픽업/방문 주소', e(p.pickupAddress)),
+    detailRow('배송지(한국)', p.deliveryUndecided ? '미정' : e((p.deliveryZip || p.deliveryAddress) && `${p.deliveryZip || ''} ${p.deliveryAddress || ''}`.trim())),
+    p.deliveryUndecided ? '' : detailRow('수취인', p.recipientNameKo && e(`${p.recipientNameKo} (${p.recipientNameEn || ''}) · ${p.recipientPhone || ''}`)),
+    p.deliveryUndecided ? '' : detailRow('개인통관고유부호', e(p.customsCode)),
+    detailRow('통관 구분', e(customsTypeLabel)),
+    detailRow('이사화물', e({ none: '해당 없음', moving: '이사화물', import: '반입 건' }[p.movingStatus] || '')),
+    detailRow('한국 입국일', e(p.entryDate)),
+    detailRow('카카오톡', e(p.kakaoId)),
+    detailRow('결제 방법', e(p.payment)),
+    detailRow('촬영 동의', p.mediaConsent == null ? '' : (p.mediaConsent ? '동의' : '미동의')),
+    detailRow('유입 경로', e(referral)),
+    detailRow('이메일', e(r.customer_email)),
   ].filter(Boolean).join('');
+}
+
+// 배송 요청을 스케줄로 옮길 때 현장 메모에 넣는 요약 (크루 WhatsApp 브리핑에도 쓰인다).
+function deliveryNotes(r) {
+  const p = r.payload || {};
+  const boxes = p.boxes || [];
+  if (!boxes.length) return r.summary || '';
+  const count = (pred) => boxes.filter(pred).length;
+  const flags = [
+    count(b => b.quote && b.quote.isOversize) && `규격 초과 ${count(b => b.quote && b.quote.isOversize)}`,
+    count(b => b.quote && b.quote.isOverweight) && `중량 초과 ${count(b => b.quote && b.quote.isOverweight)}`,
+    count(b => b.carrier) && `캐리어 ${count(b => b.carrier)}`,
+  ].filter(Boolean);
+  const items = boxes.flatMap(b => b.items || []).map(it => `${it.nameEn} ×${it.quantity}`).join(', ');
+  return [
+    `박스 ${boxes.length}개 · 청구 ${p.chargeableKg ?? '-'}kg${flags.length ? ' · ' + flags.join(' · ') : ''}`,
+    items && `물품: ${items}`,
+  ].filter(Boolean).join('\n');
 }
 
 // 새 견적 폼은 'HH:MM' 시작 시간 + 예상 소요시간(duration)을 보낸다(옛 요청은 morning/afternoon/evening).
@@ -1427,12 +1475,12 @@ function mapRequestToScheduleFields(r) {
     job_date: p.scheduleDate || null,
     overall_time_range: p.scheduleTime || '',
     origin_address: p.pickupAddress || p.customerAddress || '',
-    origin_spec: p.methodName || '',
-    dest_address: `${p.deliveryZip || ''} ${p.deliveryAddress || ''}`.trim(),
-    dest_spec: `수취인 ${p.recipientNameKo || ''} (${p.recipientPhone || ''})`,
+    origin_spec: p.pickupRegion ? `${p.methodName || ''} (${`${p.pickupRegion.zip || ''} ${p.pickupRegion.city || ''}`.trim()})` : (p.methodName || ''),
+    dest_address: p.deliveryUndecided ? '미정' : `${p.deliveryZip || ''} ${p.deliveryAddress || ''}`.trim(),
+    dest_spec: p.deliveryUndecided ? '' : `수취인 ${p.recipientNameKo || ''} (${p.recipientPhone || ''})`,
     required_workers: 1,
     vehicles: [],
-    notes: r.summary || ''
+    notes: deliveryNotes(r)
   };
 }
 

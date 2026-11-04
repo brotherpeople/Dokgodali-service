@@ -1941,6 +1941,13 @@
                     scheduleDate,
                     scheduleTime: $("#pickupTime").value,
                     estimatedTotal: subtotal + calcMethodFee(subtotal),
+                    methodFee: calcMethodFee(subtotal),
+                    quoteTotals: quoteBoxes().totals,
+                    chargeableKg: quoteBoxes().chargeableKg,
+                    declaredTotal: state.boxes.reduce(
+                        (sum, box) => sum + itemsValue(box),
+                        0,
+                    ),
                     customerAddress: $("#customerAddress").value.trim(),
                     pickupSameAsCustomer: $("#sameAsCustomer").checked,
                     pickupAddress: $("#sameAsCustomer").checked
