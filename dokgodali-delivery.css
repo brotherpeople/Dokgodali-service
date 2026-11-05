@@ -83,6 +83,7 @@
 .tip-start .tip-body { left: -8px; transform: none; }
 .tip.open .tip-body, .tip:has(.tip-btn:focus-visible) .tip-body { display: block; }
 @media (hover: hover) { .tip:hover .tip-body { display: block; } }
+.tip.dismissed .tip-body { display: none !important; }
 
 /* 주소 자동완성 */
 .autocomplete { position: relative; }

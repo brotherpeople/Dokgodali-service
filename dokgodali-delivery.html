@@ -345,8 +345,10 @@
                                 </div>
                             </div>
                             <div class="field-error" id="methodError">
-                                희망 날짜와 시간, 타지역 픽업은 도시와
-                                우편번호를 입력해 주세요.
+                                희망 날짜와 시간을 확인해 주세요. 고정 픽업은
+                                화요일, 접수처 방문은 일요일을 제외한 내일 이후
+                                날짜만 가능합니다. 타지역 픽업은 도시와 우편번호도
+                                필요합니다.
                             </div>
                         </div>
                         <div class="actions">
@@ -628,8 +630,8 @@
                                     </div>
                                 </div>
                                 <div class="field-error" id="addressError">
-                                    신청인 주소, 배송지, 수취인 정보를 모두
-                                    입력해 주세요.
+                                    신청인 주소, 초인종 이름, 배송지, 수취인 정보를 모두
+                                    입력해 주세요. 이메일은 형식도 확인해 주세요.
                                 </div>
                             </div>
                             <div class="section-block section-box">
@@ -843,8 +845,8 @@
                                 >
                                 <details class="confirm-more"><summary>내용 보기</summary><p>예약과 배송 안내를 위한 목적 외에는 고객 정보를 사용하지 않습니다. 분실 시 신고가액 기준으로 보상하며, 파손은 수령 후 14일 안에 신청해야 합니다. 품명·수량·금액을 빠뜨리거나 사실과 다르게 신고한 경우 보상받을 수 없습니다.</p></details>
                                 <div class="field-error" id="personalError">
-                                    필수 개인정보, 통관 구분, 촬영 동의 여부,
-                                    위험물·포장 확인, 약관 동의를 모두 확인해
+                                    필수 개인정보(이메일 형식 포함), 통관 구분, 촬영 동의
+                                    여부, 위험물·포장 확인, 약관 동의를 모두 확인해
                                     주세요.
                                 </div>
                             </div>
@@ -1092,6 +1094,13 @@
                         : Math.min(0, document.documentElement.clientWidth - edge - r.right);
                 body.style.marginLeft = `${shift}px`;
             }
+            ["mouseout", "focusout"].forEach((type) =>
+                document.addEventListener(type, (event) => {
+                    const tip = event.target.closest && event.target.closest(".tip");
+                    if (tip && !tip.contains(event.relatedTarget))
+                        tip.classList.remove("dismissed");
+                }),
+            );
             ["mouseover", "focusin"].forEach((type) =>
                 document.addEventListener(type, (event) => {
                     const tip = event.target.closest && event.target.closest(".tip");
@@ -1101,9 +1110,10 @@
             document.addEventListener("keydown", (event) => {
                 if (event.key !== "Escape") return;
                 $$(".tip.open").forEach(closeTip);
-                // 키보드 포커스로 열린 말풍선도 닫히도록 포커스를 뺀다.
-                if (document.activeElement?.classList.contains("tip-btn"))
-                    document.activeElement.blur();
+                // 키보드 포커스·마우스로 열린 말풍선은 포커스를 유지한 채 숨긴다 (벗어나면 다시 열 수 있다).
+                $$(".tip:hover, .tip:focus-within").forEach((t) =>
+                    t.classList.add("dismissed"),
+                );
             });
             // 치수·실중량이 모두 0보다 큰 박스만 운임 계산에 들어간다.
             const isBoxComplete = (box) =>
@@ -1181,6 +1191,8 @@
                     "hidden",
                     eligible,
                 );
+                if (eligible)
+                    $("#methodChangedNotice").classList.remove("visible");
                 const prev = state.method;
                 // 3단계까지 온 뒤에는 고객이 확인한 방식을 몰래 바꾸지 않는다.
                 if (eligible && !state.methodTouched && state.step < 3) {
@@ -1544,6 +1556,10 @@
             }
             const radioValue = (name) =>
                 $(`input[name="${name}"]:checked`)?.value || "";
+            // 비어 있지 않고, 이메일 칸이면 형식도 맞아야 한다 (form submit을 쓰지 않아 브라우저 검증이 돌지 않는다).
+            const isFilled = (input) =>
+                !!input.value.trim() &&
+                (input.type !== "email" || input.checkValidity());
             function validateAddresses() {
                 const inputs = $$(".address-required").filter(
                     (input) => !input.disabled,
@@ -1555,9 +1571,9 @@
                 if (!$("#sameAsCustomer").checked)
                     inputs.push($("#pickupAddress"));
                 if (state.method !== "dropoff") inputs.push($("#pickupKlingel"));
-                const invalid = inputs.filter((input) => !input.value.trim());
+                const invalid = inputs.filter((input) => !isFilled(input));
                 inputs.forEach((input) =>
-                    input.classList.toggle("input-error", !input.value.trim()),
+                    input.classList.toggle("input-error", !isFilled(input)),
                 );
                 $("#addressError").classList.toggle(
                     "visible",
@@ -1601,9 +1617,9 @@
                 const inputs = $$(".personal-required").filter(
                     (input) => !input.disabled,
                 );
-                const invalid = inputs.filter((input) => !input.value.trim());
+                const invalid = inputs.filter((input) => !isFilled(input));
                 inputs.forEach((input) =>
-                    input.classList.toggle("input-error", !input.value.trim()),
+                    input.classList.toggle("input-error", !isFilled(input)),
                 );
                 const radiosOk = ["customsType", "mediaConsent"]
                     .map((name) => {
