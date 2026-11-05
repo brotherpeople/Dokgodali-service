@@ -1319,21 +1319,21 @@ function renderAdminRequestsTab() {
   list.innerHTML = pending.map(r => {
     const isOpen = state.expandedRequestIds.has(r.id);
     return `
-    <div class="request-pending-item" id="request-item-${r.id}">
-      <div class="request-pending-top" onclick="toggleRequestDetail('${r.id}')">
+    <div class="request-pending-item" id="request-item-${escapeHtml(r.id)}">
+      <div class="request-pending-top" onclick="toggleRequestDetail(${jsArg(r.id)})">
         <div>
           <span class="request-pending-type">${r.type === 'moving' ? '이사' : '배송'}</span>
-          <span style="margin-left:6px; font-weight:700;">${r.customer_name || '-'}</span>
+          <span style="margin-left:6px; font-weight:700;">${escapeHtml(r.customer_name || '-')}</span>
           <span class="request-caret${isOpen ? ' open' : ''}">▾</span>
-          <div style="font-size:12px; color:var(--text-secondary); margin-top:3px;">${r.summary || ''}</div>
-          <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">${r.customer_phone || ''} · ${new Date(r.created_at).toLocaleString('ko-KR')}</div>
+          <div style="font-size:12px; color:var(--text-secondary); margin-top:3px;">${escapeHtml(r.summary)}</div>
+          <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">${escapeHtml(r.customer_phone)} · ${new Date(r.created_at).toLocaleString('ko-KR')}</div>
         </div>
         <div class="request-pending-actions" onclick="event.stopPropagation()">
-          <button class="btn btn-primary btn-sm" onclick="confirmRequest('${r.id}')">확정</button>
-          <button class="btn btn-secondary btn-sm" onclick="rejectRequest('${r.id}')">거절</button>
+          <button class="btn btn-primary btn-sm" onclick="confirmRequest(${jsArg(r.id)})">확정</button>
+          <button class="btn btn-secondary btn-sm" onclick="rejectRequest(${jsArg(r.id)})">거절</button>
         </div>
       </div>
-      <div class="request-detail${isOpen ? '' : ' hidden'}" id="request-detail-${r.id}">${renderRequestDetailBody(r)}</div>
+      <div class="request-detail${isOpen ? '' : ' hidden'}" id="request-detail-${escapeHtml(r.id)}">${renderRequestDetailBody(r)}</div>
     </div>
   `;
   }).join('');
@@ -1383,7 +1383,8 @@ function renderRequestDetailBody(r) {
     const flags = [q.isOversize && '규격 초과', q.isOverweight && '중량 초과', b.carrier && '캐리어'].filter(Boolean).join(', ');
     const items = (b.items || []).map(it => {
       const extra = [it.brand, it.color, it.size].filter(Boolean).join(' / ');
-      const links = [it.productUrl && `<a href="${e(it.productUrl)}" target="_blank" rel="noopener">상품</a>`, it.imageUrl && `<a href="${e(it.imageUrl)}" target="_blank" rel="noopener">이미지</a>`].filter(Boolean).join(' ');
+      const link = (url, label) => isHttpUrl(url) ? `<a href="${e(url)}" target="_blank" rel="noopener">${label}</a>` : url ? `${label}: ${e(url)}` : '';
+      const links = [link(it.productUrl, '상품'), link(it.imageUrl, '이미지')].filter(Boolean).join(' ');
       return `${e(it.nameEn)}${extra ? ` (${e(extra)})` : ''} ×${e(it.quantity)} · ${euro(it.unitPrice)}${it.isNew ? ' · 신상품' : ''}${links ? ' · ' + links : ''}`;
     }).join('<br>');
     return detailRow(`박스 ${i + 1}`, `${e(b.length)}×${e(b.width)}×${e(b.height)}cm · ${e(b.weight)}kg → 청구 ${e(q.chargeable)}kg · ${euro(q.total)}${flags ? ` · ${flags}` : ''}${items ? `<br>${items}` : ''}`);
@@ -1601,6 +1602,14 @@ function formatEuro(n) {
 // 고객 이름은 공개 견적 폼에서 들어오므로 HTML로 끼워 넣기 전에 이스케이프한다.
 function escapeHtml(str) {
   return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+// onclick="fn(...)" 안에 넣을 문자열 인자. JSON으로 감싼 뒤 HTML 이스케이프한다.
+function jsArg(value) {
+  return escapeHtml(JSON.stringify(String(value ?? '')));
+}
+// 고객이 입력한 URL은 http(s)일 때만 링크로 연다.
+function isHttpUrl(url) {
+  return /^https?:\/\//i.test(String(url || '').trim());
 }
 
 // 화면에 쓰는 작업 이름 (HTML 이스케이프됨). 배송이면 "[배송] 송다인", 이사는 이름만.
