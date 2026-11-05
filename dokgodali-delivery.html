@@ -1207,17 +1207,16 @@
                     ["픽업비", methodFee],
                 ]
                     .filter(([, amount, always]) => always || amount > 0)
-                    .map(
-                        ([label, amount]) =>
-                            `<div class="summary-line"><span>${label}</span><span>${currency(amount)}</span></div>`,
-                    )
+                    .map(([label, amount], i, lines) => {
+                        const firstOver = lines.findIndex(([l]) => l.includes("초과"));
+                        const tip = i === firstOver ? tipHtml("규격·중량 초과", "OVER SIZE와 OVER WEIGHT는 각각 합산 청구되며, 한국 착불 요금은 없습니다.", "start") : "";
+                        return `<div class="summary-line"><span>${label}${tip}</span><span>${currency(amount)}</span></div>`;
+                    })
                     .join("");
-                const hasOverCharge =
-                    quote.totals.oversize > 0 || quote.totals.overweight > 0;
                 const dutyWarning =
                     declaredTotal > 0 &&
                     declaredTotal + estimatedTotal > DUTY_WARN_EUR
-                        ? `<div class="summary-warning">물품가와 운송비 합계가 USD 150(약 €${DUTY_WARN_EUR})을 넘으면 한국에서 관부가세가 부과됩니다. (현재 물품가 ${currency(declaredTotal)} + 운송비 ${currency(estimatedTotal)})</div>`
+                        ? `<div class="summary-warning">물품가와 운송비 합계가 USD 150(약 €${DUTY_WARN_EUR})을 넘어 한국에서 관부가세가 부과됩니다.</div>`
                         : "";
                 const conditionText =
                     state.method === "fixed" && subtotal >= 50
@@ -1233,10 +1232,9 @@
         <div class="summary-row"><span>접수 방식</span><strong>${methodData[state.method].name}</strong></div>
         <div class="summary-row"><span>요금 조건</span><strong>${conditionText}</strong></div>
         <div class="summary-row"><span>희망 일시</span><strong>${scheduleLabel}</strong></div>
-        <div class="summary-breakdown">${breakdown}${hasOverCharge ? `<div class="summary-line-note">OVER SIZE와 OVER WEIGHT는 각각 합산 청구되며, 한국 착불 요금은 없습니다.</div>` : ""}</div>
-        <div class="summary-total"><div><div class="summary-total-label">예상 배송비</div><div class="summary-total-note">실제 중량에 따라 달라질 수 있습니다</div></div><div class="summary-total-right"><div class="summary-total-price">${currency(estimatedTotal)}</div><div class="summary-total-basis">중량별 운임 + 추가 운임 + 픽업비 기준</div></div></div>
-        ${dutyWarning}
-        <div class="delivery-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>폼의 접수 조건을 기준으로 안내합니다</div>`;
+        <div class="summary-breakdown">${breakdown}</div>
+        <div class="summary-total"><div><div class="summary-total-label">예상 배송비${tipHtml("예상 배송비", "중량별 운임, 추가 운임, 픽업비를 더한 금액입니다. 입고 후 실측한 크기·무게로 확정되므로 달라질 수 있습니다.", "start")}</div></div><div class="summary-total-right"><div class="summary-total-price">${currency(estimatedTotal)}</div></div></div>
+        ${dutyWarning}`;
                 ["#summary1", "#summary2", "#summary3"].forEach(
                     (id) => ($(id).innerHTML = markup),
                 );

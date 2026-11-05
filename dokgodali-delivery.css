@@ -167,22 +167,17 @@ details[open] .more-link { display: none; }
 .summary-row strong { max-width: 195px; color: var(--text); font-weight: 700; text-align: right; }
 .summary-breakdown { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
 .summary-line { display: flex; justify-content: space-between; gap: 12px; margin-top: 6px; color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
-.summary-line span:last-child { color: var(--text); font-weight: 700; }
-.summary-line-note { margin-top: 8px; color: var(--faint); font-size: 11.5px; line-height: 1.5; }
-.summary-warning { margin-top: 14px; padding: 10px 12px; border-radius: 8px; background: var(--amber-light); color: #92400e; font-size: 12px; line-height: 1.5; }
+.summary-line > span:last-child { color: var(--text); font-weight: 700; }
+.summary-warning { margin-top: 14px; padding: 10px 12px; border-radius: 8px; background: var(--amber-light); color: #92400e; font-size: 12px; line-height: 1.5; word-break: keep-all; }
 .box-warnings:empty { display: none; }
 .box-warnings { display: grid; gap: 6px; margin-top: 10px; }
 .box-warning { padding: 8px 10px; border-radius: 7px; background: var(--amber-light); color: #92400e; font-size: 12px; line-height: 1.5; }
 .summary-total { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--border); }
 .summary-total-label { font-size: 15px; font-weight: 800; }
-.summary-total-note { margin-top: 4px; color: var(--text); font-size: 12.5px; }
 .summary-total-right { text-align: right; }
 .summary-total-price { color: var(--accent); font-size: 34px; font-weight: 800; line-height: 1; white-space: nowrap; }
-.summary-total-basis { margin-top: 4px; color: var(--text); font-size: 12.5px; font-weight: 700; white-space: nowrap; }
 .summary-status { color: var(--accent-dark); font-size: 14px; font-weight: 800; white-space: nowrap; }
 .summary-vat { margin-top: 8px; color: var(--muted); font-size: 11.5px; text-align: right; }
-.delivery-badge { display: inline-flex; align-items: center; gap: 5px; margin-top: 20px; padding: 7px 9px; border-radius: 7px; background: var(--green-light); color: var(--green); font-size: 11.5px; font-weight: 700; }
-.delivery-badge svg { width: 15px; }
 
 /* Step 3: 예약 확인 체크 / 완료 화면 */
 .confirm-check { display: flex; gap: 10px; align-items: flex-start; margin-top: 14px; color: var(--muted); font-size: 12.5px; line-height: 1.55; cursor: pointer; }
