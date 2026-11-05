@@ -382,28 +382,64 @@
                                     신청인 주소
                                     <span class="required">*필수</span>
                                 </div>
-                                <div class="field-grid">
-                                    <div class="field-full">
-                                        <div class="autocomplete">
+                                <div class="field-grid address-grid">
+                                    <label>
+                                        <span class="field-title">도로명</span>
+                                        <span class="autocomplete">
                                             <input
                                                 class="text-input address-required"
-                                                id="customerAddress"
+                                                id="customerStreet"
                                                 type="text"
                                                 autocomplete="off"
                                                 role="combobox"
                                                 aria-autocomplete="list"
                                                 aria-expanded="false"
-                                                aria-controls="customerAddressList"
-                                                placeholder="예: Musterstr. 1, 10115 Berlin"
+                                                aria-controls="customerStreetList"
+                                                placeholder="예: Kantstraße"
                                             />
                                             <ul
                                                 class="autocomplete-list hidden"
-                                                id="customerAddressList"
+                                                id="customerStreetList"
                                                 role="listbox"
-                                                aria-label="추천 주소"
+                                                aria-label="추천 도로명"
                                             ></ul>
-                                        </div>
-                                    </div>
+                                        </span>
+                                    </label>
+                                    <label>
+                                        <span class="field-title">번지</span>
+                                        <input
+                                            class="text-input address-required"
+                                            id="customerHouseNo"
+                                            type="text"
+                                            autocomplete="off"
+                                            placeholder="예: 12a"
+                                        />
+                                    </label>
+                                    <label>
+                                        <span class="field-title">우편번호</span>
+                                        <input
+                                            class="text-input address-required"
+                                            id="customerZip"
+                                            type="text"
+                                            inputmode="numeric"
+                                            maxlength="5"
+                                            autocomplete="off"
+                                            placeholder="예: 10623"
+                                        />
+                                    </label>
+                                    <label>
+                                        <span class="field-title">도시</span>
+                                        <input
+                                            class="text-input address-required"
+                                            id="customerCity"
+                                            type="text"
+                                            autocomplete="off"
+                                            placeholder="예: Berlin"
+                                        />
+                                    </label>
+                                    <div class="field-hint field-full" id="customerAddressHint" aria-live="polite"></div>
+                                </div>
+                                <div class="field-grid">
                                     <div>
                                         <div class="field-title">
                                             카카오톡 아이디
@@ -1291,7 +1327,7 @@
             function renderSummary() {
                 const pickup = escapeText(
                     ($("#sameAsCustomer").checked
-                        ? $("#customerAddress").value
+                        ? customerAddressText()
                         : $("#pickupAddress").value
                     ).trim(),
                 );
@@ -1559,7 +1595,8 @@
             // 비어 있지 않고, 이메일 칸이면 형식도 맞아야 한다 (form submit을 쓰지 않아 브라우저 검증이 돌지 않는다).
             const isFilled = (input) =>
                 !!input.value.trim() &&
-                (input.type !== "email" || input.checkValidity());
+                (input.type !== "email" || input.checkValidity()) &&
+                (input.id !== "customerZip" || /^\d{5}$/.test(input.value.trim()));
             function validateAddresses() {
                 const inputs = $$(".address-required").filter(
                     (input) => !input.disabled,
@@ -1774,24 +1811,45 @@
             // TODO(클라이언트 확인) #9: Photon(OpenStreetMap, 무료·키 없음) 사용
             const PHOTON_URL = "https://photon.komoot.io/api/";
             const GERMANY_BBOX = "5.87,47.27,15.04,55.06";
-            function formatPhotonAddress(props) {
-                const street = [props.street || props.name, props.housenumber]
+            // 신청인 주소: 도로명만 추천하고, 고르면 우편번호·도시를 채운다.
+            // 번지는 지도 데이터에 없는 경우가 많아 고객이 직접 적고, 적은 번지가 지도에 있으면
+            // 그 번지의 우편번호로 맞춰 준다 (긴 도로는 구간마다 우편번호가 다르다).
+            const BERLIN_BIAS = { lat: "52.52", lon: "13.405" };
+            const placeOf = (props) =>
+                props.city || props.town || props.village || props.locality || "";
+            function customerAddressText() {
+                const street = [$("#customerStreet").value.trim(), $("#customerHouseNo").value.trim()]
                     .filter(Boolean)
                     .join(" ");
-                const place = [
-                    props.postcode,
-                    props.city || props.town || props.village || props.locality,
-                ]
+                const place = [$("#customerZip").value.trim(), $("#customerCity").value.trim()]
                     .filter(Boolean)
                     .join(" ");
                 return [street, place].filter(Boolean).join(", ");
             }
-            function setupAddressAutocomplete(input, list) {
+            async function photon(query, layer, limit, signal, extra = {}) {
+                const params = new URLSearchParams({
+                    q: query,
+                    layer,
+                    limit: String(limit),
+                    lang: "de",
+                    bbox: GERMANY_BBOX,
+                    ...extra,
+                });
+                const res = await fetch(`${PHOTON_URL}?${params}`, { signal });
+                const data = await res.json();
+                return data.features
+                    .map((f) => f.properties)
+                    .filter((props) => props.countrycode === "DE");
+            }
+            function setupStreetAutocomplete() {
+                const input = $("#customerStreet");
+                const list = $("#customerStreetList");
+                const hint = $("#customerAddressHint");
                 let timer = null;
                 let controller = null;
                 let suggestions = [];
                 let active = -1;
-                let picking = false;
+                let typedHouseNo = "";
                 const close = () => {
                     list.classList.add("hidden");
                     list.innerHTML = "";
@@ -1805,44 +1863,58 @@
                         li.setAttribute("aria-selected", String(i === index)),
                     );
                     if (index >= 0)
-                        input.setAttribute(
-                            "aria-activedescendant",
-                            list.children[index].id,
-                        );
+                        input.setAttribute("aria-activedescendant", list.children[index].id);
                 };
                 const pick = (index) => {
-                    picking = true;
-                    input.value = suggestions[index];
+                    const choice = suggestions[index];
+                    input.value = choice.street;
+                    $("#customerZip").value = choice.zip;
+                    $("#customerCity").value = choice.city;
+                    // "Kantstraße 12"처럼 번지까지 적었으면 번지 칸으로 옮긴다.
+                    if (typedHouseNo && !$("#customerHouseNo").value.trim())
+                        $("#customerHouseNo").value = typedHouseNo;
                     close();
-                    input.dispatchEvent(new Event("input", { bubbles: true }));
-                    picking = false;
+                    hint.textContent = "";
+                    ["#customerStreet", "#customerZip", "#customerCity", "#customerHouseNo"].forEach((id) =>
+                        $(id).dispatchEvent(new Event("change", { bubbles: true })),
+                    );
+                    if ($("#customerHouseNo").value.trim()) checkHouseNumber();
+                    else $("#customerHouseNo").focus();
                 };
                 const search = async (query) => {
                     controller?.abort();
                     controller = new AbortController();
                     try {
-                        const params = new URLSearchParams({
-                            q: query,
-                            limit: "6",
-                            lang: "de",
-                            bbox: GERMANY_BBOX,
-                        });
-                        const res = await fetch(`${PHOTON_URL}?${params}`, {
-                            signal: controller.signal,
-                        });
-                        const data = await res.json();
-                        suggestions = [
-                            ...new Set(
-                                data.features
-                                    .map((f) => f.properties)
-                                    .filter(
-                                        (props) =>
-                                            props.countrycode === "DE" &&
-                                            (props.street || props.name),
-                                    )
-                                    .map(formatPhotonAddress),
-                            ),
-                        ].slice(0, 5);
+                        // 고객 대부분이 베를린이라 베를린 쪽으로 가중한 검색을 앞에 두고,
+                        // 가중하면 다른 도시가 빠지는 경우가 있어 가중 없는 검색 결과를 뒤에 붙인다.
+                        const [near, all] = await Promise.all([
+                            photon(query, "street", 10, controller.signal, BERLIN_BIAS),
+                            photon(query, "street", 10, controller.signal),
+                        ]);
+                        const found = [...near, ...all];
+                        const seen = new Set();
+                        suggestions = found
+                            .map((props) => ({
+                                street: props.name,
+                                zip: props.postcode || "",
+                                city: placeOf(props),
+                                district: props.district || "",
+                            }))
+                            .filter((c) => c.street && c.city)
+                            .filter((c) => {
+                                const key = `${c.street}|${c.zip}|${c.city}`;
+                                return !seen.has(key) && seen.add(key);
+                            })
+                            // 입력한 이름과 같은 도로 → 그 이름으로 시작하는 도로 → 나머지 순 (같은 순위 안에서는 베를린 우선 유지)
+                            .map((c, i) => {
+                                const name = c.street.toLowerCase();
+                                const q = query.toLowerCase().replace(/str\.?$/, "str");
+                                const rank = name === q || name.replace(/straße$/, "str") === q ? 0 : name.startsWith(q) ? 1 : 2;
+                                return { c, rank, i };
+                            })
+                            .sort((a, b) => a.rank - b.rank || a.i - b.i)
+                            .map(({ c }) => c)
+                            .slice(0, 6);
                     } catch (error) {
                         if (error.name !== "AbortError") close();
                         return;
@@ -1851,8 +1923,8 @@
                         return close();
                     list.innerHTML = suggestions
                         .map(
-                            (text, i) =>
-                                `<li class="autocomplete-option" id="${list.id}-${i}" role="option" aria-selected="false">${escapeAttr(text)}</li>`,
+                            (c, i) =>
+                                `<li class="autocomplete-option" id="${list.id}-${i}" role="option" aria-selected="false"><strong>${escapeAttr(c.street)}</strong> <span class="autocomplete-place">${escapeAttr([c.zip, c.city].filter(Boolean).join(" "))}${c.district && c.district !== c.city ? ` (${escapeAttr(c.district)})` : ""}</span></li>`,
                         )
                         .join("");
                     list.classList.remove("hidden");
@@ -1860,9 +1932,11 @@
                     active = -1;
                 };
                 input.addEventListener("input", () => {
-                    if (picking) return;
                     clearTimeout(timer);
-                    const query = input.value.trim();
+                    const raw = input.value.trim();
+                    const m = raw.match(/^(.*\D)\s+(\d+\s?[a-zA-Z]?)$/);
+                    typedHouseNo = m ? m[2].replace(/\s/g, "") : "";
+                    const query = m ? m[1].trim() : raw;
                     if (query.length < 3) return close();
                     timer = setTimeout(() => search(query), 300);
                 });
@@ -1890,11 +1964,51 @@
                     pick([...list.children].indexOf(option));
                 });
                 input.addEventListener("blur", () => setTimeout(close, 100));
+
+                // 번지를 지도에서 찾아 우편번호를 맞춘다. 정확히 같은 도로·번지·도시일 때만 쓴다.
+                let houseController = null;
+                async function checkHouseNumber() {
+                    const street = input.value.trim();
+                    const houseNo = $("#customerHouseNo").value.trim();
+                    const city = $("#customerCity").value.trim();
+                    if (!street || !houseNo || !city) return (hint.textContent = "");
+                    houseController?.abort();
+                    houseController = new AbortController();
+                    hint.textContent = "번지를 확인하는 중…";
+                    const norm = (v) => String(v || "").toLowerCase().replace(/\s/g, "").replace(/straße$/, "str").replace(/str\.$/, "str");
+                    let found;
+                    try {
+                        found = await photon(`${street} ${houseNo}, ${city}`, "house", 10, houseController.signal);
+                    } catch (error) {
+                        if (error.name !== "AbortError") hint.textContent = "";
+                        return;
+                    }
+                    const match = found.find(
+                        (props) =>
+                            norm(props.street) === norm(street) &&
+                            norm(props.housenumber) === norm(houseNo) &&
+                            norm(placeOf(props)) === norm(city),
+                    );
+                    const zipInput = $("#customerZip");
+                    if (!match || !match.postcode) {
+                        hint.textContent = "지도에서 이 번지를 찾지 못했습니다. 우편번호를 한 번 더 확인해 주세요.";
+                        return;
+                    }
+                    if (match.postcode !== zipInput.value.trim()) {
+                        const before = zipInput.value.trim();
+                        zipInput.value = match.postcode;
+                        zipInput.dispatchEvent(new Event("change", { bubbles: true }));
+                        hint.textContent = before
+                            ? `번지에 맞춰 우편번호를 ${before} → ${match.postcode}로 고쳤습니다.`
+                            : `우편번호 ${match.postcode}를 채웠습니다.`;
+                    } else {
+                        hint.textContent = "✓ 지도에서 확인된 주소입니다.";
+                    }
+                }
+                $("#customerHouseNo").addEventListener("change", checkHouseNumber);
+                $("#customerCity").addEventListener("change", checkHouseNumber);
             }
-            setupAddressAutocomplete(
-                $("#customerAddress"),
-                $("#customerAddressList"),
-            );
+            setupStreetAutocomplete();
             // 한 번 오류를 보여 준 뒤에는 입력할 때마다 다시 검증해서,
             // 고친 칸의 빨간 테두리와 오류 문구가 바로 사라지게 한다.
             const revalidate = () => {
@@ -2004,10 +2118,16 @@
                         (sum, box) => sum + itemsValue(box),
                         0,
                     ),
-                    customerAddress: $("#customerAddress").value.trim(),
+                    customerAddress: customerAddressText(),
+                    customerAddressParts: {
+                        street: $("#customerStreet").value.trim(),
+                        houseNo: $("#customerHouseNo").value.trim(),
+                        zip: $("#customerZip").value.trim(),
+                        city: $("#customerCity").value.trim(),
+                    },
                     pickupSameAsCustomer: $("#sameAsCustomer").checked,
                     pickupAddress: $("#sameAsCustomer").checked
-                        ? $("#customerAddress").value.trim()
+                        ? customerAddressText()
                         : $("#pickupAddress").value.trim(),
                     pickupKlingel:
                         state.method === "dropoff"
