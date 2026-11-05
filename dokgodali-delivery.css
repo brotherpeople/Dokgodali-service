@@ -119,6 +119,15 @@
 .docs-notice { margin-top: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 9px; background: #fafbfe; color: var(--muted); font-size: 12.5px; line-height: 1.6; }
 .docs-notice strong { display: block; margin-bottom: 4px; color: var(--text); }
 .docs-notice ul { margin: 6px 0; padding-left: 18px; }
+details.docs-notice summary { cursor: pointer; list-style: none; }
+details.docs-notice summary::-webkit-details-marker { display: none; }
+details.docs-notice summary strong { display: inline; margin: 0; }
+details.docs-notice[open] summary { margin-bottom: 6px; }
+.more-link { margin-left: 4px; color: var(--accent); font-size: 12px; font-weight: 700; text-decoration: underline; }
+details[open] .more-link { display: none; }
+.confirm-more { margin: 4px 0 0 26px; color: var(--muted); font-size: 12px; line-height: 1.55; }
+.confirm-more summary { width: fit-content; color: var(--accent); font-weight: 700; cursor: pointer; }
+.confirm-more p { margin: 6px 0 0; }
 .docs-notice-complete { max-width: 480px; margin: 20px auto 0; text-align: left; }
 
 /* Step 2: 접수 방식 카드 */
