@@ -1863,6 +1863,9 @@
                 const requestId = "req-" + Date.now();
                 const subtotal = calcSubtotal();
                 const scheduleDate = $("#pickupDate").value;
+                // 배송지 '미정'이면 체크 전에 적어 둔 배송지·수취인 값을 보내지 않는다.
+                const deliveryValue = (id) =>
+                    $("#deliveryUndecided").checked ? "" : $(id).value.trim();
                 const payload = {
                     boxes: state.boxes.map((box) => ({
                         ...box,
@@ -1885,7 +1888,9 @@
                               }
                             : null,
                     scheduleDate,
-                    scheduleTime: $("#pickupTime").value,
+                    // 고정 픽업은 시간을 받지 않으므로, 다른 방식에서 골랐던 시간이 남지 않게 비운다.
+                    scheduleTime:
+                        state.method === "fixed" ? "" : $("#pickupTime").value,
                     estimatedTotal: subtotal + calcMethodFee(subtotal),
                     methodFee: calcMethodFee(subtotal),
                     quoteTotals: quoteBoxes().totals,
@@ -1901,12 +1906,12 @@
                         : $("#pickupAddress").value.trim(),
                     kakaoId: $("#kakaoId").value.trim(),
                     deliveryUndecided: $("#deliveryUndecided").checked,
-                    deliveryZip: $("#deliveryZip").value.trim(),
-                    deliveryAddress: $("#deliveryAddress").value.trim(),
-                    recipientNameKo: $("#recipientNameKo").value.trim(),
-                    recipientNameEn: $("#recipientNameEn").value.trim(),
-                    recipientPhone: $("#recipientPhone").value.trim(),
-                    customsCode: $("#customsCode").value.trim(),
+                    deliveryZip: deliveryValue("#deliveryZip"),
+                    deliveryAddress: deliveryValue("#deliveryAddress"),
+                    recipientNameKo: deliveryValue("#recipientNameKo"),
+                    recipientNameEn: deliveryValue("#recipientNameEn"),
+                    recipientPhone: deliveryValue("#recipientPhone"),
+                    customsCode: deliveryValue("#customsCode"),
                     payment: "계좌이체",
                     customsType: radioValue("customsType"),
                     mediaConsent: radioValue("mediaConsent") === "yes",
