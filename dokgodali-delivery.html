@@ -462,6 +462,22 @@
                                             />
                                         </div>
                                     </div>
+                                    <div class="field-grid" id="pickupKlingelField">
+                                        <div>
+                                            <div class="field-title">
+                                                초인종 이름 (Klingel)
+                                                <span class="required"
+                                                    >*필수</span
+                                                >
+                                            </div>
+                                            <input
+                                                class="text-input"
+                                                id="pickupKlingel"
+                                                type="text"
+                                                placeholder="예: Müller"
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="address-card">
                                     <div class="address-caption">
@@ -519,6 +535,20 @@
                                                 placeholder="예: 서울특별시 강남구 테헤란로 231"
                                             />
                                         </div>
+                                        <div class="field-full">
+                                            <div class="field-title">
+                                                영문 주소
+                                                <span class="required"
+                                                    >*필수</span
+                                                >
+                                            </div>
+                                            <input
+                                                class="text-input address-required"
+                                                id="deliveryAddressEn"
+                                                type="text"
+                                                placeholder="예: 231 Teheran-ro, Gangnam-gu, Seoul"
+                                            />
+                                        </div>
                                         <div>
                                             <div class="field-title">
                                                 수취인 한글 이름
@@ -561,6 +591,20 @@
                                                 placeholder="예: 010-1234-5678"
                                             />
                                         </div>
+                                        <div>
+                                            <div class="field-title">
+                                                수취인 이메일
+                                                <span class="required"
+                                                    >*필수</span
+                                                >
+                                            </div>
+                                            <input
+                                                class="text-input address-required"
+                                                id="recipientEmail"
+                                                type="email"
+                                                placeholder="name@example.com"
+                                            />
+                                        </div>
                                         <div class="field-full">
                                             <div class="field-title">
                                                 개인통관고유부호 <span class="tip tip-start"><button class="tip-btn" type="button" aria-label="개인통관고유부호 설명"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.5h.01"/></svg></button><span class="tip-body" role="tooltip">물건을 받으시는 <b>수취인(한국) 본인</b> 명의로 발급된 부호를 입력해 주세요.</span></span>
@@ -593,12 +637,24 @@
                                 <div class="field-grid">
                                     <div>
                                         <div class="field-title">
-                                            이름
+                                            이름 (한글)
                                             <span class="required">*필수</span>
                                         </div>
                                         <input
                                             class="text-input personal-required"
                                             id="customerName"
+                                            type="text"
+                                            placeholder="예: 김민수"
+                                        />
+                                    </div>
+                                    <div>
+                                        <div class="field-title">
+                                            이름 (영문)
+                                            <span class="required">*필수</span>
+                                        </div>
+                                        <input
+                                            class="text-input personal-required"
+                                            id="customerNameEn"
                                             type="text"
                                             placeholder="예: Kim Minsoo"
                                         />
@@ -1395,6 +1451,10 @@
                 }
                 const isRegion = state.method === "region";
                 $("#regionFields").classList.toggle("hidden", !isRegion);
+                $("#pickupKlingelField").classList.toggle(
+                    "hidden",
+                    state.method === "dropoff",
+                );
                 $("#regionCityField").classList.toggle(
                     "hidden",
                     $("#regionHub").value !== REGION_OTHER,
@@ -1467,9 +1527,11 @@
             const DELIVERY_FIELD_IDS = [
                 "#deliveryZip",
                 "#deliveryAddress",
+                "#deliveryAddressEn",
                 "#recipientNameKo",
                 "#recipientNameEn",
                 "#recipientPhone",
+                "#recipientEmail",
                 "#customsCode",
             ];
             function updateDeliveryUndecided() {
@@ -1486,8 +1548,13 @@
                 const inputs = $$(".address-required").filter(
                     (input) => !input.disabled,
                 );
+                // 조건부 칸은 먼저 오류 표시를 지운다 (조건이 풀린 뒤 빨간 테두리가 남지 않게).
+                ["#pickupAddress", "#pickupKlingel"].forEach((id) =>
+                    $(id).classList.remove("input-error"),
+                );
                 if (!$("#sameAsCustomer").checked)
                     inputs.push($("#pickupAddress"));
+                if (state.method !== "dropoff") inputs.push($("#pickupKlingel"));
                 const invalid = inputs.filter((input) => !input.value.trim());
                 inputs.forEach((input) =>
                     input.classList.toggle("input-error", !input.value.trim()),
@@ -1926,13 +1993,20 @@
                     pickupAddress: $("#sameAsCustomer").checked
                         ? $("#customerAddress").value.trim()
                         : $("#pickupAddress").value.trim(),
+                    pickupKlingel:
+                        state.method === "dropoff"
+                            ? ""
+                            : $("#pickupKlingel").value.trim(),
+                    customerNameEn: $("#customerNameEn").value.trim(),
                     kakaoId: $("#kakaoId").value.trim(),
                     deliveryUndecided: $("#deliveryUndecided").checked,
                     deliveryZip: deliveryValue("#deliveryZip"),
                     deliveryAddress: deliveryValue("#deliveryAddress"),
+                    deliveryAddressEn: deliveryValue("#deliveryAddressEn"),
                     recipientNameKo: deliveryValue("#recipientNameKo"),
                     recipientNameEn: deliveryValue("#recipientNameEn"),
                     recipientPhone: deliveryValue("#recipientPhone"),
+                    recipientEmail: deliveryValue("#recipientEmail"),
                     customsCode: deliveryValue("#customsCode"),
                     payment: "계좌이체",
                     customsType: radioValue("customsType"),

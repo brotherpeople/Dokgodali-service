@@ -1385,7 +1385,8 @@ function renderRequestDetailBody(r) {
       const extra = [it.brand, it.color, it.size].filter(Boolean).join(' / ');
       const link = (url, label) => isHttpUrl(url) ? `<a href="${e(url)}" target="_blank" rel="noopener">${label}</a>` : url ? `${label}: ${e(url)}` : '';
       const links = [link(it.productUrl, '상품'), link(it.imageUrl, '이미지')].filter(Boolean).join(' ');
-      return `${e(it.nameEn)}${extra ? ` (${e(extra)})` : ''} ×${e(it.quantity)} · ${euro(it.unitPrice)}${it.isNew ? ' · 신상품' : ''}${links ? ' · ' + links : ''}`;
+      const category = { health: '건강기능식품', formula: '분유', alcohol: '주류' }[it.category];
+      return `${category ? `[${category}] ` : ''}${e(it.nameEn)}${extra ? ` (${e(extra)})` : ''} ×${e(it.quantity)} · ${euro(it.unitPrice)}${it.isNew ? ' · 신상품' : ''}${links ? ' · ' + links : ''}`;
     }).join('<br>');
     return detailRow(`박스 ${i + 1}`, `${e(b.length)}×${e(b.width)}×${e(b.height)}cm · ${e(b.weight)}kg → 청구 ${e(q.chargeable)}kg · ${euro(q.total)}${flags ? ` · ${flags}` : ''}${items ? `<br>${items}` : ''}`);
   }).join('');
@@ -1403,9 +1404,13 @@ function renderRequestDetailBody(r) {
     detailRow('타지역 픽업', e(region)),
     detailRow('예상 배송비', euro(p.estimatedTotal)),
     detailRow('추가 운임', surcharges),
+    detailRow('신청인 영문 이름', e(p.customerNameEn)),
+    detailRow('신청인 주소', p.pickupSameAsCustomer === false ? e(p.customerAddress) : ''),
     detailRow('픽업/방문 주소', e(p.pickupAddress)),
+    detailRow('초인종 이름', e(p.pickupKlingel)),
     detailRow('배송지(한국)', p.deliveryUndecided ? '미정' : e((p.deliveryZip || p.deliveryAddress) && `${p.deliveryZip || ''} ${p.deliveryAddress || ''}`.trim())),
-    p.deliveryUndecided ? '' : detailRow('수취인', p.recipientNameKo && e(`${p.recipientNameKo} (${p.recipientNameEn || ''}) · ${p.recipientPhone || ''}`)),
+    p.deliveryUndecided ? '' : detailRow('영문 주소', e(p.deliveryAddressEn)),
+    p.deliveryUndecided ? '' : detailRow('수취인', p.recipientNameKo && e(`${p.recipientNameKo} (${p.recipientNameEn || ''}) · ${p.recipientPhone || ''}${p.recipientEmail ? ' · ' + p.recipientEmail : ''}`)),
     p.deliveryUndecided ? '' : detailRow('개인통관고유부호', e(p.customsCode)),
     detailRow('통관 구분', e(customsTypeLabel)),
     detailRow('이사화물', e({ none: '해당 없음', moving: '이사화물', import: '반입 건' }[p.movingStatus] || '')),
@@ -1475,7 +1480,7 @@ function mapRequestToScheduleFields(r) {
     customer_phone: r.customer_phone,
     job_date: p.scheduleDate || null,
     overall_time_range: p.scheduleTime || '',
-    origin_address: p.pickupAddress || p.customerAddress || '',
+    origin_address: [p.pickupAddress || p.customerAddress || '', p.pickupKlingel && `(Klingel: ${p.pickupKlingel})`].filter(Boolean).join(' '),
     origin_spec: p.pickupRegion ? `${p.methodName || ''} (${`${p.pickupRegion.zip || ''} ${p.pickupRegion.city || ''}`.trim()})` : (p.methodName || ''),
     dest_address: p.deliveryUndecided ? '미정' : `${p.deliveryZip || ''} ${p.deliveryAddress || ''}`.trim(),
     dest_spec: p.deliveryUndecided ? '' : `수취인 ${p.recipientNameKo || ''} (${p.recipientPhone || ''})`,
