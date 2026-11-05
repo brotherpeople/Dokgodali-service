@@ -1089,6 +1089,30 @@
             const $ = (selector) => document.querySelector(selector);
             const $$ = (selector) => [...document.querySelectorAll(selector)];
             const currency = (n) => `€${n.toFixed(2)}`;
+            // ⓘ 도움말: 데스크톱은 마우스를 올리면, 모바일은 탭하면 열린다.
+            // 요약처럼 JS로 그리는 곳은 tipHtml()을, 정적 마크업은 같은 구조를 직접 쓴다.
+            const TIP_ICON =
+                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.5h.01"/></svg>';
+            const tipHtml = (label, text, align = "") =>
+                `<span class="tip${align ? " tip-" + align : ""}"><button class="tip-btn" type="button" aria-label="${label} 설명">${TIP_ICON}</button><span class="tip-body" role="tooltip">${text}</span></span>`;
+            document.addEventListener(
+                "click",
+                (event) => {
+                    const btn = event.target.closest(".tip-btn");
+                    const tip = btn && btn.parentElement;
+                    $$(".tip.open").forEach((t) => t !== tip && t.classList.remove("open"));
+                    if (!tip) return;
+                    // 카드·라벨 안에 있어도 카드 선택이나 체크가 같이 일어나지 않게 막는다.
+                    event.preventDefault();
+                    event.stopPropagation();
+                    tip.classList.toggle("open");
+                },
+                true,
+            );
+            document.addEventListener("keydown", (event) => {
+                if (event.key === "Escape")
+                    $$(".tip.open").forEach((t) => t.classList.remove("open"));
+            });
             // 치수·실중량이 모두 0보다 큰 박스만 운임 계산에 들어간다.
             const isBoxComplete = (box) =>
                 BOX_FIELDS.every((field) => Number(box[field]) > 0);
