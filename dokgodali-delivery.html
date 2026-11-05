@@ -918,11 +918,9 @@
             const methodData = {
                 premium: {
                     name: "프리미엄 픽업",
-                    condition: "€250 이상 결제 시 픽업비 무료",
                 },
                 fixed: {
                     name: "고정 픽업",
-                    condition: "픽업비 기본 €3 (€50 이상 결제 시 무료)",
                 },
                 region: {
                     name: "타지역 픽업",
@@ -930,7 +928,6 @@
                 },
                 dropoff: {
                     name: "접수처 방문",
-                    condition: "접수비 상자당 현금 €2",
                 },
             };
             /* ================================================================
@@ -1118,7 +1115,7 @@
                                   "'": "&#039;",
                               })[char],
                       )
-                    : "주소를 입력해 주세요";
+                    : "—";
             // (toISOString은 UTC로 변환되면서 자정 날짜가 하루 밀릴 수 있어 로컬 날짜 요소로 직접 계산한다)
             function formatDateLocal(date) {
                 return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -1237,19 +1234,12 @@
                     declaredTotal + estimatedTotal > DUTY_WARN_EUR
                         ? `<div class="summary-warning">물품가와 운송비 합계가 USD 150(약 €${DUTY_WARN_EUR})을 넘어 한국에서 관부가세가 부과됩니다.</div>`
                         : "";
-                const conditionText =
-                    state.method === "fixed" && subtotal >= 50
-                        ? "픽업비 무료"
-                        : state.method === "region"
-                          ? regionCondition(subtotal)
-                          : methodData[state.method].condition;
                 const markup = `
         <div class="summary-heading">배송 요약</div>
         <div class="summary-route"><div class="route-line"></div><div><div class="route-label">픽업지</div><div class="route-value" title="${pickup}">${pickup}</div><div class="route-label" style="margin-top:15px">배송지</div><div class="route-value" title="${delivery}">${delivery}</div></div></div>
         <div class="summary-divider"></div>
         <div class="summary-row"><span>물건 정보</span><strong>${cargoSummary}</strong></div>
         <div class="summary-row"><span>접수 방식</span><strong>${methodData[state.method].name}</strong></div>
-        <div class="summary-row"><span>요금 조건</span><strong>${conditionText}</strong></div>
         <div class="summary-row"><span>희망 일시</span><strong>${scheduleLabel}</strong></div>
         <div class="summary-breakdown">${breakdown}</div>
         <div class="summary-total"><div><div class="summary-total-label">예상 배송비${tipHtml("예상 배송비", "중량별 운임, 추가 운임, 픽업비를 더한 금액입니다. 입고 후 실측한 크기·무게로 확정되므로 달라질 수 있습니다.", "start")}</div></div><div class="summary-total-right"><div class="summary-total-price">${currency(estimatedTotal)}</div></div></div>
