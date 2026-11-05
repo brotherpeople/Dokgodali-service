@@ -142,6 +142,10 @@
                         <hr class="sep" />
                         <div class="section-block">
                             <div class="section-label">접수 방식 <span class="tip tip-start"><button class="tip-btn" type="button" aria-label="픽업 진행 방식 설명"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.5h.01"/></svg></button><span class="tip-body" role="tooltip">픽업은 예약금 입금 확인 후 예약하신 시간에 진행되며, 예약금은 최종 결제에서 차감됩니다. 물건은 차량이 접근할 수 있는 곳에 준비해 주세요. 입고 후 실측한 크기·무게로 금액이 확정되므로 예상 금액과 달라질 수 있습니다.</span></span></div>
+                            <div class="field-error" id="methodChangedNotice">
+                                결제 금액이 €250 미만이 되어 프리미엄 픽업을
+                                선택할 수 없습니다. 접수 방식을 다시 확인해 주세요.
+                            </div>
                             <div class="method-list" id="methodList">
                                 <div
                                     class="method-card selected"
@@ -1091,10 +1095,19 @@
                     "hidden",
                     eligible,
                 );
-                if (eligible && !state.methodTouched) {
+                const prev = state.method;
+                // 3단계까지 온 뒤에는 고객이 확인한 방식을 몰래 바꾸지 않는다.
+                if (eligible && !state.methodTouched && state.step < 3) {
                     state.method = "premium";
                 } else if (!eligible && state.method === "premium") {
                     state.method = "fixed";
+                }
+                if (state.method === prev) return;
+                enforceDateConstraint();
+                // 3단계에서 금액이 €250 아래로 내려가 프리미엄이 풀리면, 2단계로 돌려보내 다시 고르게 한다.
+                if (state.step === 3) {
+                    $("#methodChangedNotice").classList.add("visible");
+                    queueMicrotask(() => showStep(2));
                 }
             }
             const escapeAttr = (value) =>
@@ -1454,6 +1467,15 @@
                 );
                 return invalid.length === 0;
             }
+            // 내일 이후이고, 고정 픽업은 화요일, 접수처는 일요일이 아니어야 한다.
+            function isDateAllowed(dateStr) {
+                if (!dateStr || dateStr < $("#pickupDate").min) return false;
+                const [y, m, d] = dateStr.split("-").map(Number);
+                const day = new Date(y, m - 1, d, 12).getDay();
+                if (state.method === "fixed") return day === 2;
+                if (state.method === "dropoff") return day !== 0;
+                return true;
+            }
             function validateMethodDetails() {
                 const dateInput = $("#pickupDate");
                 const timeInput = $("#pickupTime");
@@ -1470,8 +1492,9 @@
                         if (!ok) regionOk = false;
                     });
                 }
-                const valid = !!dateInput.value && timeOk && regionOk;
-                dateInput.classList.toggle("input-error", !dateInput.value);
+                const dateOk = isDateAllowed(dateInput.value);
+                const valid = dateOk && timeOk && regionOk;
+                dateInput.classList.toggle("input-error", !dateOk);
                 timeInput.classList.toggle("input-error", !timeOk);
                 $("#methodError").classList.toggle("visible", !valid);
                 return valid;
@@ -1610,6 +1633,7 @@
                     if (card.classList.contains("disabled")) return;
                     state.method = card.dataset.method;
                     state.methodTouched = true;
+                    $("#methodChangedNotice").classList.remove("visible");
                     enforceDateConstraint();
                     render();
                 };
@@ -1808,16 +1832,17 @@
             $$(".step").forEach((button) =>
                 button.addEventListener("click", () => {
                     const destination = Number(button.dataset.step);
-                    if (
-                        destination === 1 ||
-                        state.step > 1 ||
-                        validateCargoes()
-                    )
-                        showStep(destination);
+                    if (destination <= state.step) return showStep(destination);
+                    if (!validateCargoes()) return showStep(1);
+                    if (destination === 3 && !validateMethodDetails())
+                        return showStep(2);
+                    showStep(destination);
                 }),
             );
             $("#submitOrder").addEventListener("click", async () => {
                 // 두 검증을 모두 돌려 한 번에 모든 오류를 보여 준다.
+                if (!validateCargoes()) return showStep(1);
+                if (!validateMethodDetails()) return showStep(2);
                 const addressesOk = validateAddresses();
                 const personalOk = validatePersonal();
                 if (!addressesOk || !personalOk) return;
@@ -1921,6 +1946,7 @@
             const tomorrowStr = formatDateLocal(tomorrow);
             $("#pickupDate").min = tomorrowStr;
             $("#pickupDate").value = tomorrowStr;
+            enforceDateConstraint();
 
             $("#regionHub").append(
                 new Option("선택", ""),
