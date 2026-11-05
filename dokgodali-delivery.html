@@ -50,10 +50,7 @@
                             <path d="M12 13v8" /></svg
                     ></span>
                     <span
-                        ><span class="step-title">1. 물건 정보</span
-                        ><span class="step-desc"
-                            >품목 및 수령지 입력</span
-                        ></span
+                        ><span class="step-title">1. 물건 정보</span</span
                     >
                 </button>
                 <button class="step" data-step="2" type="button">
@@ -72,10 +69,7 @@
                             <circle cx="17.5" cy="18" r="1.5" /></svg
                     ></span>
                     <span
-                        ><span class="step-title">2. 접수 방식</span
-                        ><span class="step-desc"
-                            >픽업 또는 방문 접수 선택</span
-                        ></span
+                        ><span class="step-title">2. 접수 방식</span</span
                     >
                 </button>
                 <button class="step" data-step="3" type="button">
@@ -92,10 +86,7 @@
                             <circle cx="12" cy="7" r="4" /></svg
                     ></span>
                     <span
-                        ><span class="step-title">3. 개인 정보</span
-                        ><span class="step-desc"
-                            >예약자 및 결제 정보</span
-                        ></span
+                        ><span class="step-title">3. 개인 정보</span</span
                     >
                 </button>
             </nav>
@@ -103,24 +94,15 @@
             <section class="screen active" id="screen1">
                 <div class="layout">
                     <div class="card">
-                        <h1>Step 1: 물건 정보를 입력해 주세요</h1>
-                        <p class="desc">
-                            배송할 물건의 크기와 수량을 등록해 주세요. 소형
-                            화물과 박스 배송에 맞춘 간편 예약입니다.
-                        </p>
+                        <h1>물건 정보를 입력해 주세요</h1>
                         <hr class="sep" />
 
                         <div class="section-block section-box">
-                            <div class="section-label">박스 정보</div>
-                            <div class="section-hint">
-                                박스마다 가로·세로·높이와 실중량을 입력해
-                                주세요. 최대 50개까지 추가할 수 있습니다.
-                                운임은 부피 무게(가로×세로×높이÷6000)와
-                                실중량 중 큰 값으로 계산되며, 실측 후 달라질
-                                수 있습니다.<br />물품은 '옷' 대신 '바지',
-                                '티셔츠'처럼 구체적으로 적어 주세요. 신상품은
-                                상품 URL이 꼭 필요합니다.
+                            <div class="section-label">
+                                박스 정보
+                                <span class="tip"><button class="tip-btn" type="button" aria-label="운임 계산 방식 설명"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.5h.01"/></svg></button><span class="tip-body" role="tooltip">운임은 부피 무게(가로×세로×높이÷6000)와 실중량 중 큰 값으로 계산됩니다. 입고 후 실측한 값으로 확정되므로 달라질 수 있습니다.</span></span>
                             </div>
+                            <div class="section-hint">품명은 '옷' 대신 '바지', '티셔츠'처럼 구체적으로 적어 주세요.</div>
                             <div class="box-list" id="boxList"></div>
                             <div class="box-list-footer">
                                 <button
@@ -156,11 +138,7 @@
             <section class="screen" id="screen2">
                 <div class="layout">
                     <div class="card">
-                        <h1>Step 2: 접수 방식을 선택해 주세요</h1>
-                        <p class="desc">
-                            원하시는 접수 방식을 선택하고, 아래에서 희망
-                            날짜와 시간을 정해 주세요.
-                        </p>
+                        <h1>접수 방식을 선택해 주세요</h1>
                         <hr class="sep" />
                         <div class="section-block">
                             <div class="section-label">접수 방식</div>
@@ -418,11 +396,7 @@
                 <div class="layout">
                     <div class="card" id="personalCard">
                         <div id="personalForm">
-                            <h1>Step 3: 예약자 정보를 입력해 주세요</h1>
-                            <p class="desc">
-                                신청인 주소와 픽업·배송지, 예약 확인에 필요한
-                                최소한의 정보만 수집합니다.
-                            </p>
+                            <h1>예약자 정보를 입력해 주세요</h1>
                             <hr class="sep" />
                             <div class="section-block section-box">
                                 <div class="section-label">
@@ -1428,8 +1402,7 @@
                         .join("");
                     const calc = row.querySelector("[data-calc]");
                     if (!isBoxComplete(box)) {
-                        calc.textContent =
-                            "치수와 실중량을 입력하면 운임이 계산됩니다";
+                        calc.textContent = "";
                         calc.classList.remove("ready");
                         return;
                     }
