@@ -1359,17 +1359,19 @@ function detailRow(label, value) {
 function renderRequestDetailBody(r) {
   const p = r.payload || {};
   if (r.type === 'moving') {
+    // 공개 견적 페이지에서 누구나 넣을 수 있는 값이므로 전부 escapeHtml을 거친다.
+    const e = escapeHtml;
     const timeLabel = { morning: '오전 (08:00~12:00)', afternoon: '오후 (12:00~17:00)', evening: '저녁 (17:00~20:00)' }[p.movingTime] || p.movingTime;
     return [
-      detailRow('이사 예정일', p.movingDate && `${p.movingDate} · ${timeLabel || ''}`),
-      detailRow('이삿짐', (p.items || []).map(i => `${i.name} ${i.qty}개`).join(', ')),
-      detailRow('차량', p.vanModel),
-      detailRow('작업 인원', p.team && `${p.team}명`),
-      detailRow('상차지', p.originAddress && `${p.originAddress} (${p.originFloor}층 · 엘베 ${p.originElevator === 'yes' ? '있음' : '없음'})`),
-      detailRow('하차지', p.destTBD ? '미정' : (p.destAddress && `${p.destAddress} (${p.destFloor}층 · 엘베 ${p.destElevator === 'yes' ? '있음' : '없음'})`)),
+      detailRow('이사 예정일', p.movingDate && e(`${p.movingDate} · ${timeLabel || ''}`)),
+      detailRow('이삿짐', e((p.items || []).map(i => `${i.name} ${i.qty}개`).join(', '))),
+      detailRow('차량', e(p.vanModel)),
+      detailRow('작업 인원', p.team && e(`${p.team}명`)),
+      detailRow('상차지', p.originAddress && e(`${p.originAddress} (${p.originFloor}층 · 엘베 ${p.originElevator === 'yes' ? '있음' : '없음'})`)),
+      detailRow('하차지', p.destTBD ? '미정' : (p.destAddress && e(`${p.destAddress} (${p.destFloor}층 · 엘베 ${p.destElevator === 'yes' ? '있음' : '없음'})`))),
       detailRow('견적 금액', p.total != null && `€${Number(p.total).toFixed(2)}`),
-      detailRow('견적서 번호', p.invoiceNo),
-      detailRow('이메일', r.customer_email),
+      detailRow('견적서 번호', e(p.invoiceNo)),
+      detailRow('이메일', e(r.customer_email)),
     ].filter(Boolean).join('');
   }
   // delivery — 고객 입력값이 그대로 들어오므로 전부 escapeHtml을 거친다.
@@ -2221,7 +2223,7 @@ function openDayDetailModal(dateStr) {
     const myAssign = assignedJob.assignments.find(a => a.userId === currentUserId);
     jobInfoEl.innerHTML = `
       <div style="font-size: 13px; font-weight: 700; margin-bottom: 4px;">${escapeHtml(assignedJob.customerName)} 님 ${assignedJob.jobType === 'delivery' ? '배송' : '이사/운송'}</div>
-      <div style="font-size: 12.5px; color: var(--text-secondary);">배정 시간: ${myAssign.startTime} · ${assignedJob.originAddress} → ${assignedJob.destAddress}</div>
+      <div style="font-size: 12.5px; color: var(--text-secondary);">배정 시간: ${escapeHtml(myAssign.startTime)} · ${escapeHtml(assignedJob.originAddress)} → ${escapeHtml(assignedJob.destAddress)}</div>
     `;
     renderDayDetailWorklog(dateStr, assignedJob, currentUserId);
   } else {
