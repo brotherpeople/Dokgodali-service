@@ -1482,8 +1482,9 @@ function mapRequestToScheduleFields(r) {
     customer_phone: r.customer_phone,
     job_date: p.scheduleDate || null,
     overall_time_range: p.scheduleTime || '',
-    origin_address: [p.pickupAddress || p.customerAddress || '', p.pickupKlingel && `(Klingel: ${p.pickupKlingel})`].filter(Boolean).join(' '),
-    origin_spec: p.pickupRegion ? `${p.methodName || ''} (${`${p.pickupRegion.zip || ''} ${p.pickupRegion.city || ''}`.trim()})` : (p.methodName || ''),
+    origin_address: p.pickupAddress || p.customerAddress || '',
+    // 초인종 이름은 주소에 붙이면 지도 검색이 빗나가므로 상세 칸에 둔다.
+    origin_spec: [p.pickupRegion ? `${p.methodName || ''} (${`${p.pickupRegion.zip || ''} ${p.pickupRegion.city || ''}`.trim()})` : (p.methodName || ''), p.pickupKlingel && `Klingel: ${p.pickupKlingel}`].filter(Boolean).join(' · '),
     dest_address: p.deliveryUndecided ? '미정' : `${p.deliveryZip || ''} ${p.deliveryAddress || ''}`.trim(),
     dest_spec: p.deliveryUndecided ? '' : `수취인 ${p.recipientNameKo || ''} (${p.recipientPhone || ''})`,
     required_workers: 1,
