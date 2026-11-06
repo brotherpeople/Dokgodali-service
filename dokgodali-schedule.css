@@ -572,6 +572,19 @@
   .request-detail-row { display: contents; }
   .request-detail-row span { color: var(--text-secondary); }
   .request-detail-row strong { font-weight: 600; }
+  .request-detail-full { grid-column: 1 / -1; }
+  .request-edit-badge { margin-left: 6px; font-size: 10.5px; }
+  .request-edited-card { margin-bottom: 14px; padding: 14px; border: 1px solid #f5c98a; background: #fffbeb; }
+  .request-edited-sub { display: block; margin-top: 2px; font-size: 12px; font-weight: 500; color: var(--text-secondary); }
+  .request-diff-title { margin-bottom: 6px; font-size: 12px; font-weight: 700; color: #92400e; }
+  .request-diff { display: grid; grid-template-columns: 110px 1fr 1fr; gap: 4px 10px; margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: #fff; border: 1px solid var(--border); font-size: 12px; }
+  .request-diff-label { color: var(--text-secondary); }
+  .request-diff-before { color: var(--text-muted); text-decoration: line-through; word-break: break-word; }
+  .request-diff-after { font-weight: 600; word-break: break-word; }
+  .request-diff-before em, .request-diff-after em { font-style: normal; color: var(--text-muted); }
+  .request-diff-empty { margin-top: 8px; font-size: 12px; color: var(--text-muted); }
+  .request-quote-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--text-secondary); }
+  .detail-edit-warning { margin-bottom: 6px; padding: 8px 10px; border-radius: 8px; background: #fffbeb; color: #92400e; font-size: 12.5px; }
 
   /* 관리자 대시보드: 숫자 카드 3개 (마지막 칸은 이번 달 매출) */
   .dash-kpis { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr); gap: 8px; margin-bottom: 10px; }

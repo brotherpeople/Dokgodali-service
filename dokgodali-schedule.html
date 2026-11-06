@@ -1300,9 +1300,123 @@ async function submitRejectWorklog(id) {
   renderApp();
 }
 
+// ---------- 고객 수정 링크로 바뀐 요청 (docs/superpowers/plans/2026-11-06-delivery-request-edit-link.md)
+// payload_before_edit = 관리자가 마지막으로 확인한 내용. 고객이 고치면 채워지고, 관리자가 확인하면 비운다.
+const isEditUnreviewed = r => r.type === 'delivery' && r.payload_before_edit != null && r.status !== 'rejected';
+const REQUEST_DIFF_FIELDS = [
+  ['물건', p => (p.boxes ? deliveryNotes({ payload: p }) : '').replace(/\n/g, ' / ')],
+  ['예상 배송비', p => (p.estimatedTotal != null ? `€${Number(p.estimatedTotal).toFixed(2)}` : '')],
+  ['접수 방식', p => p.methodName || ''],
+  ['희망 일시', p => [p.scheduleDate, p.scheduleTime].filter(Boolean).join(' ')],
+  ['타지역 픽업', p => (p.pickupRegion ? `${p.pickupRegion.zip || ''} ${p.pickupRegion.city || ''}`.trim() : '')],
+  ['신청인', p => [p.customerName, p.customerNameEn].filter(Boolean).join(' / ')],
+  ['연락처', p => [p.customerPhone, p.customerEmail, p.kakaoId && `카카오 ${p.kakaoId}`].filter(Boolean).join(' · ')],
+  ['신청인 주소', p => p.customerAddress || ''],
+  ['픽업지', p => [p.pickupAddress, p.pickupKlingel && `Klingel: ${p.pickupKlingel}`].filter(Boolean).join(' · ')],
+  ['배송지', p => (p.deliveryUndecided ? '미정' : [`${p.deliveryZip || ''} ${p.deliveryAddress || ''}`.trim(), p.deliveryAddressEn].filter(Boolean).join(' / '))],
+  ['수취인', p => (p.deliveryUndecided ? '' : [p.recipientNameKo, p.recipientNameEn, p.recipientPhone, p.recipientEmail].filter(Boolean).join(' · '))],
+  ['개인통관고유부호', p => (p.deliveryUndecided ? '' : p.customsCode || '')],
+  ['통관 구분', p => ({ ecommerce: '전자상거래', general: '일반통관' }[p.customsType] || p.customsType || '')],
+  ['이사화물', p => [{ none: '해당 없음', moving: '이사화물', import: '반입 건' }[p.movingStatus] || '', p.entryDate && `입국 ${p.entryDate}`].filter(Boolean).join(' · ')],
+  ['촬영 동의', p => (p.mediaConsent == null ? '' : p.mediaConsent ? '동의' : '미동의')],
+];
+function requestDiff(before, after) {
+  return REQUEST_DIFF_FIELDS
+    .map(([label, f]) => [label, String(f(before || {}) || ''), String(f(after || {}) || '')])
+    .filter(([, a, b]) => a !== b);
+}
+function renderRequestDiff(r) {
+  const rows = requestDiff(r.payload_before_edit, r.payload);
+  if (!rows.length) return '<div class="request-diff-empty">바뀐 항목이 없습니다 (같은 내용으로 다시 저장됨).</div>';
+  return `<div class="request-diff">${rows.map(([label, a, b]) => `
+    <div class="request-diff-label">${escapeHtml(label)}</div>
+    <div class="request-diff-before">${escapeHtml(a) || '<em>없음</em>'}</div>
+    <div class="request-diff-after">${escapeHtml(b) || '<em>없음</em>'}</div>`).join('')}</div>`;
+}
+const editedLabel = r => (r.edit_count ? `고객 수정 ${r.edit_count}회${r.edited_at ? ' · ' + new Date(r.edited_at).toLocaleString('ko-KR') : ''}` : '');
+// 견적서 발행 표시: 발행되면 고객은 수정 링크로 더 이상 고칠 수 없다.
+function renderQuoteControl(r) {
+  if (!r || r.type !== 'delivery') return '';
+  return r.quote_issued_at
+    ? `<div class="request-quote-row"><span class="badge badge-gray">견적서 발행됨</span> ${new Date(r.quote_issued_at).toLocaleString('ko-KR')} · 고객 수정 잠김 <button class="btn btn-secondary btn-sm" onclick="setQuoteIssued(${jsArg(r.id)}, false)">발행 취소</button></div>`
+    : `<div class="request-quote-row">견적서 발행 전 · 고객이 수정 링크로 고칠 수 있음 <button class="btn btn-secondary btn-sm" onclick="setQuoteIssued(${jsArg(r.id)}, true)">견적서 발행 표시</button></div>`;
+}
+async function setQuoteIssued(id, issued) {
+  if (!confirm(issued ? '견적서 발행을 표시하면 고객은 수정 링크로 신청 내용을 고칠 수 없습니다. 표시할까요?' : '견적서 발행 표시를 취소하면 고객이 다시 수정할 수 있습니다. 취소할까요?')) return;
+  const { error } = await sb.from('requests').update({ quote_issued_at: issued ? new Date().toISOString() : null }).eq('id', id);
+  if (error) return alert('견적서 발행 표시 오류: ' + error.message);
+  await loadDataFromSupabase();
+  renderApp();
+  if (state.jobDetail) renderJobDetailModal();
+  showToast(issued ? '견적서 발행을 표시했습니다.' : '견적서 발행 표시를 취소했습니다.');
+}
+async function acknowledgeRequestEdit(id) {
+  const { error } = await sb.from('requests').update({ payload_before_edit: null }).eq('id', id);
+  if (error) return alert('확인 처리 오류: ' + error.message);
+  await loadDataFromSupabase();
+  renderApp();
+  showToast('수정 내용을 확인했습니다. 스케줄은 바꾸지 않았습니다.');
+}
+// 고객이 바꾼 내용을 연결된 스케줄에 반영한다. 크루 배정·차량·필요 인원은 그대로 둔다.
+async function applyRequestEditToSchedule(id) {
+  const r = state.requests.find(x => x.id === id);
+  if (!r || !r.schedule_id) return;
+  const sch = state.schedules.find(s => s.id === r.schedule_id);
+  const f = mapRequestToScheduleFields(r);
+  const dateChanged = sch && f.job_date && sch.jobDate !== f.job_date;
+  const crewWarn = dateChanged && (sch.assignments || []).length
+    ? `\n\n⚠ 날짜가 바뀝니다 (${sch.jobDate} → ${f.job_date}). 배정된 크루의 일정을 확인하세요.` : '';
+  if (!confirm(`고객이 수정한 내용으로 스케줄을 바꿉니다.\n크루 배정은 그대로 유지됩니다.${crewWarn}`)) return;
+  const fields = {
+    quote_price: f.quote_price, customer_name: f.customer_name, customer_phone: f.customer_phone,
+    job_date: f.job_date, overall_time_range: f.overall_time_range,
+    origin_address: f.origin_address, origin_spec: f.origin_spec,
+    dest_address: f.dest_address, dest_spec: f.dest_spec, notes: f.notes,
+  };
+  // 하루짜리 작업은 종료일도 함께 옮긴다.
+  if (dateChanged && (!sch.endDate || sch.endDate === sch.jobDate || sch.endDate < f.job_date)) fields.end_date = f.job_date;
+  if (sch) {
+    const { error } = await sb.from('schedules').update(fields).eq('id', sch.id);
+    if (error) return alert('스케줄 반영 오류: ' + error.message);
+  }
+  const { error } = await sb.from('requests').update({ payload_before_edit: null }).eq('id', id);
+  if (error) return alert('확인 처리 오류: ' + error.message);
+  await loadDataFromSupabase();
+  renderApp();
+  broadcastChange();
+  showToast(crewWarn ? '스케줄에 반영했습니다. 바뀐 날짜에 맞춰 크루 일정을 확인하세요.' : '스케줄에 반영했습니다.');
+}
+function renderEditedRequestsSection() {
+  const edited = state.requests
+    .filter(r => isEditUnreviewed(r) && r.status === 'confirmed')
+    .sort((a, b) => String(a.edited_at).localeCompare(String(b.edited_at)));
+  if (!edited.length) return '';
+  return `
+  <div class="card request-edited-card">
+    <div class="card-title">수정된 요청 <span class="badge badge-warning">${edited.length}</span>
+      <span class="request-edited-sub">확정 후 고객이 수정 링크로 고친 요청입니다. 스케줄에 반영하거나 확인만 해 주세요.</span></div>
+    ${edited.map(r => `
+      <div class="request-pending-item">
+        <div class="request-pending-top">
+          <div>
+            <span class="request-pending-type">배송</span>
+            <span style="margin-left:6px; font-weight:700;">${escapeHtml(r.customer_name || '-')}</span>
+            <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">${escapeHtml(editedLabel(r))}${r.schedule_id ? '' : ' · 연결된 스케줄 없음'}</div>
+          </div>
+          <div class="request-pending-actions">
+            ${r.schedule_id ? `<button class="btn btn-primary btn-sm" onclick="applyRequestEditToSchedule(${jsArg(r.id)})">스케줄에 반영</button>` : ''}
+            <button class="btn btn-secondary btn-sm" onclick="acknowledgeRequestEdit(${jsArg(r.id)})">확인만</button>
+          </div>
+        </div>
+        ${renderRequestDiff(r)}
+      </div>`).join('')}
+  </div>`;
+}
+
 function renderAdminRequestsBadge() {
   const badge = document.getElementById('admin-requests-badge');
-  const pendingCount = state.requests.filter(r => r.status === 'pending').length;
+  // 대기 중 요청 + 확정 후 고객이 고쳐 확인이 필요한 요청
+  const pendingCount = state.requests.filter(r => r.status === 'pending' || (isEditUnreviewed(r) && r.status === 'confirmed')).length;
   badge.textContent = pendingCount;
   badge.classList.toggle('hidden', pendingCount === 0);
 }
@@ -1311,12 +1425,13 @@ function renderAdminRequestsTab() {
   const list = document.getElementById('admin-requests-pending-list');
   const pending = state.requests.filter(r => r.status === 'pending').sort((a, b) => a.created_at.localeCompare(b.created_at));
 
+  const editedSection = renderEditedRequestsSection();
   if (pending.length === 0) {
-    list.innerHTML = '<div class="worklog-history-empty">확인 대기중인 신규 요청이 없습니다.</div>';
+    list.innerHTML = editedSection + '<div class="worklog-history-empty">확인 대기중인 신규 요청이 없습니다.</div>';
     return;
   }
 
-  list.innerHTML = pending.map(r => {
+  list.innerHTML = editedSection + pending.map(r => {
     const isOpen = state.expandedRequestIds.has(r.id);
     return `
     <div class="request-pending-item" id="request-item-${escapeHtml(r.id)}">
@@ -1324,6 +1439,8 @@ function renderAdminRequestsTab() {
         <div>
           <span class="request-pending-type">${r.type === 'moving' ? '이사' : '배송'}</span>
           <span style="margin-left:6px; font-weight:700;">${escapeHtml(r.customer_name || '-')}</span>
+          ${r.edit_count ? `<span class="badge badge-warning request-edit-badge">수정됨 ${r.edit_count}회</span>` : ''}
+          ${r.quote_issued_at ? '<span class="badge badge-gray request-edit-badge">견적서 발행됨</span>' : ''}
           <span class="request-caret${isOpen ? ' open' : ''}">▾</span>
           <div style="font-size:12px; color:var(--text-secondary); margin-top:3px;">${escapeHtml(r.summary)}</div>
           <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">${escapeHtml(r.customer_phone)} · ${new Date(r.created_at).toLocaleString('ko-KR')}</div>
@@ -1333,7 +1450,7 @@ function renderAdminRequestsTab() {
           <button class="btn btn-secondary btn-sm" onclick="rejectRequest(${jsArg(r.id)})">거절</button>
         </div>
       </div>
-      <div class="request-detail${isOpen ? '' : ' hidden'}" id="request-detail-${escapeHtml(r.id)}">${renderRequestDetailBody(r)}</div>
+      <div class="request-detail${isOpen ? '' : ' hidden'}" id="request-detail-${escapeHtml(r.id)}">${isEditUnreviewed(r) ? `<div class="request-detail-full"><div class="request-diff-title">고객이 바꾼 내용 (${escapeHtml(editedLabel(r))})</div>${renderRequestDiff(r)}</div>` : ''}${renderRequestDetailBody(r)}${r.type === 'delivery' ? `<div class="request-detail-full">${renderQuoteControl(r)}</div>` : ''}</div>
     </div>
   `;
   }).join('');
@@ -1507,7 +1624,7 @@ async function confirmRequest(id) {
   }
 
   const { error: updateError } = await sb.from('requests')
-    .update({ status: 'confirmed', schedule_id: newId, confirmed_at: new Date().toISOString() })
+    .update({ status: 'confirmed', schedule_id: newId, confirmed_at: new Date().toISOString(), payload_before_edit: null })
     .eq('id', id);
   if (updateError) {
     alert('요청 상태 업데이트 오류: ' + updateError.message);
@@ -1873,6 +1990,7 @@ function renderJobDetailModal() {
       </div>`;
   }).join('');
 
+  const linkedRequest = state.requests.find(x => x.schedule_id === sch.id && x.type === 'delivery');
   const short = st !== 'done' && isUnderstaffed(sch) ? ` <span class="badge badge-warning">${assigned.length}/${sch.requiredWorkers}</span>` : '';
   document.getElementById('job-detail-body').innerHTML = `
     ${switcher}
@@ -1895,6 +2013,7 @@ function renderJobDetailModal() {
       ${field('차량', vehicles)}
     </div>
     ${field('현장 메모', escapeHtml(sch.notes))}
+    ${linkedRequest ? `<div class="form-group"><label class="form-label">고객 신청</label>${isEditUnreviewed(linkedRequest) ? '<div class="detail-edit-warning">고객이 신청 내용을 수정했습니다. 신규 요청 탭의 "수정된 요청"에서 확인해 주세요.</div>' : ''}${renderQuoteControl(linkedRequest)}</div>` : ''}
     <div class="detail-crew">
       <label class="form-label">배정 크루 · 근무시간</label>
       ${crewRows || '<div class="detail-value muted">배정 없음</div>'}
