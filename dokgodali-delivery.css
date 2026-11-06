@@ -121,6 +121,13 @@
 .edit-banner { margin: 0 0 16px; padding: 12px 16px; border: 1px solid var(--accent-border); border-radius: 10px; background: var(--accent-light); color: var(--accent-dark); font-size: 13.5px; line-height: 1.5; word-break: keep-all; }
 .edit-banner-error { border-color: #fecaca; background: #fef2f2; color: var(--red); }
 .edit-banner a { margin-left: 6px; color: inherit; font-weight: 700; text-decoration: underline; }
+/* 완료 화면: 신청 수정 링크 */
+.edit-link-box { max-width: 480px; margin: 20px auto 0; padding: 14px 16px; border: 1px solid var(--border); border-radius: 10px; background: #fafbfe; text-align: left; }
+.edit-link-title { margin-bottom: 8px; font-size: 13px; font-weight: 800; }
+.edit-link-row { display: flex; gap: 8px; }
+.edit-link-row .text-input { flex: 1; min-width: 0; font-size: 12.5px; }
+.edit-link-row .btn { flex: none; padding: 10px 14px; }
+.edit-link-hint { margin-top: 8px; color: var(--muted); font-size: 12px; line-height: 1.5; word-break: keep-all; }
 /* 주의사항: 놓치면 안 되는 안내는 말풍선에 숨기지 않고 항상 보이게 둔다 */
 .caution { margin-top: 12px; padding: 12px 14px; border: 1px solid #f5c98a; border-left: 4px solid var(--amber); border-radius: 9px; background: var(--amber-light); color: #7c4a03; font-size: 12.5px; line-height: 1.6; word-break: keep-all; }
 .caution-title { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; color: #92400e; font-size: 13px; font-weight: 800; }

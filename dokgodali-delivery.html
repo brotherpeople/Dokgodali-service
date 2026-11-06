@@ -982,14 +982,22 @@
                                     <path d="m5 12 4 4L19 6" />
                                 </svg>
                             </div>
-                            <h2>배송 예약 요청이 접수되었습니다</h2>
-                            <p>
+                            <h2 id="completeTitle">배송 예약 요청이 접수되었습니다</h2>
+                            <p id="completeText">
                                 담당자가 물건과 경로를 확인한 뒤, 입력하신
                                 연락처로 픽업 가능 시간과 최종 결제 안내를
                                 보내드릴게요.
                             </p>
                             <div class="order-code" id="orderCode">
                                 배송 요청 번호 D-000000
+                            </div>
+                            <div class="edit-link-box">
+                                <div class="edit-link-title">신청 수정 링크</div>
+                                <div class="edit-link-row">
+                                    <input class="text-input" id="editLinkInput" type="text" readonly aria-label="신청 수정 링크" />
+                                    <button class="btn btn-secondary" id="copyEditLink" type="button">복사</button>
+                                </div>
+                                <div class="edit-link-hint">견적서가 발행되기 전까지 이 링크로 신청 내용을 고칠 수 있습니다. 링크를 저장해 두세요.</div>
                             </div>
                             <div class="docs-notice docs-notice-complete" data-moving-docs>
                                     <strong>이삿짐 통관 서류 안내</strong>
@@ -2167,29 +2175,58 @@
                 btn.textContent = "전송 중...";
                 $("#submitError").classList.remove("visible");
 
-                const requestId = "req-" + Date.now();
                 const payload = buildPayload();
-
-                const { error } = await sb.from("requests").insert({
-                    id: requestId,
-                    type: "delivery",
-                    customer_name: $("#customerName").value.trim(),
-                    customer_phone: $("#customerPhone").value.trim(),
-                    customer_email: $("#customerEmail").value.trim(),
-                    summary: `${buildCargoSummary()} · ${methodData[state.method].name} · ${payload.scheduleDate}`,
-                    payload,
-                });
+                const summary = `${buildCargoSummary()} · ${methodData[state.method].name} · ${payload.scheduleDate}`;
+                let requestId, editKey, failure;
+                try {
+                    if (state.edit) {
+                        ({ id: requestId, key: editKey } = state.edit);
+                        const { data, error } = await sb.rpc("update_request", {
+                            p_id: requestId,
+                            p_key: editKey,
+                            p_payload: payload,
+                            p_customer_name: payload.customerName,
+                            p_customer_phone: payload.customerPhone,
+                            p_customer_email: payload.customerEmail,
+                            p_summary: summary,
+                        });
+                        if (error) failure = error.message;
+                        else if (data && data.error) failure = EDIT_ERRORS[data.error] || data.error;
+                    } else {
+                        requestId = "req-" + Date.now();
+                        editKey = newEditKey();
+                        const { error } = await sb.from("requests").insert({
+                            id: requestId,
+                            type: "delivery",
+                            customer_name: payload.customerName,
+                            customer_phone: payload.customerPhone,
+                            customer_email: payload.customerEmail,
+                            summary,
+                            payload,
+                            edit_key: editKey,
+                        });
+                        if (error) failure = error.message;
+                    }
+                } catch (e) {
+                    failure = e.message;
+                }
 
                 btn.disabled = false;
-                btn.textContent = "배송 예약 요청하기";
+                btn.textContent = state.edit ? "수정 내용 저장" : "배송 예약 요청하기";
 
-                if (error) {
+                if (failure) {
                     $("#submitError").textContent =
-                        "전송에 실패했습니다: " + error.message;
+                        (state.edit ? "저장에 실패했습니다: " : "전송에 실패했습니다: ") + failure;
                     $("#submitError").classList.add("visible");
                     return;
                 }
 
+                if (state.edit) {
+                    $("#completeTitle").textContent = "수정 내용이 저장되었습니다";
+                    $("#completeText").textContent = "담당자가 바뀐 내용을 확인한 뒤 연락드리겠습니다.";
+                    $("#editBanner").classList.add("hidden");
+                }
+                $("#editLinkInput").value = editLinkFor(requestId, editKey);
                 $("#personalForm").style.display = "none";
                 $("#completeView").classList.add("show");
                 $("#orderCode").textContent = `배송 요청 번호 ${requestId}`;
@@ -2350,6 +2387,26 @@
             }
 
             // ---------- 수정 링크 (?edit=요청번호&key=열쇠값)
+            // 열쇠값: 추측할 수 없는 무작위 UUID. 서버 함수가 32자 미만은 거부한다.
+            const newEditKey = () =>
+                crypto.randomUUID
+                    ? crypto.randomUUID()
+                    : [...crypto.getRandomValues(new Uint8Array(16))]
+                          .map((n) => n.toString(16).padStart(2, "0"))
+                          .join("");
+            const editLinkFor = (id, key) =>
+                `${location.href.split(/[?#]/)[0]}?edit=${encodeURIComponent(id)}&key=${encodeURIComponent(key)}`;
+            $("#copyEditLink").addEventListener("click", async () => {
+                const input = $("#editLinkInput");
+                try {
+                    await navigator.clipboard.writeText(input.value);
+                } catch (e) {
+                    input.select();
+                    document.execCommand("copy");
+                }
+                $("#copyEditLink").textContent = "복사됨";
+                setTimeout(() => ($("#copyEditLink").textContent = "복사"), 1500);
+            });
             const editParams = new URLSearchParams(location.search);
             state.edit = editParams.get("edit") && editParams.get("key")
                 ? { id: editParams.get("edit"), key: editParams.get("key") }
