@@ -100,9 +100,15 @@
                         <div class="section-block section-box">
                             <div class="section-label">
                                 박스 정보
-                                <span class="tip"><button class="tip-btn" type="button" aria-label="운임 계산 방식 설명"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.5h.01"/></svg></button><span class="tip-body" role="tooltip">운임은 부피 무게(가로×세로×높이÷6000)와 실중량 중 큰 값으로 계산됩니다. 입고 후 실측한 값으로 확정되므로 달라질 수 있습니다.</span></span>
+                                <span class="tip"><button class="tip-btn" type="button" aria-label="운임 계산 방식 설명"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.5h.01"/></svg></button><span class="tip-body" role="tooltip">운임은 부피 무게(가로×세로×높이÷6000)와 실중량 중 큰 값으로 계산됩니다.</span></span>
                             </div>
                             <div class="section-hint">품명은 '옷' 대신 '바지', '티셔츠'처럼 구체적으로 적어 주세요.</div>
+                            <div class="caution" role="note">
+                                <div class="caution-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>주의사항</div>
+                                <ul>
+                                    <li>입고 후 실측한 크기·무게로 운임이 확정되므로, 예상 금액과 달라질 수 있습니다.</li>
+                                </ul>
+                            </div>
                             <div class="box-list" id="boxList"></div>
                             <div class="box-list-footer">
                                 <button
@@ -142,7 +148,14 @@
                         <h1>접수 방식을 선택해 주세요</h1>
                         <hr class="sep" />
                         <div class="section-block">
-                            <div class="section-label">접수 방식 <span class="tip tip-start"><button class="tip-btn" type="button" aria-label="픽업 진행 방식 설명"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.5h.01"/></svg></button><span class="tip-body" role="tooltip">픽업은 예약금 입금 확인 후 예약하신 시간에 진행되며, 예약금은 최종 결제에서 차감됩니다. 물건은 차량이 접근할 수 있는 곳에 준비해 주세요. 입고 후 실측한 크기·무게로 금액이 확정되므로 예상 금액과 달라질 수 있습니다.</span></span></div>
+                            <div class="section-label">접수 방식</div>
+                            <div class="caution" role="note">
+                                <div class="caution-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>주의사항</div>
+                                <ul>
+                                    <li>픽업은 예약금 입금이 확인된 뒤 예약하신 시간에 진행되며, 예약금은 최종 결제에서 차감됩니다.</li>
+                                    <li>물건은 차량이 접근할 수 있는 곳에 준비해 주세요.</li>
+                                </ul>
+                            </div>
                             <div class="field-error" id="methodChangedNotice">
                                 결제 금액이 €250 미만이 되어 프리미엄 픽업을
                                 선택할 수 없습니다. 접수 방식을 다시 확인해 주세요.
@@ -881,7 +894,15 @@
                                 </div>
                             </div>
                             <div class="section-block section-box">
-                                <div class="section-label">예약 확인 <span class="tip tip-start"><button class="tip-btn" type="button" aria-label="견적·보관 설명"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.5h.01"/></svg></button><span class="tip-body" role="tooltip">예약 요청 후 입력하신 연락처로 견적과 픽업 시간을 안내해 드립니다. 입고 후 7일까지 무료로 보관하며, 8일째부터 박스당 하루 €1의 보관비가 붙습니다. 도착 또는 결제 요청 후 60일이 지난 화물은 폐기될 수 있습니다.</span></span></div>
+                                <div class="section-label">예약 확인</div>
+                                <div class="caution" role="note">
+                                    <div class="caution-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>주의사항</div>
+                                    <ul>
+                                        <li>예약 요청 후 입력하신 연락처로 견적과 픽업 시간을 안내해 드립니다.</li>
+                                        <li>입고 후 7일까지 무료로 보관하며, 8일째부터 박스당 하루 €1의 보관비가 붙습니다.</li>
+                                        <li>도착 또는 결제 요청 후 60일이 지난 화물은 폐기될 수 있습니다.</li>
+                                    </ul>
+                                </div>
                                 <details class="docs-notice" data-moving-docs>
                                     <summary><strong>이삿짐 통관 서류 3종을 이메일로 보내 주세요</strong> <span class="more-link">목록 보기</span></summary>
                                     서명한 서류를 스캔해 info@dokgodali.de로
