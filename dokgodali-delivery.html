@@ -91,6 +91,8 @@
                 </button>
             </nav>
 
+            <div class="edit-banner hidden" id="editBanner" role="status"></div>
+            <div id="appScreens">
             <section class="screen active" id="screen1">
                 <div class="layout">
                     <div class="card">
@@ -1007,6 +1009,7 @@
                     <aside class="sidebar-card" id="summary3"></aside>
                 </div>
             </section>
+            </div>
         </main>
 
         <script>
@@ -2165,12 +2168,46 @@
                 $("#submitError").classList.remove("visible");
 
                 const requestId = "req-" + Date.now();
+                const payload = buildPayload();
+
+                const { error } = await sb.from("requests").insert({
+                    id: requestId,
+                    type: "delivery",
+                    customer_name: $("#customerName").value.trim(),
+                    customer_phone: $("#customerPhone").value.trim(),
+                    customer_email: $("#customerEmail").value.trim(),
+                    summary: `${buildCargoSummary()} · ${methodData[state.method].name} · ${payload.scheduleDate}`,
+                    payload,
+                });
+
+                btn.disabled = false;
+                btn.textContent = "배송 예약 요청하기";
+
+                if (error) {
+                    $("#submitError").textContent =
+                        "전송에 실패했습니다: " + error.message;
+                    $("#submitError").classList.add("visible");
+                    return;
+                }
+
+                $("#personalForm").style.display = "none";
+                $("#completeView").classList.add("show");
+                $("#orderCode").textContent = `배송 요청 번호 ${requestId}`;
+                $$(".steps .step").forEach((step) =>
+                    step.classList.add("done"),
+                );
+                window.scrollTo({ top: 0, behavior: "smooth" });
+            });
+
+            // ---------- 폼 ↔ 저장 내용(payload)
+            // payload 형식을 바꾸면 buildPayload와 fillForm을 함께 고친다.
+            function buildPayload() {
                 const subtotal = calcSubtotal();
                 const scheduleDate = $("#pickupDate").value;
                 // 배송지 '미정'이면 체크 전에 적어 둔 배송지·수취인 값을 보내지 않는다.
                 const deliveryValue = (id) =>
                     $("#deliveryUndecided").checked ? "" : $(id).value.trim();
-                const payload = {
+                return {
                     boxes: state.boxes.map((box) => ({
                         ...box,
                         quote: Pricing.quoteBox(toPricingBox(box)),
@@ -2216,7 +2253,10 @@
                         state.method === "dropoff"
                             ? ""
                             : $("#pickupKlingel").value.trim(),
+                    customerName: $("#customerName").value.trim(),
                     customerNameEn: $("#customerNameEn").value.trim(),
+                    customerEmail: $("#customerEmail").value.trim(),
+                    customerPhone: $("#customerPhone").value.trim(),
                     kakaoId: $("#kakaoId").value.trim(),
                     deliveryUndecided: $("#deliveryUndecided").checked,
                     deliveryZip: deliveryValue("#deliveryZip"),
@@ -2241,34 +2281,110 @@
                         : $("#entryDate").value,
                 };
 
-                const { error } = await sb.from("requests").insert({
-                    id: requestId,
-                    type: "delivery",
-                    customer_name: $("#customerName").value.trim(),
-                    customer_phone: $("#customerPhone").value.trim(),
-                    customer_email: $("#customerEmail").value.trim(),
-                    summary: `${buildCargoSummary()} · ${methodData[state.method].name} · ${scheduleDate}`,
-                    payload,
-                });
+            }
+            // 수정 링크로 불러온 payload로 모든 칸을 다시 채운다. 동의 체크는 다시 받는다.
+            function fillForm(p) {
+                const str = (v) => (v === null || v === undefined ? "" : String(v));
+                const setVal = (id, v) => ($(id).value = str(v));
+                state.boxes = (p.boxes && p.boxes.length ? p.boxes : [emptyBox()]).map(
+                    (b) => ({
+                        length: str(b.length),
+                        width: str(b.width),
+                        height: str(b.height),
+                        weight: str(b.weight),
+                        carrier: !!b.carrier,
+                        items: (b.items && b.items.length ? b.items : [emptyItem()]).map(
+                            (it) => {
+                                const item = emptyItem();
+                                Object.keys(item).forEach((k) => {
+                                    if (it[k] === undefined) return;
+                                    item[k] = k === "isNew" ? !!it[k] : str(it[k]);
+                                });
+                                return item;
+                            },
+                        ),
+                    }),
+                );
+                if (methodData[p.method]) state.method = p.method;
+                state.methodTouched = true;
+                const region = p.pickupRegion;
+                setVal("#regionHub", region ? (region.hub || REGION_OTHER) : "");
+                setVal("#regionZip", region && region.zip);
+                setVal("#regionCity", region && !region.hub ? region.city : "");
+                setVal("#pickupDate", p.scheduleDate);
 
-                btn.disabled = false;
-                btn.textContent = "배송 예약 요청하기";
+                const parts = (prefix, v) =>
+                    ["Street", "HouseNo", "Zip", "City"].forEach((name) =>
+                        setVal(`#${prefix}${name}`, v && v[name === "HouseNo" ? "houseNo" : name.toLowerCase()]),
+                    );
+                parts("customer", p.customerAddressParts);
+                $("#sameAsCustomer").checked = p.pickupSameAsCustomer !== false;
+                parts("pickup", p.pickupSameAsCustomer === false ? p.pickupAddressParts : null);
+                setVal("#pickupKlingel", p.pickupKlingel);
+                setVal("#kakaoId", p.kakaoId);
+                $("#deliveryUndecided").checked = !!p.deliveryUndecided;
+                [
+                    "deliveryZip", "deliveryAddress", "deliveryAddressEn",
+                    "recipientNameKo", "recipientNameEn", "recipientPhone",
+                    "recipientEmail", "customsCode",
+                    "customerName", "customerNameEn", "customerEmail", "customerPhone",
+                ].forEach((key) => setVal(`#${key}`, p[key]));
+                const radio = (name, value) =>
+                    $$(`input[name="${name}"]`).forEach((r) => (r.checked = r.value === value));
+                radio("customsType", p.customsType);
+                radio("mediaConsent", p.mediaConsent === true ? "yes" : p.mediaConsent === false ? "no" : "");
+                setVal("#referral", p.referral);
+                setVal("#referralOther", p.referralOther);
+                $("#referralOtherField").classList.toggle("hidden", $("#referral").value !== "other");
+                setVal("#movingStatus", p.movingStatus);
+                updateMovingStatus();
+                if (!$("#entryDate").disabled) setVal("#entryDate", p.entryDate);
+                ["#hazmatCheck", "#packagingCheck", "#privacy"].forEach((id) => ($(id).checked = false));
 
-                if (error) {
-                    $("#submitError").textContent =
-                        "전송에 실패했습니다: " + error.message;
-                    $("#submitError").classList.add("visible");
+                updateSameAddress();
+                updateDeliveryUndecided();
+                renderBoxes();
+                render(); // 접수 방식에 맞는 시간 목록을 먼저 만든 뒤 시간을 넣는다
+                setVal("#pickupTime", p.scheduleTime);
+                render();
+            }
+
+            // ---------- 수정 링크 (?edit=요청번호&key=열쇠값)
+            const editParams = new URLSearchParams(location.search);
+            state.edit = editParams.get("edit") && editParams.get("key")
+                ? { id: editParams.get("edit"), key: editParams.get("key") }
+                : null;
+            const EDIT_ERRORS = {
+                not_found: "수정 링크가 올바르지 않습니다. 메일로 받은 링크를 다시 확인해 주세요.",
+                rejected: "거절된 신청이라 수정할 수 없습니다. 새로 신청해 주세요.",
+                quote_issued: "견적서가 이미 발행되어 링크로는 수정할 수 없습니다. 독고달이(info@dokgodali.de)로 연락해 주세요.",
+                network: "신청 내용을 불러오지 못했습니다. 잠시 후 다시 열어 주세요.",
+            };
+            async function loadForEdit() {
+                const banner = $("#editBanner");
+                banner.classList.remove("hidden");
+                banner.textContent = "신청 내용을 불러오는 중…";
+                $("#appScreens").classList.add("hidden");
+                let result;
+                try {
+                    const { data, error } = await sb.rpc("get_request_for_edit", {
+                        p_id: state.edit.id,
+                        p_key: state.edit.key,
+                    });
+                    result = error ? { error: "network" } : data;
+                } catch (e) {
+                    result = { error: "network" };
+                }
+                if (!result || result.error) {
+                    banner.classList.add("edit-banner-error");
+                    banner.innerHTML = `${escapeText(EDIT_ERRORS[result && result.error] || EDIT_ERRORS.network)} <a href="${location.pathname}">새로 신청하기</a>`;
                     return;
                 }
-
-                $("#personalForm").style.display = "none";
-                $("#completeView").classList.add("show");
-                $("#orderCode").textContent = `배송 요청 번호 ${requestId}`;
-                $$(".steps .step").forEach((step) =>
-                    step.classList.add("done"),
-                );
-                window.scrollTo({ top: 0, behavior: "smooth" });
-            });
+                fillForm(result.payload);
+                banner.innerHTML = `<strong>신청 수정 중</strong> · 요청 번호 ${escapeText(state.edit.id)}${result.status === "confirmed" ? " · 이미 확정된 신청입니다. 수정하면 담당자가 다시 확인합니다." : ""}`;
+                $("#submitOrder").textContent = "수정 내용 저장";
+                $("#appScreens").classList.remove("hidden");
+            }
 
             const tomorrow = new Date();
             tomorrow.setDate(tomorrow.getDate() + 1);
@@ -2292,6 +2408,7 @@
             updateMovingDocs();
             renderBoxes();
             render();
+            if (state.edit) loadForEdit();
         </script>
     </body>
 </html>
