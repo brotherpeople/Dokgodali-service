@@ -1492,54 +1492,101 @@ function renderRequestDetailBody(r) {
     ].filter(Boolean).join('');
   }
   // delivery — 고객 입력값이 그대로 들어오므로 전부 escapeHtml을 거친다.
+  // 맨 위 요약 → 확인할 것 → 박스 → 픽업지·배송지·신청인 → 요금·기타 순으로 묶어 보여준다.
   // 옛 요청은 cargoes(소형/중형/대형), 새 요청은 boxes(박스별 치수·물품)를 보낸다.
   const e = escapeHtml;
-  const euro = n => (n != null && n !== '' ? `€${Number(n).toFixed(2)}` : '');
-  const methodLabel = p.methodName ? `${p.methodName}${p.scheduleDate ? ' · ' + p.scheduleDate : ''}${p.scheduleTime ? ' ' + p.scheduleTime : ''}` : '';
+  const euro = n => (n != null && n !== '' ? `€${Number(n).toFixed(2)}` : '-');
+  const day = d => {
+    if (!d) return '';
+    const t = new Date(d + 'T00:00:00');
+    return isNaN(t) ? d : `${t.getMonth() + 1}/${t.getDate()}(${'일월화수목금토'[t.getDay()]})`;
+  };
+  const CATEGORY = { health: '건강기능식품', formula: '분유', alcohol: '주류' };
   const boxes = p.boxes || [];
+  const t = p.quoteTotals || {};
+  const items = boxes.flatMap(b => b.items || []);
+  const count = pred => boxes.filter(pred).length;
+  const overweight = count(b => b.quote && b.quote.isOverweight);
+  const oversize = count(b => b.quote && b.quote.isOversize);
+  const carriers = count(b => b.carrier);
+  const checks = [
+    overweight && `중량 초과 ${overweight}박스`,
+    oversize && `규격 초과 ${oversize}박스`,
+    carriers && `캐리어 ${carriers}개`,
+    ...[...new Set(items.map(it => CATEGORY[it.category]).filter(Boolean))],
+    items.some(it => it.isNew) && '신상품(URL 확인)',
+    p.movingStatus && p.movingStatus !== 'none' && `${{ moving: '이사화물', import: '반입 건' }[p.movingStatus] || p.movingStatus}${p.entryDate ? `(입국 ${day(p.entryDate)})` : ''}`,
+    p.deliveryUndecided && '배송지 미정',
+  ].filter(Boolean);
+
+  const region = p.pickupRegion ? `${p.pickupRegion.zip || ''} ${p.pickupRegion.city || ''}`.trim() : '';
+  const where = p.method === 'dropoff' ? '' : p.method === 'region' ? `타지역 · ${region}` : (p.pickupAddressParts && p.pickupAddressParts.city) || '';
+  const cargoText = (p.cargoes || []).map(c => `${c.name} ${c.quantity}개`).join(', ');
+  const customsLabel = { ecommerce: '전자상거래', general: '일반통관' }[p.customsType] || p.customsType || '-';
+  const stat = (label, value, sub) => `<div><dt>${label}</dt><dd>${value}${sub ? `<small>${sub}</small>` : ''}</dd></div>`;
+  const summary = `<dl class="rd-summary">
+    ${stat('접수', e([day(p.scheduleDate), p.methodName].filter(Boolean).join(' ') || '-'), e([p.scheduleTime, where].filter(Boolean).join(' · ')))}
+    ${stat('예상 배송비', euro(p.estimatedTotal), '실측 후 확정')}
+    ${stat('화물', boxes.length ? `${boxes.length}박스 · ${e(p.chargeableKg)}kg` : e(cargoText || '-'), boxes.length ? `신고가 ${euro(p.declaredTotal)}` : '')}
+    ${stat('통관', e(customsLabel), p.deliveryUndecided ? '' : e(p.customsCode || '고유부호 없음'))}
+  </dl>`;
+  const checkHtml = checks.length ? `<div class="rd-check"><b>확인 필요</b> · ${e(checks.join(', '))}</div>` : '';
+
+  const link = (url, label) => isHttpUrl(url) ? `<a href="${e(url)}" target="_blank" rel="noopener">${label}</a>` : url ? `${label}: ${e(url)}` : '';
   const boxRows = boxes.map((b, i) => {
     const q = b.quote || {};
-    const flags = [q.isOversize && '규격 초과', q.isOverweight && '중량 초과', b.carrier && '캐리어'].filter(Boolean).join(', ');
-    const items = (b.items || []).map(it => {
-      const extra = [it.brand, it.color, it.size].filter(Boolean).join(' / ');
-      const link = (url, label) => isHttpUrl(url) ? `<a href="${e(url)}" target="_blank" rel="noopener">${label}</a>` : url ? `${label}: ${e(url)}` : '';
-      const links = [link(it.productUrl, '상품'), link(it.imageUrl, '이미지')].filter(Boolean).join(' ');
-      const category = { health: '건강기능식품', formula: '분유', alcohol: '주류' }[it.category];
-      return `${category ? `[${category}] ` : ''}${e(it.nameEn)}${extra ? ` (${e(extra)})` : ''} ×${e(it.quantity)} · ${euro(it.unitPrice)}${it.isNew ? ' · 신상품' : ''}${links ? ' · ' + links : ''}`;
+    const flags = [q.isOverweight && '중량 초과', q.isOversize && '규격 초과', b.carrier && '캐리어'].filter(Boolean).join(', ');
+    const itemLines = (b.items || []).map(it => {
+      const extra = [it.brand, it.color, it.size].filter(v => v && String(v).trim() !== '-').join(', ');
+      const links = [link(it.productUrl, '상품'), link(it.imageUrl, '이미지')].filter(Boolean).join(' · ');
+      const category = CATEGORY[it.category];
+      return `${category ? `[${category}] ` : ''}${e(it.nameEn)}${extra ? ` (${e(extra)})` : ''} ×${e(it.quantity)}, ${euro(it.unitPrice)}${it.isNew ? ', 신상품' : ''}${links ? ' — ' + links : ''}`;
     }).join('<br>');
-    return detailRow(`박스 ${i + 1}`, `${e(b.length)}×${e(b.width)}×${e(b.height)}cm · ${e(b.weight)}kg → 청구 ${e(q.chargeable)}kg · ${euro(q.total)}${flags ? ` · ${flags}` : ''}${items ? `<br>${items}` : ''}`);
+    return `<tr class="rd-box"><td>${i + 1}. ${e(b.length)}×${e(b.width)}×${e(b.height)}cm${flags ? `<span class="rd-flag">${flags}</span>` : ''}</td><td class="rd-num rd-weight">${e(b.weight)}kg</td><td class="rd-num">${e(q.chargeable)}kg</td><td class="rd-num">${euro(q.total)}</td></tr>`
+      + (itemLines ? `<tr class="rd-items"><td colspan="4">${itemLines}</td></tr>` : '');
   }).join('');
-  const t = p.quoteTotals || {};
-  const surcharges = [['규격 초과', t.oversize], ['중량 초과', t.overweight], ['캐리어', t.carrier], ['멀티 화물', t.multiBox], ['이삿짐 통관', t.movingCustoms], ['픽업비', p.methodFee]]
-    .filter(([, v]) => v > 0).map(([k, v]) => `${k} ${euro(v)}`).join(', ');
-  const region = p.pickupRegion ? `${p.pickupRegion.zip || ''} ${p.pickupRegion.city || ''}`.trim() : '';
-  const customsTypeLabel = { ecommerce: '전자상거래', general: '일반통관' }[p.customsType] || p.customsType;
-  const referral = p.referral === 'other' ? `기타: ${p.referralOther || ''}` : p.referral;
-  return [
-    detailRow('화물', e((p.cargoes || []).map(c => `${c.name} ${c.quantity}개`).join(', '))),
-    boxes.length ? detailRow('박스 합계', `${boxes.length}개 · 청구 ${e(p.chargeableKg)}kg · 신고가 ${euro(p.declaredTotal)}`) : '',
-    boxRows,
-    detailRow('접수 방식', e(methodLabel)),
-    detailRow('타지역 픽업', e(region)),
-    detailRow('예상 배송비', euro(p.estimatedTotal)),
-    detailRow('추가 운임', surcharges),
-    detailRow('신청인 영문 이름', e(p.customerNameEn)),
-    detailRow('신청인 주소', p.pickupSameAsCustomer === false ? e(p.customerAddress) : ''),
-    detailRow('픽업/방문 주소', e(p.pickupAddress)),
-    detailRow('초인종 이름', e(p.pickupKlingel)),
-    detailRow('배송지(한국)', p.deliveryUndecided ? '미정' : e((p.deliveryZip || p.deliveryAddress) && `${p.deliveryZip || ''} ${p.deliveryAddress || ''}`.trim())),
-    p.deliveryUndecided ? '' : detailRow('영문 주소', e(p.deliveryAddressEn)),
-    p.deliveryUndecided ? '' : detailRow('수취인', p.recipientNameKo && e(`${p.recipientNameKo} (${p.recipientNameEn || ''}) · ${p.recipientPhone || ''}${p.recipientEmail ? ' · ' + p.recipientEmail : ''}`)),
-    p.deliveryUndecided ? '' : detailRow('개인통관고유부호', e(p.customsCode)),
-    detailRow('통관 구분', e(customsTypeLabel)),
-    detailRow('이사화물', e({ none: '해당 없음', moving: '이사화물', import: '반입 건' }[p.movingStatus] || '')),
-    detailRow('한국 입국일', e(p.entryDate)),
-    detailRow('카카오톡', e(p.kakaoId)),
-    detailRow('결제 방법', e(p.payment)),
-    detailRow('촬영 동의', p.mediaConsent == null ? '' : (p.mediaConsent ? '동의' : '미동의')),
-    detailRow('유입 경로', e(referral)),
-    detailRow('이메일', e(r.customer_email)),
-  ].filter(Boolean).join('');
+  const boxSection = boxes.length
+    ? `<div class="rd-section"><h5>박스</h5><table class="rd-boxes"><tr><th>규격</th><th class="rd-num rd-weight">실중량</th><th class="rd-num">청구</th><th class="rd-num">운임</th></tr>${boxRows}</table></div>`
+    : '';
+
+  const line = (text, muted = true) => (text ? `<p${muted ? ' class="rd-muted"' : ''}>${text}</p>` : '');
+  const pickup = p.method === 'dropoff'
+    ? line('접수처 방문', false)
+    : line(e(p.pickupAddress || region || '-'), false)
+      + (p.method === 'region' && region && p.pickupAddress ? line(`타지역: ${e(region)}`) : '')
+      + line(p.pickupKlingel && `초인종: ${e(p.pickupKlingel)}`);
+  const recipientName = [p.recipientNameKo, p.recipientNameEn && `(${p.recipientNameEn})`].filter(Boolean).join(' ');
+  const destination = p.deliveryUndecided
+    ? line('미정', false)
+    : line(e(recipientName || '-'), false)
+      + line(e([p.recipientPhone, p.recipientEmail].filter(Boolean).join(' · ')))
+      + line(e(`${p.deliveryZip || ''} ${p.deliveryAddress || ''}`.trim()))
+      + line(e(p.deliveryAddressEn));
+  const applicant = line(e([r.customer_name, p.customerNameEn && `(${p.customerNameEn})`].filter(Boolean).join(' ') || '-'), false)
+    + line(e([r.customer_phone, p.kakaoId && `카톡 ${p.kakaoId}`].filter(Boolean).join(' · ')))
+    + line(e(r.customer_email))
+    + (p.pickupSameAsCustomer === false ? line(e(p.customerAddress)) : '');
+  const people = `<div class="rd-columns">
+    <div class="rd-section"><h5>픽업지</h5>${pickup}</div>
+    <div class="rd-section"><h5>한국 배송지</h5>${destination}</div>
+    <div class="rd-section"><h5>신청인</h5>${applicant}</div>
+  </div>`;
+
+  const feeRows = [['기본 운임', t.base], ['규격 초과', t.oversize], ['중량 초과', t.overweight], ['캐리어', t.carrier], ['멀티 화물', t.multiBox], ['이삿짐 통관', t.movingCustoms], ['픽업비', p.methodFee]]
+    .filter(([, v]) => v > 0)
+    .map(([k, v]) => `<tr><td class="rd-muted">${k}</td><td class="rd-num">${euro(v)}</td></tr>`).join('');
+  const referral = p.referral === 'other' ? `기타(${p.referralOther || ''})` : p.referral;
+  const etc = [
+    p.payment && `결제 ${p.payment}`,
+    p.mediaConsent != null && `촬영 동의 ${p.mediaConsent ? '예' : '아니오'}`,
+    referral && `유입 경로 ${referral}`,
+  ].filter(Boolean).join(' · ');
+  const bottom = p.estimatedTotal == null && !etc ? '' : `<div class="rd-columns rd-columns-2">
+    ${p.estimatedTotal != null ? `<div class="rd-section"><h5>요금 (예상)</h5><table class="rd-fees">${feeRows}<tr class="rd-sum"><td>합계</td><td class="rd-num">${euro(p.estimatedTotal)}</td></tr></table></div>` : ''}
+    ${etc ? `<div class="rd-section"><h5>기타</h5>${line(e(etc))}</div>` : ''}
+  </div>`;
+
+  return `<div class="request-detail-full rd">${summary}${checkHtml}${boxSection}${people}${bottom}</div>`;
 }
 
 // 배송 요청을 스케줄로 옮길 때 현장 메모에 넣는 요약 (크루 WhatsApp 브리핑에도 쓰인다).
