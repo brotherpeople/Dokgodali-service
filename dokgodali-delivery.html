@@ -1442,7 +1442,7 @@
             function renderBoxes() {
                 const canRemove = state.boxes.length > 1;
                 const field = (box, name, label) =>
-                    `<label class="box-field"><span class="box-field-label">${label}</span><input class="text-input" data-field="${name}" type="number" inputmode="decimal" min="0" step="0.1" value="${escapeAttr(box[name])}" /></label>`;
+                    `<label class="box-field"><span class="box-field-label">${label}</span><input class="text-input" data-field="${name}" type="number" inputmode="decimal" min="0" step="${name === "weight" ? "0.5" : "1"}" value="${escapeAttr(box[name])}" /></label>`;
                 $("#boxList").innerHTML = state.boxes
                     .map((box, index) => {
                         const n = index + 1;
@@ -1781,6 +1781,19 @@
                 if (state.boxes.every(isBoxValid))
                     $("#cargoError").classList.remove("visible");
                 render();
+            });
+            $("#boxList").addEventListener("change", (event) => {
+                const input = event.target.closest("[data-field]");
+                if (!input || input.dataset.field === "carrier") return;
+                const value = Number(input.value);
+                if (!(value > 0)) return;
+                const rounded =
+                    input.dataset.field === "weight"
+                        ? Pricing.roundWeight(value)
+                        : Pricing.roundDimensions({ length: value, width: 0, height: 0 })[0];
+                if (rounded === value) return;
+                input.value = rounded;
+                input.dispatchEvent(new Event("input", { bubbles: true }));
             });
             $("#boxList").addEventListener("click", (event) => {
                 const addItem = event.target.closest(".item-add");
