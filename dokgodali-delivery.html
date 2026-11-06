@@ -482,23 +482,64 @@
                                         ></label
                                     >
                                     <div
-                                        class="field-grid pickup-address-field hidden"
+                                        class="field-grid address-grid pickup-address-field hidden"
                                         id="pickupAddressField"
                                     >
-                                        <div class="field-full">
-                                            <div class="field-title">
-                                                픽업지 주소
-                                                <span class="required"
-                                                    >*필수</span
-                                                >
-                                            </div>
+                                    <label>
+                                        <span class="field-title">도로명</span>
+                                        <span class="autocomplete">
                                             <input
                                                 class="text-input"
-                                                id="pickupAddress"
+                                                id="pickupStreet"
                                                 type="text"
-                                                placeholder="예: Musterstr. 1, 10115 Berlin"
+                                                autocomplete="off"
+                                                role="combobox"
+                                                aria-autocomplete="list"
+                                                aria-expanded="false"
+                                                aria-controls="pickupStreetList"
+                                                placeholder="예: Kantstraße"
                                             />
-                                        </div>
+                                            <ul
+                                                class="autocomplete-list hidden"
+                                                id="pickupStreetList"
+                                                role="listbox"
+                                                aria-label="추천 도로명"
+                                            ></ul>
+                                        </span>
+                                    </label>
+                                    <label>
+                                        <span class="field-title">번지</span>
+                                        <input
+                                            class="text-input"
+                                            id="pickupHouseNo"
+                                            type="text"
+                                            autocomplete="off"
+                                            placeholder="예: 12a"
+                                        />
+                                    </label>
+                                    <label>
+                                        <span class="field-title">우편번호</span>
+                                        <input
+                                            class="text-input"
+                                            id="pickupZip"
+                                            type="text"
+                                            inputmode="numeric"
+                                            maxlength="5"
+                                            autocomplete="off"
+                                            placeholder="예: 10623"
+                                        />
+                                    </label>
+                                    <label>
+                                        <span class="field-title">도시</span>
+                                        <input
+                                            class="text-input"
+                                            id="pickupCity"
+                                            type="text"
+                                            autocomplete="off"
+                                            placeholder="예: Berlin"
+                                        />
+                                    </label>
+                                    <div class="field-hint field-full" id="pickupAddressHint" aria-live="polite"></div>
                                     </div>
                                     <div class="field-grid" id="pickupKlingelField">
                                         <div>
@@ -1328,7 +1369,7 @@
                 const pickup = escapeText(
                     ($("#sameAsCustomer").checked
                         ? customerAddressText()
-                        : $("#pickupAddress").value
+                        : addressText("pickup")
                     ).trim(),
                 );
                 const delivery = $("#deliveryUndecided").checked
@@ -1596,17 +1637,17 @@
             const isFilled = (input) =>
                 !!input.value.trim() &&
                 (input.type !== "email" || input.checkValidity()) &&
-                (input.id !== "customerZip" || /^\d{5}$/.test(input.value.trim()));
+                (!["customerZip", "pickupZip"].includes(input.id) || /^\d{5}$/.test(input.value.trim()));
             function validateAddresses() {
                 const inputs = $$(".address-required").filter(
                     (input) => !input.disabled,
                 );
                 // 조건부 칸은 먼저 오류 표시를 지운다 (조건이 풀린 뒤 빨간 테두리가 남지 않게).
-                ["#pickupAddress", "#pickupKlingel"].forEach((id) =>
+                ["#pickupStreet", "#pickupHouseNo", "#pickupZip", "#pickupCity", "#pickupKlingel"].forEach((id) =>
                     $(id).classList.remove("input-error"),
                 );
                 if (!$("#sameAsCustomer").checked)
-                    inputs.push($("#pickupAddress"));
+                    inputs.push(...["#pickupStreet", "#pickupHouseNo", "#pickupZip", "#pickupCity"].map((id) => $(id)));
                 if (state.method !== "dropoff") inputs.push($("#pickupKlingel"));
                 const invalid = inputs.filter((input) => !isFilled(input));
                 inputs.forEach((input) =>
@@ -1677,7 +1718,10 @@
             function updateSameAddress() {
                 const isSame = $("#sameAsCustomer").checked;
                 $("#pickupAddressField").classList.toggle("hidden", isSame);
-                if (isSame) $("#pickupAddress").classList.remove("input-error");
+                if (isSame)
+                    ["#pickupStreet", "#pickupHouseNo", "#pickupZip", "#pickupCity"].forEach((id) =>
+                        $(id).classList.remove("input-error"),
+                    );
                 render();
             }
             // 한국으로 이사가는 게 아니라 박스만 보내는 경우(해당 없음)엔
@@ -1817,15 +1861,20 @@
             const BERLIN_BIAS = { lat: "52.52", lon: "13.405" };
             const placeOf = (props) =>
                 props.city || props.town || props.village || props.locality || "";
-            function customerAddressText() {
-                const street = [$("#customerStreet").value.trim(), $("#customerHouseNo").value.trim()]
-                    .filter(Boolean)
-                    .join(" ");
-                const place = [$("#customerZip").value.trim(), $("#customerCity").value.trim()]
-                    .filter(Boolean)
-                    .join(" ");
+            // prefix: "customer"(신청인 주소) 또는 "pickup"(다른 픽업지)
+            const addressParts = (prefix) => ({
+                street: $(`#${prefix}Street`).value.trim(),
+                houseNo: $(`#${prefix}HouseNo`).value.trim(),
+                zip: $(`#${prefix}Zip`).value.trim(),
+                city: $(`#${prefix}City`).value.trim(),
+            });
+            function addressText(prefix) {
+                const p = addressParts(prefix);
+                const street = [p.street, p.houseNo].filter(Boolean).join(" ");
+                const place = [p.zip, p.city].filter(Boolean).join(" ");
                 return [street, place].filter(Boolean).join(", ");
             }
+            const customerAddressText = () => addressText("customer");
             async function photon(query, layer, limit, signal, extra = {}) {
                 const params = new URLSearchParams({
                     q: query,
@@ -1841,10 +1890,11 @@
                     .map((f) => f.properties)
                     .filter((props) => props.countrycode === "DE");
             }
-            function setupStreetAutocomplete() {
-                const input = $("#customerStreet");
-                const list = $("#customerStreetList");
-                const hint = $("#customerAddressHint");
+            function setupStreetAutocomplete(prefix) {
+                const $f = (name) => $(`#${prefix}${name}`);
+                const input = $f("Street");
+                const list = $f("StreetList");
+                const hint = $f("AddressHint");
                 let timer = null;
                 let controller = null;
                 let suggestions = [];
@@ -1868,18 +1918,18 @@
                 const pick = (index) => {
                     const choice = suggestions[index];
                     input.value = choice.street;
-                    $("#customerZip").value = choice.zip;
-                    $("#customerCity").value = choice.city;
+                    $f("Zip").value = choice.zip;
+                    $f("City").value = choice.city;
                     // "Kantstraße 12"처럼 번지까지 적었으면 번지 칸으로 옮긴다.
-                    if (typedHouseNo && !$("#customerHouseNo").value.trim())
-                        $("#customerHouseNo").value = typedHouseNo;
+                    if (typedHouseNo && !$f("HouseNo").value.trim())
+                        $f("HouseNo").value = typedHouseNo;
                     close();
                     hint.textContent = "";
-                    ["#customerStreet", "#customerZip", "#customerCity", "#customerHouseNo"].forEach((id) =>
-                        $(id).dispatchEvent(new Event("change", { bubbles: true })),
+                    ["Street", "Zip", "City", "HouseNo"].forEach((name) =>
+                        $f(name).dispatchEvent(new Event("change", { bubbles: true })),
                     );
-                    if ($("#customerHouseNo").value.trim()) checkHouseNumber();
-                    else $("#customerHouseNo").focus();
+                    if ($f("HouseNo").value.trim()) checkHouseNumber();
+                    else $f("HouseNo").focus();
                 };
                 const search = async (query) => {
                     controller?.abort();
@@ -1969,8 +2019,8 @@
                 let houseController = null;
                 async function checkHouseNumber() {
                     const street = input.value.trim();
-                    const houseNo = $("#customerHouseNo").value.trim();
-                    const city = $("#customerCity").value.trim();
+                    const houseNo = $f("HouseNo").value.trim();
+                    const city = $f("City").value.trim();
                     if (!street || !houseNo || !city) return (hint.textContent = "");
                     houseController?.abort();
                     houseController = new AbortController();
@@ -1989,7 +2039,7 @@
                             norm(props.housenumber) === norm(houseNo) &&
                             norm(placeOf(props)) === norm(city),
                     );
-                    const zipInput = $("#customerZip");
+                    const zipInput = $f("Zip");
                     if (!match || !match.postcode) {
                         hint.textContent = "지도에서 이 번지를 찾지 못했습니다. 우편번호를 한 번 더 확인해 주세요.";
                         return;
@@ -2005,10 +2055,11 @@
                         hint.textContent = "✓ 지도에서 확인된 주소입니다.";
                     }
                 }
-                $("#customerHouseNo").addEventListener("change", checkHouseNumber);
-                $("#customerCity").addEventListener("change", checkHouseNumber);
+                $f("HouseNo").addEventListener("change", checkHouseNumber);
+                $f("City").addEventListener("change", checkHouseNumber);
             }
-            setupStreetAutocomplete();
+            setupStreetAutocomplete("customer");
+            setupStreetAutocomplete("pickup");
             // 한 번 오류를 보여 준 뒤에는 입력할 때마다 다시 검증해서,
             // 고친 칸의 빨간 테두리와 오류 문구가 바로 사라지게 한다.
             const revalidate = () => {
@@ -2119,16 +2170,14 @@
                         0,
                     ),
                     customerAddress: customerAddressText(),
-                    customerAddressParts: {
-                        street: $("#customerStreet").value.trim(),
-                        houseNo: $("#customerHouseNo").value.trim(),
-                        zip: $("#customerZip").value.trim(),
-                        city: $("#customerCity").value.trim(),
-                    },
+                    customerAddressParts: addressParts("customer"),
                     pickupSameAsCustomer: $("#sameAsCustomer").checked,
                     pickupAddress: $("#sameAsCustomer").checked
                         ? customerAddressText()
-                        : $("#pickupAddress").value.trim(),
+                        : addressText("pickup"),
+                    pickupAddressParts: $("#sameAsCustomer").checked
+                        ? addressParts("customer")
+                        : addressParts("pickup"),
                     pickupKlingel:
                         state.method === "dropoff"
                             ? ""
