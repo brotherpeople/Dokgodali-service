@@ -554,6 +554,7 @@ let state = {
   workLogs: [],
   requests: [],
   expandedRequestIds: new Set(),
+  openRequestSections: new Set(), // '요청id:칸' (diff, boxes, address)
   adminTab: 'dashboard',
   editingScheduleId: null,
   jobDetail: null, // 열려 있는 작업 상세 팝업 { scheduleId, siblings }
@@ -1304,15 +1305,15 @@ async function submitRejectWorklog(id) {
 // payload_before_edit = 관리자가 마지막으로 확인한 내용. 고객이 고치면 채워지고, 관리자가 확인하면 비운다.
 const isEditUnreviewed = r => r.type === 'delivery' && r.payload_before_edit != null && r.status !== 'rejected';
 const REQUEST_DIFF_FIELDS = [
-  ['물건', p => (p.boxes ? deliveryNotes({ payload: p }) : '').replace(/\n/g, ' / ')],
+  ['물건', p => (p.boxes ? `${p.boxes.length}박스 · ${p.chargeableKg ?? '-'}kg / ${p.boxes.flatMap(b => b.items || []).map(it => `${it.nameEn} ×${it.quantity}`).join(', ')}` : '')],
   ['예상 배송비', p => (p.estimatedTotal != null ? `€${Number(p.estimatedTotal).toFixed(2)}` : '')],
   ['접수 방식', p => p.methodName || ''],
-  ['희망 일시', p => [p.scheduleDate, p.scheduleTime].filter(Boolean).join(' ')],
+  ['일시', p => [p.scheduleDate, p.scheduleTime].filter(Boolean).join(' ')],
   ['타지역 픽업', p => (p.pickupRegion ? `${p.pickupRegion.zip || ''} ${p.pickupRegion.city || ''}`.trim() : '')],
   ['신청인', p => [p.customerName, p.customerNameEn].filter(Boolean).join(' / ')],
-  ['연락처', p => [p.customerPhone, p.customerEmail, p.kakaoId && `카카오 ${p.kakaoId}`].filter(Boolean).join(' · ')],
+  ['연락처', p => [p.customerPhone, p.customerEmail, p.kakaoId && `카톡 ${p.kakaoId}`].filter(Boolean).join(' · ')],
   ['신청인 주소', p => p.customerAddress || ''],
-  ['픽업지', p => [p.pickupAddress, p.pickupKlingel && `Klingel: ${p.pickupKlingel}`].filter(Boolean).join(' · ')],
+  ['픽업지', p => [p.pickupAddress, p.pickupKlingel && `초인종 ${p.pickupKlingel}`].filter(Boolean).join(' · ')],
   ['배송지', p => (p.deliveryUndecided ? '미정' : [`${p.deliveryZip || ''} ${p.deliveryAddress || ''}`.trim(), p.deliveryAddressEn].filter(Boolean).join(' / '))],
   ['수취인', p => (p.deliveryUndecided ? '' : [p.recipientNameKo, p.recipientNameEn, p.recipientPhone, p.recipientEmail].filter(Boolean).join(' · '))],
   ['개인통관고유부호', p => (p.deliveryUndecided ? '' : p.customsCode || '')],
@@ -1327,19 +1328,24 @@ function requestDiff(before, after) {
 }
 function renderRequestDiff(r) {
   const rows = requestDiff(r.payload_before_edit, r.payload);
-  if (!rows.length) return '<div class="request-diff-empty">바뀐 항목이 없습니다 (같은 내용으로 다시 저장됨).</div>';
+  if (!rows.length) return '<div class="request-diff-empty">바뀐 항목 없음</div>';
   return `<div class="request-diff">${rows.map(([label, a, b]) => `
     <div class="request-diff-label">${escapeHtml(label)}</div>
     <div class="request-diff-before">${escapeHtml(a) || '<em>없음</em>'}</div>
     <div class="request-diff-after">${escapeHtml(b) || '<em>없음</em>'}</div>`).join('')}</div>`;
 }
+// 11/6 15:20 처럼 짧게
+const shortDateTime = iso => {
+  const d = new Date(iso);
+  return isNaN(d) ? '' : `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
 const editedLabel = r => (r.edit_count ? `고객 수정 ${r.edit_count}회${r.edited_at ? ' · ' + new Date(r.edited_at).toLocaleString('ko-KR') : ''}` : '');
 // 견적서 발행 표시: 발행되면 고객은 수정 링크로 더 이상 고칠 수 없다.
 function renderQuoteControl(r) {
   if (!r || r.type !== 'delivery') return '';
   return r.quote_issued_at
-    ? `<div class="request-quote-row"><span class="badge badge-gray">견적서 발행됨</span> ${new Date(r.quote_issued_at).toLocaleString('ko-KR')} · 고객 수정 잠김 <button class="btn btn-secondary btn-sm" onclick="setQuoteIssued(${jsArg(r.id)}, false)">발행 취소</button></div>`
-    : `<div class="request-quote-row">견적서 발행 전 · 고객이 수정 링크로 고칠 수 있음 <button class="btn btn-secondary btn-sm" onclick="setQuoteIssued(${jsArg(r.id)}, true)">견적서 발행 표시</button></div>`;
+    ? `<div class="request-quote-row">견적서 발행됨 (${shortDateTime(r.quote_issued_at)}) · 고객 수정 잠김 <button class="btn btn-secondary btn-sm" onclick="setQuoteIssued(${jsArg(r.id)}, false)">발행 취소</button></div>`
+    : `<div class="request-quote-row">견적서 발행 전 <button class="btn btn-secondary btn-sm" onclick="setQuoteIssued(${jsArg(r.id)}, true)">발행 표시</button></div>`;
 }
 async function setQuoteIssued(id, issued) {
   if (!confirm(issued ? '견적서 발행을 표시하면 고객은 수정 링크로 신청 내용을 고칠 수 없습니다. 표시할까요?' : '견적서 발행 표시를 취소하면 고객이 다시 수정할 수 있습니다. 취소할까요?')) return;
@@ -1443,14 +1449,14 @@ function renderAdminRequestsTab() {
           ${r.quote_issued_at ? '<span class="badge badge-gray request-edit-badge">견적서 발행됨</span>' : ''}
           <span class="request-caret${isOpen ? ' open' : ''}">▾</span>
           <div style="font-size:12px; color:var(--text-secondary); margin-top:3px;">${escapeHtml(r.summary)}</div>
-          <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">${escapeHtml(r.customer_phone)} · ${new Date(r.created_at).toLocaleString('ko-KR')}</div>
+          <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">${escapeHtml(r.customer_phone)} · ${shortDateTime(r.created_at)}</div>
         </div>
         <div class="request-pending-actions" onclick="event.stopPropagation()">
           <button class="btn btn-primary btn-sm" onclick="confirmRequest(${jsArg(r.id)})">확정</button>
           <button class="btn btn-secondary btn-sm" onclick="rejectRequest(${jsArg(r.id)})">거절</button>
         </div>
       </div>
-      <div class="request-detail${isOpen ? '' : ' hidden'}" id="request-detail-${escapeHtml(r.id)}">${isEditUnreviewed(r) ? `<div class="request-detail-full"><div class="request-diff-title">고객이 바꾼 내용 (${escapeHtml(editedLabel(r))})</div>${renderRequestDiff(r)}</div>` : ''}${renderRequestDetailBody(r)}${r.type === 'delivery' ? `<div class="request-detail-full">${renderQuoteControl(r)}</div>` : ''}</div>
+      <div class="request-detail${isOpen ? '' : ' hidden'}" id="request-detail-${escapeHtml(r.id)}">${renderRequestDetailBody(r)}${r.type === 'delivery' ? `<div class="request-detail-full">${renderQuoteControl(r)}</div>` : ''}</div>
     </div>
   `;
   }).join('');
@@ -1465,6 +1471,21 @@ function toggleRequestDetail(id) {
     state.expandedRequestIds.add(id);
   }
   renderAdminRequestsTab();
+}
+
+// 상세 안에서 접었다 펼치는 칸 (수정 내용·박스)
+function toggleRequestSection(id, key) {
+  const k = `${id}:${key}`;
+  if (state.openRequestSections.has(k)) state.openRequestSections.delete(k);
+  else state.openRequestSections.add(k);
+  renderAdminRequestsTab();
+}
+function foldSection(r, key, title, meta, body) {
+  const open = state.openRequestSections.has(`${r.id}:${key}`);
+  return `<section class="rd-group rd-fold rd-fold-${key}${open ? ' open' : ''}">
+    <button type="button" class="rd-fold-head" aria-expanded="${open}" onclick="toggleRequestSection(${jsArg(r.id)}, '${key}')"><span class="rd-gtitle">${title}</span><span class="rd-meta">${meta}</span><span class="rd-caret">▾</span></button>
+    ${open ? `<div class="rd-fold-body">${body}</div>` : ''}
+  </section>`;
 }
 
 function detailRow(label, value) {
@@ -1514,23 +1535,27 @@ function renderRequestDetailBody(r) {
     oversize && `규격 초과 ${oversize}박스`,
     carriers && `캐리어 ${carriers}개`,
     ...[...new Set(items.map(it => CATEGORY[it.category]).filter(Boolean))],
-    items.some(it => it.isNew) && '신상품(URL 확인)',
-    p.movingStatus && p.movingStatus !== 'none' && `${{ moving: '이사화물', import: '반입 건' }[p.movingStatus] || p.movingStatus}${p.entryDate ? `(입국 ${day(p.entryDate)})` : ''}`,
+    items.some(it => it.isNew) && '신상품',
+    p.movingStatus && p.movingStatus !== 'none' && `${{ moving: '이사화물', import: '반입 건' }[p.movingStatus] || p.movingStatus}${p.entryDate ? `(입국 ${p.entryDate.slice(5).replace('-', '/').replace(/^0/, '')})` : ''}`,
     p.deliveryUndecided && '배송지 미정',
   ].filter(Boolean);
 
   const region = p.pickupRegion ? `${p.pickupRegion.zip || ''} ${p.pickupRegion.city || ''}`.trim() : '';
-  const where = p.method === 'dropoff' ? '' : p.method === 'region' ? `타지역 · ${region}` : (p.pickupAddressParts && p.pickupAddressParts.city) || '';
   const cargoText = (p.cargoes || []).map(c => `${c.name} ${c.quantity}개`).join(', ');
   const customsLabel = { ecommerce: '전자상거래', general: '일반통관' }[p.customsType] || p.customsType || '-';
   const stat = (label, value, sub) => `<div><dt>${label}</dt><dd>${value}${sub ? `<small>${sub}</small>` : ''}</dd></div>`;
   const summary = `<dl class="rd-summary">
-    ${stat('접수', e([day(p.scheduleDate), p.methodName].filter(Boolean).join(' ') || '-'), e([p.scheduleTime, where].filter(Boolean).join(' · ')))}
-    ${stat('예상 배송비', euro(p.estimatedTotal), '실측 후 확정')}
+    ${stat('접수', e([day(p.scheduleDate), p.methodName].filter(Boolean).join(' ') || '-'), e([p.scheduleTime, p.method === 'region' && region].filter(Boolean).join(' · ')))}
+    ${stat('예상 배송비', euro(p.estimatedTotal))}
     ${stat('화물', boxes.length ? `${boxes.length}박스 · ${e(p.chargeableKg)}kg` : e(cargoText || '-'), boxes.length ? `신고가 ${euro(p.declaredTotal)}` : '')}
     ${stat('통관', e(customsLabel), p.deliveryUndecided ? '' : e(p.customsCode || '고유부호 없음'))}
   </dl>`;
-  const checkHtml = checks.length ? `<div class="rd-check"><b>확인 필요</b> · ${e(checks.join(', '))}</div>` : '';
+  const checkHtml = checks.length ? `<div class="rd-check"><b>확인</b> ${e(checks.join(', '))}</div>` : '';
+
+  const diffRows = isEditUnreviewed(r) ? requestDiff(r.payload_before_edit, r.payload) : null;
+  const diffSection = diffRows
+    ? foldSection(r, 'diff', '수정 내용', diffRows.length ? `${diffRows.length}개 항목` : '바뀐 항목 없음', renderRequestDiff(r))
+    : '';
 
   const link = (url, label) => isHttpUrl(url) ? `<a href="${e(url)}" target="_blank" rel="noopener">${label}</a>` : url ? `${label}: ${e(url)}` : '';
   const boxRows = boxes.map((b, i) => {
@@ -1546,15 +1571,15 @@ function renderRequestDetailBody(r) {
       + (itemLines ? `<tr class="rd-items"><td colspan="4">${itemLines}</td></tr>` : '');
   }).join('');
   const boxSection = boxes.length
-    ? `<div class="rd-section"><h5>박스</h5><table class="rd-boxes"><tr><th>규격</th><th class="rd-num rd-weight">실중량</th><th class="rd-num">청구</th><th class="rd-num">운임</th></tr>${boxRows}</table></div>`
+    ? foldSection(r, 'boxes', '박스', `${boxes.length}개 · 물품 ${items.length}종`, `<table class="rd-boxes"><tr><th>규격</th><th class="rd-num rd-weight">실중량</th><th class="rd-num">청구</th><th class="rd-num">운임</th></tr>${boxRows}</table>`)
     : '';
 
   const line = (text, muted = true) => (text ? `<p${muted ? ' class="rd-muted"' : ''}>${text}</p>` : '');
   const pickup = p.method === 'dropoff'
     ? line('접수처 방문', false)
     : line(e(p.pickupAddress || region || '-'), false)
-      + (p.method === 'region' && region && p.pickupAddress ? line(`타지역: ${e(region)}`) : '')
-      + line(p.pickupKlingel && `초인종: ${e(p.pickupKlingel)}`);
+      + (p.method === 'region' && region && p.pickupAddress ? line(`타지역 ${e(region)}`) : '')
+      + line(p.pickupKlingel && `초인종 ${e(p.pickupKlingel)}`);
   const recipientName = [p.recipientNameKo, p.recipientNameEn && `(${p.recipientNameEn})`].filter(Boolean).join(' ');
   const destination = p.deliveryUndecided
     ? line('미정', false)
@@ -1566,27 +1591,32 @@ function renderRequestDetailBody(r) {
     + line(e([r.customer_phone, p.kakaoId && `카톡 ${p.kakaoId}`].filter(Boolean).join(' · ')))
     + line(e(r.customer_email))
     + (p.pickupSameAsCustomer === false ? line(e(p.customerAddress)) : '');
-  const people = `<div class="rd-columns">
-    <div class="rd-section"><h5>픽업지</h5>${pickup}</div>
-    <div class="rd-section"><h5>한국 배송지</h5>${destination}</div>
-    <div class="rd-section"><h5>신청인</h5>${applicant}</div>
-  </div>`;
+  // 접었을 때: 픽업 도시 → 배송 시·도
+  const fromCity = p.method === 'dropoff' ? '접수처 방문' : (p.pickupAddressParts && p.pickupAddressParts.city) || (p.pickupRegion && p.pickupRegion.city) || '';
+  const toCity = p.deliveryUndecided ? '미정' : String(p.deliveryAddress || '').split(' ')[0];
+  const people = foldSection(r, 'address', '주소', e([fromCity, toCity].filter(Boolean).join(' → ')), `<div class="rd-columns">
+    <div><h5 class="rd-sub">픽업지</h5>${pickup}</div>
+    <div><h5 class="rd-sub">한국 배송지</h5>${destination}</div>
+    <div><h5 class="rd-sub">신청인</h5>${applicant}</div>
+  </div>`);
 
   const feeRows = [['기본 운임', t.base], ['규격 초과', t.oversize], ['중량 초과', t.overweight], ['캐리어', t.carrier], ['멀티 화물', t.multiBox], ['이삿짐 통관', t.movingCustoms], ['픽업비', p.methodFee]]
     .filter(([, v]) => v > 0)
     .map(([k, v]) => `<tr><td class="rd-muted">${k}</td><td class="rd-num">${euro(v)}</td></tr>`).join('');
   const referral = p.referral === 'other' ? `기타(${p.referralOther || ''})` : p.referral;
+  // 결제는 계좌이체뿐이라 표시하지 않는다.
   const etc = [
-    p.payment && `결제 ${p.payment}`,
     p.mediaConsent != null && `촬영 동의 ${p.mediaConsent ? '예' : '아니오'}`,
     referral && `유입 경로 ${referral}`,
   ].filter(Boolean).join(' · ');
-  const bottom = p.estimatedTotal == null && !etc ? '' : `<div class="rd-columns rd-columns-2">
-    ${p.estimatedTotal != null ? `<div class="rd-section"><h5>요금 (예상)</h5><table class="rd-fees">${feeRows}<tr class="rd-sum"><td>합계</td><td class="rd-num">${euro(p.estimatedTotal)}</td></tr></table></div>` : ''}
-    ${etc ? `<div class="rd-section"><h5>기타</h5>${line(e(etc))}</div>` : ''}
-  </div>`;
+  const hasFees = p.estimatedTotal != null;
+  const bottom = !hasFees && !etc ? '' : `<section class="rd-group"><h4 class="rd-gtitle">${hasFees && etc ? '요금 및 기타' : hasFees ? '요금' : '기타'}</h4><div class="rd-columns rd-columns-2">
+    ${hasFees ? `<div><h5 class="rd-sub">요금</h5><table class="rd-fees">${feeRows}<tr class="rd-sum"><td>합계</td><td class="rd-num">${euro(p.estimatedTotal)}</td></tr></table></div>` : ''}
+    ${etc ? `<div><h5 class="rd-sub">기타</h5>${line(e(etc))}</div>` : ''}
+  </div></section>`;
 
-  return `<div class="request-detail-full rd">${summary}${checkHtml}${boxSection}${people}${bottom}</div>`;
+  const overview = `<section class="rd-group"><h4 class="rd-gtitle">개요</h4>${summary}${checkHtml}</section>`;
+  return `<div class="request-detail-full rd">${diffSection}${overview}${boxSection}${people}${bottom}</div>`;
 }
 
 // 배송 요청을 스케줄로 옮길 때 현장 메모에 넣는 요약 (크루 WhatsApp 브리핑에도 쓰인다).
