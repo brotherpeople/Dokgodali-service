@@ -275,7 +275,7 @@
                                             <div class="method-note">베를린 외 지역 방문 픽업</div>
                                         </div>
                                         <div class="method-price">
-                                            창고 기준 1km당 €1<br />(견적 시
+                                            창고 기준 직선거리 1km당 €1<br />(견적 시
                                             산정)
                                         </div>
                                     </div>
@@ -943,7 +943,7 @@
                                         >개인정보 수집·이용 및 배송 약관에 동의합니다. <b class="required">(필수)</b></span
                                     ></label
                                 >
-                                <details class="confirm-more"><summary>내용 보기</summary><p>예약과 배송 안내를 위한 목적 외에는 고객 정보를 사용하지 않습니다. 분실 시 신고가액 기준으로 보상하며, 파손은 수령 후 14일 안에 신청해야 합니다. 품명·수량·금액을 빠뜨리거나 사실과 다르게 신고한 경우 보상받을 수 없습니다.</p></details>
+                                <details class="confirm-more"><summary>내용 보기</summary><p>예약과 배송 안내를 위한 목적 외에는 고객 정보를 사용하지 않습니다. 물품 사진을 첨부하시면 누구나 열 수 있는 공개 링크로 저장되며, 통관·배송 처리를 위해 배송사에 전달됩니다. 분실 시 신고가액 기준으로 보상하며, 파손은 수령 후 14일 안에 신청해야 합니다. 품명·수량·금액을 빠뜨리거나 사실과 다르게 신고한 경우 보상받을 수 없습니다.</p></details>
                                 <div class="field-error" id="personalError">
                                     필수 개인정보(이메일 형식 포함), 통관 구분, 촬영 동의
                                     여부, 위험물·포장 확인, 약관 동의를 모두 확인해
@@ -1104,7 +1104,7 @@
                 },
                 region: {
                     name: "타지역 픽업",
-                    condition: "창고 기준 거리 1km당 €1 (견적 시 산정)",
+                    condition: "창고 기준 직선거리 1km당 €1 (견적 시 산정)",
                 },
                 dropoff: {
                     name: "접수처 방문",
@@ -1121,6 +1121,8 @@
             };
             const PREMIUM_MIN_TOTAL = 250;
             // 프랑크푸르트 허브 노선: 배송비 합계가 기준 이상이면 픽업비 무료.
+            // 11/09 피드백: 화면에는 도시 이름만 보이고 허브 노선·무료 조건은 숨긴다.
+            // 가격 기준은 클라이언트가 아직 정하지 않아(Q7) REGION_FREE_MIN 데이터는 남겨 둔다.
             // TODO(클라이언트 확인) #7: "인근" 범위를 Frankfurt, Marburg, Gießen으로 가정
             const REGION_OTHER = "other";
             const REGION_HUBS = [
@@ -1139,15 +1141,8 @@
                 ["Dessau-Roßlau", "far"],
             ];
             const REGION_FREE_MIN = { near: 70, far: 350 };
-            function regionCondition(subtotal) {
-                const hub = REGION_HUBS.find(
-                    ([city]) => city === $("#regionHub").value,
-                );
-                if (!hub) return methodData.region.condition;
-                const min = REGION_FREE_MIN[hub[1]];
-                return subtotal >= min
-                    ? `허브 노선 픽업비 무료 (€${min} 이상)`
-                    : `허브 노선 €${min} 이상 시 무료, 미만은 1km당 €1`;
+            function regionCondition() {
+                return methodData.region.condition;
             }
             const $ = (selector) => document.querySelector(selector);
             const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -1529,11 +1524,42 @@
                   <div class="item-grid item-grid-urls">
                     <label class="item-new"><input type="checkbox" data-item-field="isNew" ${item.isNew ? "checked" : ""} /><span>신상품입니다 (상품 URL 필요)</span></label>
                     ${input("productUrl", item.isNew ? "상품 URL *" : "상품 URL", `type="url" placeholder="${item.isNew ? "https://" : "신상품 체크 시 입력"}" ${item.isNew ? "" : "disabled"}`)}
-                    ${input("imageUrl", "이미지 URL", 'type="url" placeholder="https://"')}
+                    <div class="item-field item-field-imageUrl"><span class="box-field-label">이미지 URL</span><div class="image-input-row"><input class="text-input" data-item-field="imageUrl" type="url" placeholder="https:// 또는 사진 첨부" value="${escapeAttr(item.imageUrl)}" /><button class="image-upload-btn" type="button" data-upload>사진 첨부</button><input type="file" accept="image/*" hidden data-upload-file /></div><div class="image-upload-status" data-upload-status>${uploadedThumb(item.imageUrl)}</div></div>
                     ${canRemove ? `<button class="item-remove" type="button" aria-label="박스 ${boxNo} 물품 ${i + 1} 삭제">삭제</button>` : ""}
                   </div>
                 </div>`;
             }
+            // 물품 사진 업로드 (sql/storage.sql의 item-images 공개 버킷).
+            // 긴 변 1600px JPEG로 줄여 올린다. 브라우저가 못 여는 형식(HEIC 등)은 원본 그대로 올린다.
+            const IMAGE_BUCKET = "item-images";
+            const IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+            async function uploadItemImage(file) {
+                let blob = file;
+                let ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+                try {
+                    const bitmap = await createImageBitmap(file);
+                    const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+                    const canvas = document.createElement("canvas");
+                    canvas.width = Math.round(bitmap.width * scale);
+                    canvas.height = Math.round(bitmap.height * scale);
+                    canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+                    blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
+                    ext = "jpg";
+                } catch {
+                    blob = file;
+                }
+                if (!blob || blob.size > IMAGE_MAX_BYTES) throw new Error("too_large");
+                const path = `${crypto.randomUUID()}.${ext}`;
+                const { error } = await sb.storage
+                    .from(IMAGE_BUCKET)
+                    .upload(path, blob, { contentType: blob.type || file.type });
+                if (error) throw error;
+                return sb.storage.from(IMAGE_BUCKET).getPublicUrl(path).data.publicUrl;
+            }
+            const uploadedThumb = (url) =>
+                url && url.includes(`/${IMAGE_BUCKET}/`)
+                    ? `<a href="${escapeAttr(url)}" target="_blank" rel="noopener"><img src="${escapeAttr(url)}" alt="첨부한 사진" /></a><span>사진이 첨부되었습니다</span>`
+                    : "";
             // 입력 중에는 박스별 계산 결과 줄만 갱신한다.
             function updateBoxCalcs() {
                 $$("#boxList .box-row").forEach((row, index) => {
@@ -1589,13 +1615,15 @@
                     $("#regionHub").value !== REGION_OTHER,
                 );
                 $("#regionHint").textContent = isRegion
-                    ? regionCondition(calcSubtotal())
+                    ? regionCondition()
                     : "";
                 const isFixed = state.method === "fixed";
                 $("#pickupTime").classList.toggle("hidden", isFixed);
                 $("#pickupTime").disabled = isFixed;
                 if (state.method === "dropoff") {
                     ensureTimeOptions(10 * 60 + 30, 17 * 60);
+                } else if (state.method === "premium") {
+                    ensureTimeOptions(7 * 60, 18 * 60);
                 } else {
                     ensureTimeOptions(7 * 60, 20 * 60);
                 }
@@ -1838,7 +1866,37 @@
                 input.value = rounded;
                 input.dispatchEvent(new Event("input", { bubbles: true }));
             });
+            $("#boxList").addEventListener("change", async (event) => {
+                const fileInput = event.target.closest("[data-upload-file]");
+                if (!fileInput || !fileInput.files[0]) return;
+                const itemRow = fileInput.closest(".item-row");
+                const item =
+                    state.boxes[Number(itemRow.closest(".box-row").dataset.index)]
+                        .items[Number(itemRow.dataset.item)];
+                const status = itemRow.querySelector("[data-upload-status]");
+                const button = itemRow.querySelector("[data-upload]");
+                const urlInput = itemRow.querySelector('[data-item-field="imageUrl"]');
+                button.disabled = true;
+                status.textContent = "사진을 올리는 중…";
+                try {
+                    const url = await uploadItemImage(fileInput.files[0]);
+                    item.imageUrl = url;
+                    urlInput.value = url;
+                    urlInput.classList.remove("input-error");
+                    status.innerHTML = uploadedThumb(url);
+                } catch (error) {
+                    status.innerHTML = `<span class="image-upload-error">${error.message === "too_large" ? "5MB 이하 사진만 올릴 수 있습니다." : "사진을 올리지 못했습니다."} 이미지 URL을 직접 넣어 주셔도 됩니다.</span>`;
+                } finally {
+                    button.disabled = false;
+                    fileInput.value = "";
+                }
+            });
             $("#boxList").addEventListener("click", (event) => {
+                const uploadButton = event.target.closest("[data-upload]");
+                if (uploadButton) {
+                    uploadButton.parentElement.querySelector("[data-upload-file]").click();
+                    return;
+                }
                 const addItem = event.target.closest(".item-add");
                 const removeItem = event.target.closest(".item-remove");
                 if (addItem || removeItem) {
@@ -2464,14 +2522,8 @@
 
             $("#regionHub").append(
                 new Option("선택", ""),
-                ...REGION_HUBS.map(
-                    ([city, zone]) =>
-                        new Option(
-                            `${city} (허브 노선, €${REGION_FREE_MIN[zone]} 이상 무료)`,
-                            city,
-                        ),
-                ),
-                new Option("그 외 지역 (직접 입력)", REGION_OTHER),
+                ...REGION_HUBS.map(([city]) => new Option(city, city)),
+                new Option("그 외", REGION_OTHER),
             );
             updateMovingDocs();
             renderBoxes();
