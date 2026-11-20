@@ -1437,7 +1437,7 @@
                     ["중량별 운임", quote.totals.base, true],
                     ["규격 초과 (OVER SIZE)", quote.totals.oversize],
                     ["중량 초과 (OVER WEIGHT)", quote.totals.overweight],
-                    ["캐리어 핸들링", quote.totals.carrier],
+                    ["바퀴 가방 핸들링", quote.totals.carrier],
                     ["멀티 화물 할증", quote.totals.multiBox],
                     ["이삿짐 통관", quote.totals.movingCustoms],
                     ["픽업비", methodFee],
@@ -1469,12 +1469,15 @@
                     linkTips($(id));
                 });
             }
+            // 규격·중량 초과 기준 안내. 실제로 넘으면 updateBoxCalcs()가 주황색으로 바꾼다.
+            const SIZE_HINT = `가로+세로+높이 합 ${Pricing.RATES.oversize.sumCm}cm 이상 또는 한 변 ${Pricing.RATES.oversize.sideCm}cm 이상이면 규격 초과 (박스당 €${Pricing.RATES.oversize.fee})`;
+            const WEIGHT_HINT = `실중량 ${Pricing.RATES.overweight.actualKg}kg 이상이면 중량 초과 (박스당 €${Pricing.RATES.overweight.fee})`;
             // 박스 목록 DOM은 추가·삭제 때만 다시 그린다.
             // (입력할 때마다 다시 그리면 입력 중인 칸의 포커스가 풀린다.)
             function renderBoxes() {
                 const canRemove = state.boxes.length > 1;
                 const field = (box, name, label) =>
-                    `<label class="box-field"><span class="box-field-label">${label}</span><input class="text-input" data-field="${name}" type="number" inputmode="decimal" min="0" step="${name === "weight" ? "0.5" : "1"}" value="${escapeAttr(box[name])}" /></label>`;
+                    `<label class="box-field"><span class="box-field-label">${label}</span><input class="text-input" data-field="${name}" type="number" inputmode="decimal" min="0" step="0.5" value="${escapeAttr(box[name])}" /></label>`;
                 $("#boxList").innerHTML = state.boxes
                     .map((box, index) => {
                         const n = index + 1;
@@ -1486,7 +1489,8 @@
                 ${canRemove ? `<button class="box-remove" type="button" aria-label="박스 ${n} 삭제">삭제</button>` : ""}
               </div>
               <div class="box-fields">${field(box, "length", "가로 (cm)")}${field(box, "width", "세로 (cm)")}${field(box, "height", "높이 (cm)")}${field(box, "weight", "실중량 (kg)")}</div>
-              <label class="box-carrier"><input type="checkbox" data-field="carrier" ${box.carrier ? "checked" : ""} /><span>캐리어(여행 가방)로 보냅니다 (핸들링 비용 €${Pricing.RATES.carrierHandling})</span></label>
+              <div class="box-hints"><div class="box-hint" data-hint="size">${SIZE_HINT}</div><div class="box-hint" data-hint="weight">${WEIGHT_HINT}</div></div>
+              <div class="box-carrier-row"><label class="box-carrier"><input type="checkbox" data-field="carrier" ${box.carrier ? "checked" : ""} /><span>바퀴가 달린 가방(캐리어, 이민가방 등)으로 보냅니다</span></label><span class="box-carrier-fee">(<span class="tip tip-start"><button class="tip-btn tip-text" type="button" aria-label="핸들링 비용 설명">핸들링 비용</button><span class="tip-body" role="tooltip">바퀴는 운송 중 부러지거나 상하기 쉬워 따로 보호 포장과 취급이 필요합니다. 그래서 가방당 핸들링 비용이 붙습니다.</span></span> €${Pricing.RATES.carrierHandling})</span></div>
               <div class="box-warnings" data-warnings></div>
               <div class="item-section">
                 <div class="item-section-head"><span class="item-section-title">박스 ${n} 물품 목록</span><span class="item-section-value" data-items-value></span></div>
@@ -1498,6 +1502,7 @@
                     .join("");
                 $("#addBox").disabled =
                     state.boxes.length >= Pricing.RATES.maxBoxes;
+                linkTips($("#boxList"));
                 $("#boxCount").textContent =
                     `${state.boxes.length} / ${Pricing.RATES.maxBoxes}개`;
             }
@@ -1522,9 +1527,9 @@
                     ${input("unitPrice", "단가 (€) *", 'type="number" inputmode="decimal" min="0" step="0.01"')}
                   </div>
                   <div class="item-grid item-grid-urls">
+                    <label class="item-new"><input type="checkbox" data-item-field="isNew" ${item.isNew ? "checked" : ""} /><span>신상품입니다 (상품 URL 필요)</span></label>
+                    ${input("productUrl", item.isNew ? "상품 URL *" : "상품 URL", `type="url" placeholder="${item.isNew ? "https://" : "신상품 체크 시 입력"}" ${item.isNew ? "" : "disabled"}`)}
                     ${input("imageUrl", "이미지 URL", 'type="url" placeholder="https://"')}
-                    ${input("productUrl", "상품 URL", 'type="url" placeholder="https://"')}
-                    <label class="item-new"><input type="checkbox" data-item-field="isNew" ${item.isNew ? "checked" : ""} /><span>신상품 (상품 URL 필수)</span></label>
                     ${canRemove ? `<button class="item-remove" type="button" aria-label="박스 ${boxNo} 물품 ${i + 1} 삭제">삭제</button>` : ""}
                   </div>
                 </div>`;
@@ -1541,6 +1546,9 @@
                         .map((text) => `<div class="box-warning">${text}</div>`)
                         .join("");
                     const calc = row.querySelector("[data-calc]");
+                    const hintQuote = Pricing.quoteBox(toPricingBox(box));
+                    row.querySelector('[data-hint="size"]').classList.toggle("is-over", hintQuote.isOversize);
+                    row.querySelector('[data-hint="weight"]').classList.toggle("is-over", hintQuote.isOverweight);
                     if (!isBoxComplete(box)) {
                         calc.textContent = "";
                         calc.classList.remove("ready");
@@ -1796,6 +1804,9 @@
                             .closest(".item-row")
                             .querySelector('[data-item-field="productUrl"]');
                         urlInput.classList.toggle("is-required", item.isNew);
+                        urlInput.disabled = !item.isNew;
+                        urlInput.placeholder = item.isNew ? "https://" : "신상품 체크 시 입력";
+                        urlInput.previousElementSibling.textContent = item.isNew ? "상품 URL *" : "상품 URL";
                         if (!item.isNew)
                             urlInput.classList.remove("input-error");
                     }
@@ -1822,7 +1833,7 @@
                 const rounded =
                     input.dataset.field === "weight"
                         ? Pricing.roundWeight(value)
-                        : Pricing.roundDimensions({ length: value, width: 0, height: 0 })[0];
+                        : Math.ceil(value * 2 - 1e-9) / 2;
                 if (rounded === value) return;
                 input.value = rounded;
                 input.dispatchEvent(new Event("input", { bubbles: true }));

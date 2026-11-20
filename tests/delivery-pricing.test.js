@@ -69,3 +69,15 @@ test('주문: 멀티 화물 2박스 이상 전체 박스 €3, 이삿짐 통관 
     assert.equal(two.total, P.baseRate(5) * 2 + 6 + 30);
     assert.equal(two.chargeableKg, 10);
 });
+
+test('소수 치수·중량: 각 변 1cm 올림, 중량 0.5kg 유지', () => {
+    const q = P.quoteBox(box(23.5, 21.5, 11, 20.5));
+    assert.deepEqual(q.dims, [24, 22, 11]);
+    assert.equal(q.actual, 20.5);
+    assert.equal(q.isOverweight, true);
+    assert.equal(q.isOversize, false);
+});
+
+test('합계 139.5cm는 올림 후 140cm로 규격 초과', () => {
+    assert.equal(P.quoteBox(box(59.5, 40, 40, 1)).isOversize, true);
+});
