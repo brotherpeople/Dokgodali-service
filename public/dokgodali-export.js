@@ -2,6 +2,7 @@
    품목 1개가 1행이고, 박스마다 묶음번호가 하나씩 붙는다. 열 순서와 헤더 문구는 샘플과 똑같이 둔다.
    클라이언트 확인 전 기본값: 묶음번호 = 요청번호-박스번호(Q1), 자동결제 2·통관구분 1(Q2),
    통관품목 번호 빈칸(Q3), 합계 = 수량×단가(Q4).
+   서식(글꼴·색·너비·높이·틀 고정)은 참고 엑셀과 같게 하려고 템플릿 파일에 값만 채운다 (fillTemplate).
    브라우저에서는 window.DokgodaliExport, Node(테스트)에서는 module.exports로 쓴다. */
 (function (root) {
     const HEADERS = [
@@ -86,7 +87,24 @@
         });
     }
 
-    const api = { HEADERS, toRows };
+    // 서식 템플릿(public/templates/bulk-upload-template.xlsx, 참고 엑셀에서 값만 지운 것)의 2행 서식을
+    // 데이터 행마다 그대로 복사해 값을 채운다. worksheet는 ExcelJS 워크시트(브라우저·Node 공통).
+    function fillTemplate(worksheet, rows) {
+        const template = worksheet.getRow(2);
+        const styles = HEADERS.map((_, i) => JSON.parse(JSON.stringify(template.getCell(i + 1).style || {})));
+        const height = template.height;
+        rows.forEach((values, r) => {
+            const row = worksheet.getRow(r + 2);
+            values.forEach((value, c) => {
+                const cell = row.getCell(c + 1);
+                cell.value = value === '' ? null : value;
+                cell.style = JSON.parse(JSON.stringify(styles[c]));
+            });
+            row.height = height;
+        });
+    }
+
+    const api = { HEADERS, toRows, fillTemplate };
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
     else root.DokgodaliExport = api;
 })(typeof window !== 'undefined' ? window : globalThis);
