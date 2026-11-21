@@ -48,15 +48,7 @@
   </div>
 </div>
 
-<!-- Top Status Bar -->
-<div class="role-switcher-bar">
-  <span id="signed-in-as"></span>
-  <div style="display: flex; gap: 10px; align-items: center;">
-    <button class="btn btn-secondary btn-sm" onclick="sb.auth.signOut()">로그아웃</button>
-  </div>
-</div>
-
-<!-- Header -->
+<!-- Header: 브랜드 · 로그인한 사람 · 알림 · 로그아웃을 한 줄에 -->
 <header>
   <div class="header-inner">
     <div class="brand-area">
@@ -65,7 +57,9 @@
     </div>
     <div style="display: flex; gap: 8px; align-items: center;">
       <span id="current-user-badge" class="badge badge-navy hidden">관리자</span>
+      <span id="signed-in-as" class="header-user"></span>
       <button id="btn-toggle-push" class="btn btn-secondary btn-sm" onclick="togglePushSubscription()">🔔 알림 켜기</button>
+      <button class="btn btn-secondary btn-sm" onclick="sb.auth.signOut()">로그아웃</button>
     </div>
   </div>
 </header>

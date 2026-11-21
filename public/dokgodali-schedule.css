@@ -51,20 +51,6 @@
     padding-bottom: 40px;
   }
 
-  /* 상단 로그인 상태 바 */
-  .role-switcher-bar {
-    background: var(--navy);
-    color: var(--faint);
-    padding: 8px 24px;
-    font-size: var(--fs-caption);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    border-bottom: 1px solid var(--navy);
-    flex-wrap: wrap;
-  }
-
   /* 로그인 게이트 */
   .login-screen {
     position: fixed;
@@ -977,3 +963,7 @@
 
   /* 상세를 펼쳐 페이지가 길어질 때 스크롤바가 생기며 화면 폭이 바뀌지 않도록 스크롤바 자리를 늘 비워 둔다 */
   html { scrollbar-gutter: stable; }
+
+  /* 헤더 오른쪽: 로그인한 사람 이름 (예전 위쪽 남색 바를 헤더에 합침) */
+  .header-user { font-size: var(--fs-caption); color: var(--muted); white-space: nowrap; }
+  @media (max-width: 480px) { .header-user { display: none; } }
