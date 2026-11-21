@@ -339,8 +339,11 @@ details[open] .more-link { display: none; }
 .postcode-layer { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 16px; background: rgb(18 22 46 / .45); }
 .postcode-layer.hidden { display: none; }
 .postcode-panel { display: flex; flex-direction: column; width: min(520px, 100%); height: min(560px, calc(100vh - 32px)); border-radius: 12px; background: var(--surface); overflow: hidden; box-shadow: 0 16px 48px rgb(18 22 46 / .25); }
-.postcode-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border); }
-.postcode-close { padding: 4px 8px; border: 0; background: none; color: var(--muted); font: inherit; font-size: var(--fs-small); cursor: pointer; }
+/* 주소 검색 창 머리: 관리자 화면 확인 팝업과 같은 제목(16 굵게)·버튼(8px 테두리) */
+.postcode-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+.postcode-head strong { font-size: var(--fs-title); font-weight: var(--fw-bold); }
+.postcode-close { min-height: 32px; padding: 4px 12px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface); color: var(--text); font: inherit; font-size: var(--fs-small); font-weight: var(--fw-medium); cursor: pointer; }
+.postcode-close:hover { background: var(--surface-subtle); }
 .postcode-body { flex: 1; min-height: 0; }
 
 /* 떠오르는 라벨 (3단계): 라벨은 입력칸 안에 있다가, 누르거나 값이 있으면 칸 위쪽에 작게 올라간다.
