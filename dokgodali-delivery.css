@@ -267,3 +267,9 @@ details[open] .more-link { display: none; }
 /* 배터리·의약품·위험물 의심 */
 .item-caution:empty { display: none; }
 .item-caution { margin-top: 8px; padding: 8px 10px; border-radius: 7px; background: var(--amber-light); color: #92400e; font-size: 12px; line-height: 1.5; word-break: keep-all; }
+.postcode-layer { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 16px; background: rgba(18, 22, 46, .45); }
+.postcode-layer.hidden { display: none; }
+.postcode-panel { display: flex; flex-direction: column; width: min(520px, 100%); height: min(560px, calc(100vh - 32px)); border-radius: 12px; background: #fff; overflow: hidden; box-shadow: 0 16px 48px rgba(18, 22, 46, .25); }
+.postcode-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.postcode-close { padding: 4px 8px; border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; }
+.postcode-body { flex: 1; min-height: 0; }

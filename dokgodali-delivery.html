@@ -1052,6 +1052,15 @@
             </section>
             </div>
         </main>
+        <div class="postcode-layer hidden" id="postcodeLayer" role="dialog" aria-modal="true" aria-label="주소 검색">
+            <div class="postcode-panel">
+                <div class="postcode-head">
+                    <strong>주소 검색</strong>
+                    <button class="postcode-close" id="postcodeClose" type="button" aria-label="주소 검색 닫기">닫기</button>
+                </div>
+                <div class="postcode-body" id="postcodeBody"></div>
+            </div>
+        </div>
 
         <script>
             /* ================================================================
@@ -2278,7 +2287,8 @@
                 ),
             );
             // 한국 배송지 주소 검색: Daum 우편번호 서비스 (키 불필요). 영문 주소도 함께 채운다.
-            // 스크립트는 처음 누를 때만 불러온다.
+            // 스크립트는 처음 누를 때만 불러온다. 팝업 창(open)은 선택 결과가 원래 페이지로 돌아오지 않는
+            // 경우가 있고 모바일에서 차단되기도 해서, 페이지 안 레이어에 넣는다(embed).
             let daumPostcodeLoading = null;
             function loadDaumPostcode() {
                 if (window.daum && window.daum.Postcode) return Promise.resolve();
@@ -2301,8 +2311,15 @@
                     $("#deliveryAddress").focus();
                     return;
                 }
+                const layer = $("#postcodeLayer");
+                const body = $("#postcodeBody");
+                body.innerHTML = "";
+                layer.classList.remove("hidden");
                 new window.daum.Postcode({
+                    width: "100%",
+                    height: "100%",
                     oncomplete(data) {
+                        layer.classList.add("hidden");
                         const road = data.roadAddress || data.autoRoadAddress || data.jibunAddress;
                         const roadEn = data.roadAddressEnglish || data.autoRoadAddressEnglish || data.jibunAddressEnglish;
                         const values = {
@@ -2317,7 +2334,15 @@
                         });
                         $("#deliveryAddressDetail").focus();
                     },
-                }).open();
+                }).embed(body, { q: $("#deliveryAddress").value.trim(), autoClose: true });
+            });
+            const closePostcode = () => $("#postcodeLayer").classList.add("hidden");
+            $("#postcodeClose").addEventListener("click", closePostcode);
+            $("#postcodeLayer").addEventListener("click", (event) => {
+                if (event.target.id === "postcodeLayer") closePostcode();
+            });
+            document.addEventListener("keydown", (event) => {
+                if (event.key === "Escape") closePostcode();
             });
             $("#movingStatus").addEventListener("change", () => {
                 updateMovingStatus();
