@@ -968,3 +968,14 @@
   .header-user { font-size: var(--fs-caption); line-height: 28px; color: var(--muted); white-space: nowrap; }
   .btn-danger-outline:hover { background: var(--red-light); }
   @media (max-width: 480px) { .header-user { display: none; } }
+
+  /* 확인·알림 팝업: 다른 팝업 위에 뜨는 작은 창. 제목 16 굵게, 내용 14 회색, 버튼은 오른쪽 */
+  .ui-dialog { z-index: 300; }
+  .ui-dialog-box { max-width: 400px; padding: 24px; }
+  .ui-dialog-title { margin-bottom: 8px; font-size: var(--fs-title); font-weight: var(--fw-bold); }
+  .ui-dialog-msg { font-size: var(--fs-body); line-height: 1.6; color: var(--muted); white-space: pre-line; word-break: keep-all; }
+  .ui-dialog-title.hidden + .ui-dialog-msg { color: var(--text); }
+  .ui-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px; }
+  .ui-dialog-actions .btn { min-width: 72px; min-height: 36px; }
+  .btn-danger { background: var(--red); color: var(--surface); }
+  .btn-danger:hover { background: var(--red-dark); }

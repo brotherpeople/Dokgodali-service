@@ -59,7 +59,7 @@
       <span id="current-user-badge" class="badge badge-navy hidden">관리자</span>
       <span id="signed-in-as" class="header-user"></span>
       <button id="btn-toggle-push" class="btn btn-secondary btn-sm" onclick="togglePushSubscription()">알림 켜기</button>
-      <button class="btn btn-danger-outline btn-sm" onclick="if (confirm('로그아웃하시겠습니까?')) sb.auth.signOut()">로그아웃</button>
+      <button class="btn btn-danger-outline btn-sm" onclick="confirmLogout()">로그아웃</button>
     </div>
   </div>
 </header>
@@ -251,6 +251,18 @@
 </main>
 
 <!-- MODAL: Create Schedule -->
+<!-- 확인·알림 팝업 (브라우저 기본 confirm/alert 대신, uiConfirm/uiAlert가 연다) -->
+<div id="ui-dialog" class="modal-overlay ui-dialog hidden" role="alertdialog" aria-modal="true" aria-labelledby="ui-dialog-title" aria-describedby="ui-dialog-msg">
+  <div class="modal-dialog ui-dialog-box">
+    <div class="ui-dialog-title" id="ui-dialog-title"></div>
+    <div class="ui-dialog-msg" id="ui-dialog-msg"></div>
+    <div class="ui-dialog-actions">
+      <button type="button" class="btn btn-secondary" id="ui-dialog-cancel">취소</button>
+      <button type="button" class="btn btn-primary" id="ui-dialog-ok">확인</button>
+    </div>
+  </div>
+</div>
+
 <div id="schedule-modal" class="modal-overlay hidden">
   <div class="modal-dialog">
     <div class="modal-header">
@@ -820,7 +832,7 @@ async function refreshPushButtonLabel() {
 
 async function togglePushSubscription() {
   if (!pushSupported()) {
-    alert('이 브라우저/환경은 웹 푸시를 지원하지 않습니다. 아이폰이면 Safari 공유 메뉴에서 "홈 화면에 추가"로 설치한 뒤 그 아이콘으로 열어서 시도해 주세요.');
+    uiAlert('이 브라우저/환경은 웹 푸시를 지원하지 않습니다. 아이폰이면 Safari 공유 메뉴에서 "홈 화면에 추가"로 설치한 뒤 그 아이콘으로 열어서 시도해 주세요.');
     return;
   }
   const reg = await navigator.serviceWorker.ready;
@@ -836,7 +848,7 @@ async function togglePushSubscription() {
 
   const permission = await Notification.requestPermission();
   if (permission !== 'granted') {
-    alert('알림 권한이 허용되지 않았습니다.');
+    uiAlert('알림 권한이 허용되지 않았습니다.');
     return;
   }
 
@@ -852,7 +864,7 @@ async function togglePushSubscription() {
   );
 
   if (error) {
-    alert('구독 저장 실패: ' + error.message);
+    uiAlert('구독 저장 실패: ' + error.message);
     return;
   }
   await refreshPushButtonLabel();
@@ -1371,9 +1383,9 @@ async function exportRequestXlsx(id) {
   try {
     rows = window.DokgodaliExport.toRows(r);
   } catch (error) {
-    return alert(error.message === 'delivery_undecided' ? '배송지가 미정인 요청이라 내보낼 수 없습니다. 고객에게 배송지를 받은 뒤 내보내 주세요.' : '엑셀 변환 오류: ' + error.message);
+    return uiAlert(error.message === 'delivery_undecided' ? '배송지가 미정인 요청이라 내보낼 수 없습니다. 고객에게 배송지를 받은 뒤 내보내 주세요.' : '엑셀 변환 오류: ' + error.message);
   }
-  if (!rows.length) return alert('내보낼 물품이 없습니다.');
+  if (!rows.length) return uiAlert('내보낼 물품이 없습니다.');
   let buffer;
   try {
     await loadExcelJs();
@@ -1384,7 +1396,7 @@ async function exportRequestXlsx(id) {
     window.DokgodaliExport.fillTemplate(book.getWorksheet('신청'), rows);
     buffer = await book.xlsx.writeBuffer();
   } catch (error) {
-    return alert(error.message);
+    return uiAlert(error.message);
   }
   const p = r.payload || {};
   const d = new Date();
@@ -1397,9 +1409,12 @@ async function exportRequestXlsx(id) {
   setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
 async function setQuoteIssued(id, issued) {
-  if (!confirm(issued ? '견적서 발행을 표시하면 고객은 수정 링크로 신청 내용을 고칠 수 없습니다. 표시할까요?' : '견적서 발행 표시를 취소하면 고객이 다시 수정할 수 있습니다. 취소할까요?')) return;
+  const ok = issued
+    ? await uiConfirm('발행을 표시하면 고객은 수정 링크로 신청 내용을 고칠 수 없습니다.', { title: '견적서 발행을 표시할까요?', okText: '발행 표시' })
+    : await uiConfirm('취소하면 고객이 수정 링크로 다시 고칠 수 있습니다.', { title: '견적서 발행 표시를 취소할까요?', okText: '발행 취소', cancelText: '닫기', danger: true });
+  if (!ok) return;
   const { error } = await sb.from('requests').update({ quote_issued_at: issued ? new Date().toISOString() : null }).eq('id', id);
-  if (error) return alert('견적서 발행 표시 오류: ' + error.message);
+  if (error) return uiAlert('견적서 발행 표시 오류: ' + error.message);
   await loadDataFromSupabase();
   renderApp();
   if (state.jobDetail) renderJobDetailModal();
@@ -1407,7 +1422,7 @@ async function setQuoteIssued(id, issued) {
 }
 async function acknowledgeRequestEdit(id) {
   const { error } = await sb.from('requests').update({ payload_before_edit: null }).eq('id', id);
-  if (error) return alert('확인 처리 오류: ' + error.message);
+  if (error) return uiAlert('확인 처리 오류: ' + error.message);
   await loadDataFromSupabase();
   renderApp();
   showToast('수정 내용을 확인했습니다. 스케줄은 바꾸지 않았습니다.');
@@ -1421,7 +1436,7 @@ async function applyRequestEditToSchedule(id) {
   const dateChanged = sch && f.job_date && sch.jobDate !== f.job_date;
   const crewWarn = dateChanged && (sch.assignments || []).length
     ? `\n\n⚠ 날짜가 바뀝니다 (${sch.jobDate} → ${f.job_date}). 배정된 크루의 일정을 확인하세요.` : '';
-  if (!confirm(`고객이 수정한 내용으로 스케줄을 바꿉니다.\n크루 배정은 그대로 유지됩니다.${crewWarn}`)) return;
+  if (!(await uiConfirm(`고객이 수정한 내용으로 스케줄을 바꿉니다.\n크루 배정은 그대로 유지됩니다.${crewWarn}`, { title: '스케줄에 반영할까요?', okText: '반영' }))) return;
   const fields = {
     quote_price: f.quote_price, customer_name: f.customer_name, customer_phone: f.customer_phone,
     job_date: f.job_date, overall_time_range: f.overall_time_range,
@@ -1432,10 +1447,10 @@ async function applyRequestEditToSchedule(id) {
   if (dateChanged && (!sch.endDate || sch.endDate === sch.jobDate || sch.endDate < f.job_date)) fields.end_date = f.job_date;
   if (sch) {
     const { error } = await sb.from('schedules').update(fields).eq('id', sch.id);
-    if (error) return alert('스케줄 반영 오류: ' + error.message);
+    if (error) return uiAlert('스케줄 반영 오류: ' + error.message);
   }
   const { error } = await sb.from('requests').update({ payload_before_edit: null }).eq('id', id);
-  if (error) return alert('확인 처리 오류: ' + error.message);
+  if (error) return uiAlert('확인 처리 오류: ' + error.message);
   await loadDataFromSupabase();
   renderApp();
   broadcastChange();
@@ -1825,13 +1840,13 @@ function mapRequestToScheduleFields(r) {
 async function confirmRequest(id) {
   const r = state.requests.find(x => x.id === id);
   if (!r) return;
-  if (!confirm('이 요청을 확정하고 스케줄에 배정하시겠습니까?')) return;
+  if (!(await uiConfirm('확정하면 이 요청으로 스케줄이 만들어집니다.', { title: '요청을 확정할까요?', okText: '확정' }))) return;
 
   const fields = mapRequestToScheduleFields(r);
   const newId = 'sch-' + Date.now();
   const { error: insertError } = await sb.from('schedules').insert({ id: newId, ...fields, assignments: [] });
   if (insertError) {
-    alert('스케줄 등록 오류: ' + insertError.message);
+    uiAlert('스케줄 등록 오류: ' + insertError.message);
     return;
   }
 
@@ -1839,7 +1854,7 @@ async function confirmRequest(id) {
     .update({ status: 'confirmed', schedule_id: newId, confirmed_at: new Date().toISOString(), payload_before_edit: null })
     .eq('id', id);
   if (updateError) {
-    alert('요청 상태 업데이트 오류: ' + updateError.message);
+    uiAlert('요청 상태 업데이트 오류: ' + updateError.message);
     return;
   }
 
@@ -1850,7 +1865,7 @@ async function confirmRequest(id) {
 }
 
 async function rejectRequest(id) {
-  if (!confirm('이 요청을 거절하시겠습니까?')) return;
+  if (!(await uiConfirm('거절한 요청은 목록에서 사라집니다.', { title: '요청을 거절할까요?', okText: '거절', danger: true }))) return;
   await sb.from('requests').update({ status: 'rejected' }).eq('id', id);
   await loadDataFromSupabase();
   renderApp();
@@ -2620,7 +2635,7 @@ async function confirmAvailabilityChange(dateStr, nextVal) {
     is_available: nextVal
   });
   if (error) {
-    alert('저장 실패: ' + error.message);
+    uiAlert('저장 실패: ' + error.message);
     await loadDataFromSupabase();
     renderCrewCalendar();
     return;
@@ -3038,17 +3053,17 @@ async function resendCrewInvite(id, name) {
     });
     const result = await res.json();
     if (!res.ok) {
-      alert(result.error || '재전송에 실패했습니다.');
+      uiAlert(result.error || '재전송에 실패했습니다.');
       return;
     }
     showToast(`${name}님에게 로그인 링크를 다시 보냈습니다.`);
   } catch (e) {
-    alert('재전송 요청 중 오류가 발생했습니다: ' + e.message);
+    uiAlert('재전송 요청 중 오류가 발생했습니다: ' + e.message);
   }
 }
 
 async function deleteCrewMember(id, name) {
-  if (!confirm(`${name} 크루를 삭제하시겠습니까? 계정 자체가 삭제되어 더 이상 로그인할 수 없습니다.`)) return;
+  if (!(await uiConfirm('계정 자체가 삭제되어 더 이상 로그인할 수 없습니다.', { title: `${name} 크루를 삭제할까요?`, okText: '삭제', danger: true }))) return;
 
   const { data: { session } } = await sb.auth.getSession();
   try {
@@ -3062,14 +3077,14 @@ async function deleteCrewMember(id, name) {
     });
     const result = await res.json();
     if (!res.ok) {
-      alert(result.error || '삭제에 실패했습니다.');
+      uiAlert(result.error || '삭제에 실패했습니다.');
       return;
     }
     await loadDataFromSupabase();
     renderApp();
     showToast('크루가 삭제되었습니다.');
   } catch (e) {
-    alert('삭제 요청 중 오류가 발생했습니다: ' + e.message);
+    uiAlert('삭제 요청 중 오류가 발생했습니다: ' + e.message);
   }
 }
 
@@ -3084,7 +3099,7 @@ async function handleSaveSchedule(e) {
   const timeEnd = document.getElementById('f-time-end').value;
   const endDate = document.getElementById('f-end-date').value;
   if (`${endDate} ${timeEnd}` <= `${jobDate} ${timeStart}`) {
-    alert('종료 일시가 시작 일시보다 뒤여야 합니다. 자정을 넘기는 작업은 종료 날짜를 다음날 이후로 설정하세요.');
+    uiAlert('종료 일시가 시작 일시보다 뒤여야 합니다. 자정을 넘기는 작업은 종료 날짜를 다음날 이후로 설정하세요.');
     return;
   }
   const timeRange = `${timeStart} ~ ${timeEnd}`;
@@ -3123,7 +3138,7 @@ async function handleSaveSchedule(e) {
     ({ error } = await sb.from('schedules').insert({ id: newId, ...fieldsPayload, assignments: [] }));
   }
   if (error) {
-    alert('DB 저장 오류: ' + error.message);
+    uiAlert('DB 저장 오류: ' + error.message);
     return;
   }
 
@@ -3138,9 +3153,9 @@ async function handleSaveSchedule(e) {
 async function deleteSchedule(scheduleId) {
   const linkedWorkLogs = state.workLogs.filter(w => w.scheduleId === scheduleId).length;
   const warning = linkedWorkLogs > 0
-    ? `이 스케줄에는 이미 제출된 근무시간 기록이 ${linkedWorkLogs}건 있습니다.\n삭제하면 그 근무기록도 함께 영구 삭제됩니다. 정말 삭제하시겠습니까?`
-    : '삭제하시겠습니까?';
-  if (!confirm(warning)) return;
+    ? `이미 제출된 근무시간 기록이 ${linkedWorkLogs}건 있습니다.\n삭제하면 그 근무기록도 함께 영구 삭제됩니다.`
+    : '삭제한 스케줄은 되돌릴 수 없습니다.';
+  if (!(await uiConfirm(warning, { title: '스케줄을 삭제할까요?', okText: '삭제', danger: true }))) return;
 
   const { error } = await sb.from('schedules').delete().eq('id', scheduleId);
   if (error) {
@@ -3149,7 +3164,7 @@ async function deleteSchedule(scheduleId) {
     const message = error.code === '23503'
       ? '이 스케줄에 연결된 근무기록 또는 요청이 있어 삭제할 수 없습니다. (관리자: sql/auth.sql의 cascade 설정을 적용해 주세요)'
       : error.message;
-    alert('삭제 실패: ' + message);
+    uiAlert('삭제 실패: ' + message);
     return;
   }
   closeScheduleModal();
@@ -3166,7 +3181,7 @@ async function deleteSchedule(scheduleId) {
 async function writeScheduleAssignments(scheduleId, assignments) {
   const { error } = await sb.from('schedules').update({ assignments }).eq('id', scheduleId);
   if (error) {
-    alert('저장 실패: ' + error.message);
+    uiAlert('저장 실패: ' + error.message);
     return false;
   }
   await loadDataFromSupabase();
@@ -3196,7 +3211,7 @@ async function addCrewToSchedule() {
     const type = other.jobType === 'delivery' ? '[배송] ' : '';
     warnings.push(`${name}님은 같은 시간에 ${type}${other.customerName || '-'} 작업(${monthDayLabel(other.jobDate)} ${r.start}–${r.end})에 배정돼 있습니다.`);
   }
-  if (warnings.length && !confirm(`${warnings.join('\n')}\n\n그래도 배정할까요?`)) {
+  if (warnings.length && !(await uiConfirm(warnings.join('\n'), { title: '그래도 배정할까요?', okText: '배정' }))) {
     select.value = '';
     return;
   }
@@ -3294,6 +3309,45 @@ function changeMonth(delta) {
     state.currentYear += 1;
   }
   renderApp();
+}
+
+// 확인·알림 팝업. 확인 → true, 취소·바깥 클릭·Esc → false. danger면 확인 버튼이 빨간색.
+let uiDialogClose = null;
+function uiDialog({ title = '', message = '', okText = '확인', cancelText = '', danger = false }) {
+  if (uiDialogClose) uiDialogClose(false);
+  const overlay = document.getElementById('ui-dialog');
+  const ok = document.getElementById('ui-dialog-ok');
+  const cancel = document.getElementById('ui-dialog-cancel');
+  document.getElementById('ui-dialog-title').textContent = title;
+  document.getElementById('ui-dialog-title').classList.toggle('hidden', !title);
+  document.getElementById('ui-dialog-msg').textContent = message;
+  ok.textContent = okText;
+  ok.className = `btn ${danger ? 'btn-danger' : 'btn-primary'}`;
+  cancel.textContent = cancelText;
+  cancel.classList.toggle('hidden', !cancelText);
+  const opener = document.activeElement;
+  overlay.classList.remove('hidden');
+  ok.focus();
+  return new Promise(resolve => {
+    const done = (value) => {
+      overlay.classList.add('hidden');
+      ok.onclick = cancel.onclick = overlay.onclick = overlay.onkeydown = null;
+      uiDialogClose = null;
+      if (opener && opener.focus) opener.focus();
+      resolve(value);
+    };
+    uiDialogClose = done;
+    ok.onclick = () => done(true);
+    cancel.onclick = () => done(false);
+    overlay.onclick = (e) => { if (e.target === overlay) done(false); };
+    overlay.onkeydown = (e) => { if (e.key === 'Escape') done(false); };
+  });
+}
+const uiConfirm = (message, opts = {}) => uiDialog({ cancelText: '취소', ...opts, message });
+const uiAlert = (message, opts = {}) => uiDialog({ ...opts, message: String(message) });
+
+async function confirmLogout() {
+  if (await uiConfirm('이 기기에서 로그아웃합니다.', { title: '로그아웃할까요?', okText: '로그아웃', danger: true })) sb.auth.signOut();
 }
 
 function showToast(msg) {
