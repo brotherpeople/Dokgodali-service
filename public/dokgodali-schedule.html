@@ -16,7 +16,7 @@
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#0f172a">
+<meta name="theme-color" content="#12162e">
 </head>
 <body>
 
@@ -24,40 +24,31 @@
 <div id="login-screen" class="login-screen hidden">
   <div class="login-box">
     <div class="brand-logo" style="margin:0 auto 14px;">D</div>
-    <div style="font-weight:800; font-size:18px; text-align:center; margin-bottom:4px;">독고달이 스케줄</div>
+    <div style="font-weight:800; font-size: var(--fs-title); text-align:center; margin-bottom:4px;">독고달이 스케줄</div>
 
     <input type="email" id="login-email" class="form-control" placeholder="you@example.com" style="margin-bottom:10px;">
 
     <div id="login-code-step">
-      <div style="color:var(--text-secondary); font-size:12.5px; text-align:center; margin-bottom:10px;">6자리 코드를 입력하세요</div>
-      <input type="text" inputmode="numeric" maxlength="6" id="login-code" class="form-control" placeholder="123456" style="margin-bottom:10px; text-align:center; letter-spacing:4px; font-size:18px;">
+      <div style="color:var(--muted); font-size: var(--fs-caption); text-align:center; margin-bottom:10px;">6자리 코드를 입력하세요</div>
+      <input type="text" inputmode="numeric" maxlength="6" id="login-code" class="form-control" placeholder="123456" style="margin-bottom:10px; text-align:center; letter-spacing:4px; font-size: var(--fs-title);">
       <button class="btn btn-primary" style="width:100%;" onclick="verifyLoginCode()">확인</button>
-      <div style="margin-top:14px; text-align:center; font-size:12px;">
+      <div style="margin-top:14px; text-align:center; font-size: var(--fs-caption);">
         <a href="#" onclick="showRequestCodeStep(); return false;">처음이신가요? 이메일로 로그인 코드를 받으세요</a>
       </div>
     </div>
 
     <div id="login-request-step" class="hidden">
       <button class="btn btn-primary" style="width:100%;" onclick="sendLoginCode()">코드 받기</button>
-      <div style="margin-top:14px; text-align:center; font-size:12px;">
+      <div style="margin-top:14px; text-align:center; font-size: var(--fs-caption);">
         <a href="#" onclick="showCodeStep(); return false;">이미 코드를 받으셨나요?</a>
       </div>
     </div>
 
-    <div id="login-message" style="margin-top:12px; font-size:12.5px; text-align:center;"></div>
+    <div id="login-message" style="margin-top:12px; font-size: var(--fs-body); text-align:center;"></div>
   </div>
 </div>
 
-<!-- Top Status Bar -->
-<div class="role-switcher-bar">
-  <span id="signed-in-as"></span>
-  <div style="display: flex; gap: 10px; align-items: center;">
-    <span class="sync-status"><span class="sync-dot"></span> 실시간 연동됨</span>
-    <button class="btn btn-secondary btn-sm" onclick="sb.auth.signOut()">로그아웃</button>
-  </div>
-</div>
-
-<!-- Header -->
+<!-- Header: 브랜드 · 로그인한 사람 · 알림 · 로그아웃을 한 줄에 -->
 <header>
   <div class="header-inner">
     <div class="brand-area">
@@ -65,8 +56,10 @@
       <div class="brand-name">독고달이 스케줄</div>
     </div>
     <div style="display: flex; gap: 8px; align-items: center;">
-      <span id="current-user-badge" class="badge badge-navy">관리자</span>
-      <button id="btn-toggle-push" class="btn btn-secondary btn-sm" onclick="togglePushSubscription()">🔔 알림 켜기</button>
+      <span id="current-user-badge" class="badge badge-navy hidden">관리자</span>
+      <span id="signed-in-as" class="header-user"></span>
+      <button id="btn-toggle-push" class="btn btn-secondary btn-sm" onclick="togglePushSubscription()">알림 켜기</button>
+      <button class="btn btn-danger-outline btn-sm" onclick="confirmLogout()">로그아웃</button>
     </div>
   </div>
 </header>
@@ -80,11 +73,11 @@
         <div>
           <span class="badge badge-blue">오늘 작업</span>
           <span id="crew-duty-badge" class="badge badge-red hidden">⚠️ <span id="crew-duty-text"></span></span>
-          <h2 id="crew-today-title" style="font-size: 16px; font-weight: 700; margin-top: 4px;"></h2>
+          <h2 id="crew-today-title" style="font-size: var(--fs-title); font-weight: 700; margin-top: 4px;"></h2>
         </div>
         <div style="text-align: right;">
           <div id="crew-today-time" class="today-time-badge"></div>
-          <div id="crew-today-overall-time" style="font-size: 11px; color: var(--text-muted);"></div>
+          <div id="crew-today-overall-time" style="font-size: var(--fs-caption); color: var(--faint);"></div>
         </div>
       </div>
 
@@ -111,11 +104,11 @@
         </div>
         <div class="sub-box">
           <div class="sub-box-title">현장 메모</div>
-          <div id="crew-notes-text" style="font-size: 12.5px; color: var(--text-secondary);"></div>
+          <div id="crew-notes-text" style="font-size: var(--fs-caption); color: var(--muted);"></div>
         </div>
       </div>
     </div>
-    <div id="crew-today-empty" class="today-hero-card hidden" style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 13px;">
+    <div id="crew-today-empty" class="today-hero-card hidden" style="text-align: center; padding: 20px; color: var(--faint); font-size: var(--fs-caption);">
       오늘 배정된 작업 일정이 없습니다.
     </div>
   </div>
@@ -213,7 +206,7 @@
         <div class="card-header" style="margin-bottom: 10px; padding-bottom: 8px;">
           <div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;">
             <div class="card-title" id="admin-selected-date-title"></div>
-            <div id="admin-crew-avail-summary" style="font-size: 11.5px; color: var(--text-secondary);"></div>
+            <div id="admin-crew-avail-summary" style="font-size: var(--fs-caption); color: var(--muted);"></div>
           </div>
           <button class="btn btn-primary btn-sm" onclick="openCreateScheduleModal(state.selectedDate)">+ 스케줄 등록</button>
         </div>
@@ -222,18 +215,18 @@
     </div>
 
     <div id="admin-worklog-section" class="hidden">
-      <div class="card" style="margin-bottom:14px; padding:14px;">
+      <div class="card" style="margin-bottom:14px;">
         <div class="card-title">월별 근무시간 PDF</div>
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-          <select id="az-crew-select"></select>
-          <input type="month" id="az-month-input">
+          <select id="az-crew-select" class="form-control" style="width:auto;"></select>
+          <input type="month" id="az-month-input" class="form-control" style="width:auto;">
           <button class="btn btn-primary btn-sm" id="az-download-btn" onclick="generateAzDocPdf()">PDF 다운로드</button>
         </div>
-        <div id="az-pdf-status" style="font-size:12px; color:var(--text-secondary); margin-top:6px;"></div>
+        <div id="az-pdf-status" style="font-size: var(--fs-caption); color:var(--muted); margin-top:6px;"></div>
       </div>
       <div id="admin-worklog-pending-list"></div>
-      <div class="card" style="margin-top:14px; padding:14px;">
-        <div class="card-title">근무시간 미제출 <span style="font-size:12px; font-weight:500; color:var(--text-muted);">최근 30일</span></div>
+      <div class="card" style="margin-top:14px;">
+        <div class="card-title">근무시간 미제출 <span style="font-size: var(--fs-caption); font-weight:500; color:var(--faint);">최근 30일</span></div>
         <div id="admin-worklog-missing-list"></div>
       </div>
     </div>
@@ -248,7 +241,7 @@
         <div class="crew-picker" id="admin-crew-picker"></div>
         <div class="dash-panel" id="admin-crew-month"></div>
       </div>
-      <div class="card" style="margin-top: 12px; padding: 14px;">
+      <div class="card" style="margin-top: 12px;">
         <div class="card-title">크루 목록</div>
         <div id="admin-crew-list"></div>
       </div>
@@ -258,6 +251,18 @@
 </main>
 
 <!-- MODAL: Create Schedule -->
+<!-- 확인·알림 팝업 (브라우저 기본 confirm/alert 대신, uiConfirm/uiAlert가 연다) -->
+<div id="ui-dialog" class="modal-overlay ui-dialog hidden" role="alertdialog" aria-modal="true" aria-labelledby="ui-dialog-title" aria-describedby="ui-dialog-msg">
+  <div class="modal-dialog ui-dialog-box">
+    <div class="ui-dialog-title" id="ui-dialog-title"></div>
+    <div class="ui-dialog-msg" id="ui-dialog-msg"></div>
+    <div class="ui-dialog-actions">
+      <button type="button" class="btn btn-secondary" id="ui-dialog-cancel">취소</button>
+      <button type="button" class="btn btn-primary" id="ui-dialog-ok">확인</button>
+    </div>
+  </div>
+</div>
+
 <div id="schedule-modal" class="modal-overlay hidden">
   <div class="modal-dialog">
     <div class="modal-header">
@@ -275,7 +280,7 @@
           </select>
         </div>
 
-        <div class="form-row" style="background: #f8fafc; border: 1px solid var(--border); padding: 8px 10px; border-radius: 4px; margin-bottom: 12px;">
+        <div class="form-row" style="background: var(--surface-subtle); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 12px;">
           <div>
             <label class="form-label">견적번호 (관리자용)</label>
             <input type="text" id="f-quote-no" class="form-control" placeholder="ANG-20260826-93">
@@ -355,7 +360,7 @@
           <label class="form-label">배정 크루</label>
           <div id="modal-assign-rows"></div>
           <div style="display: flex; gap: 6px; margin-top: 8px;">
-            <select id="modal-select-add-crew" class="form-control" style="font-size: 11.5px; padding: 4px 6px; flex: 1;">
+            <select id="modal-select-add-crew" class="form-control" style="font-size: var(--fs-caption); padding: 4px 6px; flex: 1;">
               <option value="">+ 크루 배정</option>
             </select>
             <button type="button" class="btn btn-secondary btn-sm" onclick="addCrewToSchedule()">추가</button>
@@ -394,10 +399,10 @@
           <input type="text" id="invite-phone" class="form-control" placeholder="+49 171 1234567">
         </div>
       </div>
-      <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; margin-top:4px;">
+      <label style="display:flex; align-items:center; gap:8px; font-size: var(--fs-body); margin-top:4px;">
         <input type="checkbox" id="invite-can-drive"> 운전 가능
       </label>
-      <div id="invite-crew-message" style="margin-top:10px; font-size:12.5px;"></div>
+      <div id="invite-crew-message" style="margin-top:10px; font-size: var(--fs-body);"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary btn-sm" onclick="closeInviteCrewModal()">취소</button>
@@ -425,10 +430,10 @@
           <input type="text" id="edit-crew-phone" class="form-control">
         </div>
       </div>
-      <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; margin-top:4px;">
+      <label style="display:flex; align-items:center; gap:8px; font-size: var(--fs-body); margin-top:4px;">
         <input type="checkbox" id="edit-crew-can-drive"> 운전 가능
       </label>
-      <div id="edit-crew-message" style="margin-top:10px; font-size:12.5px;"></div>
+      <div id="edit-crew-message" style="margin-top:10px; font-size: var(--fs-body);"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary btn-sm" onclick="closeEditCrewModal()">취소</button>
@@ -461,7 +466,7 @@
       <button class="btn btn-secondary btn-sm" onclick="closeWhatsappModal()">닫기</button>
     </div>
     <div class="modal-body">
-      <textarea id="whatsapp-text-content" class="form-control" rows="10" style="font-family: monospace; font-size: 12px;" readonly></textarea>
+      <textarea id="whatsapp-text-content" class="form-control" rows="10" style="font-family: monospace; font-size: var(--fs-caption);" readonly></textarea>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary btn-sm" onclick="copyWhatsappText()">복사</button>
@@ -483,15 +488,15 @@
     <div class="modal-body">
       <div id="daydetail-job-info" style="margin-bottom: 14px;"></div>
       <div id="daydetail-worklog-section" class="hidden" style="margin-bottom: 14px; padding-top: 10px; border-top: 1px solid var(--border);">
-        <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px;">근무시간 제출</div>
+        <div style="font-size: var(--fs-body); font-weight: 700; margin-bottom: 8px;">근무시간 제출</div>
         <div id="daydetail-worklog-body"></div>
       </div>
       <div id="daydetail-action-view">
         <button class="btn btn-primary" id="daydetail-toggle-btn" style="width:100%;"></button>
-        <div id="daydetail-past-note" class="hidden" style="font-size: 12.5px; color: var(--text-muted); text-align: center;">지난 날짜는 가능/불가 상태를 변경할 수 없습니다.</div>
+        <div id="daydetail-past-note" class="hidden" style="font-size: var(--fs-caption); color: var(--faint); text-align: center;">지난 날짜는 가능/불가 상태를 변경할 수 없습니다.</div>
       </div>
       <div id="daydetail-confirm-view" class="hidden">
-        <div id="daydetail-confirm-text" style="font-size: 14px; font-weight: 600; margin-bottom: 10px; text-align: center;"></div>
+        <div id="daydetail-confirm-text" style="font-size: var(--fs-body); font-weight: 600; margin-bottom: 10px; text-align: center;"></div>
         <div style="display:flex; gap:8px;">
           <button class="btn btn-secondary" id="daydetail-confirm-cancel-btn" style="flex:1;">취소</button>
           <button class="btn btn-primary" id="daydetail-confirm-ok-btn" style="flex:1;">확인</button>
@@ -740,7 +745,7 @@ function renderWorklogSection(myJob, currentUserId) {
   if (myJob.jobDate > TODAY_DATE) {
     formView.classList.add('hidden');
     statusView.classList.remove('hidden');
-    statusView.innerHTML = `<div style="font-size:12.5px; color:var(--text-muted);">아직 진행되지 않은 작업입니다. 작업일 이후에 제출할 수 있습니다.</div>`;
+    statusView.innerHTML = `<div style="font-size: var(--fs-caption); color:var(--faint);">아직 진행되지 않은 작업입니다. 작업일 이후에 제출할 수 있습니다.</div>`;
     return;
   }
 
@@ -751,7 +756,7 @@ function renderWorklogSection(myJob, currentUserId) {
     const badgeText = existing.status === 'confirmed' ? '승인됨' : '제출 완료 · 승인 대기중';
     statusView.innerHTML = `
       <span class="worklog-status-badge ${badgeClass}">${badgeText}</span>
-      <div style="font-size:13px;">${existing.actualStart} ~ ${existing.actualEnd} (휴게 ${existing.breakMinutes}분, 실근무 ${existing.workedHours}시간)</div>
+      <div style="font-size: var(--fs-body);">${existing.actualStart} ~ ${existing.actualEnd} (휴게 ${existing.breakMinutes}분, 실근무 ${existing.workedHours}시간)</div>
       <button class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="editWorklogSection('${myJob.id}', '${existing.actualStart}', '${existing.actualEnd}')">수정</button>
     `;
   } else {
@@ -816,18 +821,18 @@ async function refreshPushButtonLabel() {
   const btn = document.getElementById('btn-toggle-push');
   if (!btn || btn.classList.contains('hidden')) return;
   if (!pushSupported()) {
-    btn.textContent = '🔔 이 브라우저는 알림 미지원';
+    btn.textContent = '알림 미지원 브라우저';
     btn.disabled = true;
     return;
   }
   const reg = await navigator.serviceWorker.ready;
   const sub = await reg.pushManager.getSubscription();
-  btn.textContent = sub ? '🔕 알림 끄기' : '🔔 알림 켜기';
+  btn.textContent = sub ? '알림 끄기' : '알림 켜기';
 }
 
 async function togglePushSubscription() {
   if (!pushSupported()) {
-    alert('이 브라우저/환경은 웹 푸시를 지원하지 않습니다. 아이폰이면 Safari 공유 메뉴에서 "홈 화면에 추가"로 설치한 뒤 그 아이콘으로 열어서 시도해 주세요.');
+    uiAlert('이 브라우저/환경은 웹 푸시를 지원하지 않습니다. 아이폰이면 Safari 공유 메뉴에서 "홈 화면에 추가"로 설치한 뒤 그 아이콘으로 열어서 시도해 주세요.');
     return;
   }
   const reg = await navigator.serviceWorker.ready;
@@ -843,7 +848,7 @@ async function togglePushSubscription() {
 
   const permission = await Notification.requestPermission();
   if (permission !== 'granted') {
-    alert('알림 권한이 허용되지 않았습니다.');
+    uiAlert('알림 권한이 허용되지 않았습니다.');
     return;
   }
 
@@ -859,7 +864,7 @@ async function togglePushSubscription() {
   );
 
   if (error) {
-    alert('구독 저장 실패: ' + error.message);
+    uiAlert('구독 저장 실패: ' + error.message);
     return;
   }
   await refreshPushButtonLabel();
@@ -1145,11 +1150,11 @@ function switchRole(roleKey) {
   const btnPush = document.getElementById('btn-toggle-push');
 
   if (roleKey === 'admin') {
-    badge.className = 'badge badge-navy';
+    badge.className = 'badge badge-navy hidden';
     badge.textContent = '관리자';
   } else {
     const crew = CREW_USERS.find(c => c.id === roleKey);
-    badge.className = 'badge badge-blue';
+    badge.className = 'badge badge-blue hidden';
     badge.textContent = crew ? `${crew.name} (${crew.canDrive ? '운전가능' : '면허없음'})` : '크루';
   }
 
@@ -1165,7 +1170,8 @@ function renderSignedInAs() {
   const el = document.getElementById('signed-in-as');
   const p = state.currentProfile;
   if (!el || !p) return;
-  el.textContent = `${p.name} (${p.role === 'admin' ? '관리자' : '크루'})로 로그인됨`;
+  const role = p.role === 'admin' ? '관리자' : '크루';
+  el.textContent = p.name === role ? role : `${p.name} · ${role}`;
 }
 
 function renderApp() {
@@ -1235,7 +1241,7 @@ function renderAdminWorklogTab() {
       <div class="worklog-pending-item" id="worklog-item-${w.id}">
         <div>
           <div>${u ? u.name : w.userId} · ${w.jobDate} ${w.actualStart}~${w.actualEnd}</div>
-          <div style="font-size:12px; color:var(--text-secondary);">휴게 ${w.breakMinutes}분 · 실근무 ${w.workedHours}시간</div>
+          <div style="font-size: var(--fs-caption); color:var(--muted);">휴게 ${w.breakMinutes}분 · 실근무 ${w.workedHours}시간</div>
         </div>
         <div>
           <button class="btn btn-primary btn-sm" onclick="approveWorklog('${w.id}')">승인</button>
@@ -1271,7 +1277,7 @@ function renderAdminWorklogMissing() {
       <div class="worklog-pending-item" style="cursor:pointer;" onclick="openJobDetailModal('${sch.id}')">
         <div>
           <div><strong>${escapeHtml(u ? u.name : a.userId)}</strong> · ${monthDayLabel(sch.jobDate)}(${weekdayLabel(sch.jobDate)}) ${jobLabel(sch)}</div>
-          <div style="font-size:12px; color:var(--text-secondary);">배정 ${a.startTime || r.start}–${a.endTime || r.end}</div>
+          <div style="font-size: var(--fs-caption); color:var(--muted);">배정 ${a.startTime || r.start}–${a.endTime || r.end}</div>
         </div>
         <span class="badge badge-red">미제출</span>
       </div>
@@ -1345,18 +1351,19 @@ const shortDateTime = iso => {
 };
 const editedLabel = r => (r.edit_count ? `고객 수정 ${r.edit_count}회${r.edited_at ? ' · ' + new Date(r.edited_at).toLocaleString('ko-KR') : ''}` : '');
 // 견적서 발행 표시: 발행되면 고객은 수정 링크로 더 이상 고칠 수 없다.
+// 요청 상세·작업 팝업 아래 버튼 줄: 엑셀 내보내기 · 견적서 발행 표시(발행 후에는 발행 취소 + 발행 시각)
 function renderQuoteControl(r) {
   if (!r || r.type !== 'delivery') return '';
-  return renderExportControl(r) + (r.quote_issued_at
-    ? `<div class="request-quote-row">견적서 발행됨 (${shortDateTime(r.quote_issued_at)}) · 고객 수정 잠김 <button class="btn btn-secondary btn-sm" onclick="setQuoteIssued(${jsArg(r.id)}, false)">발행 취소</button></div>`
-    : `<div class="request-quote-row">견적서 발행 전 <button class="btn btn-secondary btn-sm" onclick="setQuoteIssued(${jsArg(r.id)}, true)">발행 표시</button></div>`);
+  const quote = r.quote_issued_at
+    ? `<button class="btn btn-secondary btn-sm" onclick="setQuoteIssued(${jsArg(r.id)}, false)">발행 취소</button><span class="request-actions-note">견적서 발행됨 ${shortDateTime(r.quote_issued_at)}</span>`
+    : `<button class="btn btn-primary btn-sm" onclick="setQuoteIssued(${jsArg(r.id)}, true)">견적서 발행 표시</button>`;
+  return `<div class="request-actions">
+    <button class="btn btn-secondary btn-sm" onclick="exportRequestXlsx(${jsArg(r.id)})">엑셀 내보내기</button>${quote}
+  </div>`;
 }
 
 // ---------- 대량등록 엑셀 내보내기 (dokgodali-export.js)
 // 참고 엑셀과 서식이 똑같도록 templates/bulk-upload-template.xlsx에 값만 채운다. ExcelJS는 처음 누를 때 vendor에서 불러온다.
-function renderExportControl(r) {
-  return `<div class="request-quote-row">대량등록 엑셀 <button class="btn btn-secondary btn-sm" onclick="exportRequestXlsx(${jsArg(r.id)})">엑셀 내보내기</button></div>`;
-}
 let excelJsLoading = null;
 function loadExcelJs() {
   if (window.ExcelJS) return Promise.resolve();
@@ -1376,9 +1383,9 @@ async function exportRequestXlsx(id) {
   try {
     rows = window.DokgodaliExport.toRows(r);
   } catch (error) {
-    return alert(error.message === 'delivery_undecided' ? '배송지가 미정인 요청이라 내보낼 수 없습니다. 고객에게 배송지를 받은 뒤 내보내 주세요.' : '엑셀 변환 오류: ' + error.message);
+    return uiAlert(error.message === 'delivery_undecided' ? '배송지가 미정인 요청이라 내보낼 수 없습니다. 고객에게 배송지를 받은 뒤 내보내 주세요.' : '엑셀 변환 오류: ' + error.message);
   }
-  if (!rows.length) return alert('내보낼 물품이 없습니다.');
+  if (!rows.length) return uiAlert('내보낼 물품이 없습니다.');
   let buffer;
   try {
     await loadExcelJs();
@@ -1389,7 +1396,7 @@ async function exportRequestXlsx(id) {
     window.DokgodaliExport.fillTemplate(book.getWorksheet('신청'), rows);
     buffer = await book.xlsx.writeBuffer();
   } catch (error) {
-    return alert(error.message);
+    return uiAlert(error.message);
   }
   const p = r.payload || {};
   const d = new Date();
@@ -1402,9 +1409,12 @@ async function exportRequestXlsx(id) {
   setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
 async function setQuoteIssued(id, issued) {
-  if (!confirm(issued ? '견적서 발행을 표시하면 고객은 수정 링크로 신청 내용을 고칠 수 없습니다. 표시할까요?' : '견적서 발행 표시를 취소하면 고객이 다시 수정할 수 있습니다. 취소할까요?')) return;
+  const ok = issued
+    ? await uiConfirm('발행을 표시하면 고객은 수정 링크로 신청 내용을 고칠 수 없습니다.', { title: '견적서 발행을 표시할까요?', okText: '발행 표시' })
+    : await uiConfirm('취소하면 고객이 수정 링크로 다시 고칠 수 있습니다.', { title: '견적서 발행 표시를 취소할까요?', okText: '발행 취소', cancelText: '닫기', danger: true });
+  if (!ok) return;
   const { error } = await sb.from('requests').update({ quote_issued_at: issued ? new Date().toISOString() : null }).eq('id', id);
-  if (error) return alert('견적서 발행 표시 오류: ' + error.message);
+  if (error) return uiAlert('견적서 발행 표시 오류: ' + error.message);
   await loadDataFromSupabase();
   renderApp();
   if (state.jobDetail) renderJobDetailModal();
@@ -1412,7 +1422,7 @@ async function setQuoteIssued(id, issued) {
 }
 async function acknowledgeRequestEdit(id) {
   const { error } = await sb.from('requests').update({ payload_before_edit: null }).eq('id', id);
-  if (error) return alert('확인 처리 오류: ' + error.message);
+  if (error) return uiAlert('확인 처리 오류: ' + error.message);
   await loadDataFromSupabase();
   renderApp();
   showToast('수정 내용을 확인했습니다. 스케줄은 바꾸지 않았습니다.');
@@ -1426,7 +1436,7 @@ async function applyRequestEditToSchedule(id) {
   const dateChanged = sch && f.job_date && sch.jobDate !== f.job_date;
   const crewWarn = dateChanged && (sch.assignments || []).length
     ? `\n\n⚠ 날짜가 바뀝니다 (${sch.jobDate} → ${f.job_date}). 배정된 크루의 일정을 확인하세요.` : '';
-  if (!confirm(`고객이 수정한 내용으로 스케줄을 바꿉니다.\n크루 배정은 그대로 유지됩니다.${crewWarn}`)) return;
+  if (!(await uiConfirm(`고객이 수정한 내용으로 스케줄을 바꿉니다.\n크루 배정은 그대로 유지됩니다.${crewWarn}`, { title: '스케줄에 반영할까요?', okText: '반영' }))) return;
   const fields = {
     quote_price: f.quote_price, customer_name: f.customer_name, customer_phone: f.customer_phone,
     job_date: f.job_date, overall_time_range: f.overall_time_range,
@@ -1437,10 +1447,10 @@ async function applyRequestEditToSchedule(id) {
   if (dateChanged && (!sch.endDate || sch.endDate === sch.jobDate || sch.endDate < f.job_date)) fields.end_date = f.job_date;
   if (sch) {
     const { error } = await sb.from('schedules').update(fields).eq('id', sch.id);
-    if (error) return alert('스케줄 반영 오류: ' + error.message);
+    if (error) return uiAlert('스케줄 반영 오류: ' + error.message);
   }
   const { error } = await sb.from('requests').update({ payload_before_edit: null }).eq('id', id);
-  if (error) return alert('확인 처리 오류: ' + error.message);
+  if (error) return uiAlert('확인 처리 오류: ' + error.message);
   await loadDataFromSupabase();
   renderApp();
   broadcastChange();
@@ -1453,15 +1463,14 @@ function renderEditedRequestsSection() {
   if (!edited.length) return '';
   return `
   <div class="card request-edited-card">
-    <div class="card-title">수정된 요청 <span class="badge badge-warning">${edited.length}</span>
-      <span class="request-edited-sub">확정 후 고객이 수정 링크로 고친 요청입니다. 스케줄에 반영하거나 확인만 해 주세요.</span></div>
+    <div class="card-title">수정된 요청 <span class="badge badge-warning">${edited.length}</span></div>
     ${edited.map(r => `
       <div class="request-pending-item">
         <div class="request-pending-top">
           <div>
             <span class="request-pending-type">배송</span>
             <span style="margin-left:6px; font-weight:700;">${escapeHtml(r.customer_name || '-')}</span>
-            <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">${escapeHtml(editedLabel(r))}${r.schedule_id ? '' : ' · 연결된 스케줄 없음'}</div>
+            <div style="font-size: var(--fs-caption); color:var(--faint); margin-top:2px;">${escapeHtml(editedLabel(r))}${r.schedule_id ? '' : ' · 연결된 스케줄 없음'}</div>
           </div>
           <div class="request-pending-actions">
             ${r.schedule_id ? `<button class="btn btn-primary btn-sm" onclick="applyRequestEditToSchedule(${jsArg(r.id)})">스케줄에 반영</button>` : ''}
@@ -1494,16 +1503,17 @@ function renderAdminRequestsTab() {
   list.innerHTML = editedSection + pending.map(r => {
     const isOpen = state.expandedRequestIds.has(r.id);
     return `
-    <div class="request-pending-item" id="request-item-${escapeHtml(r.id)}">
+    <div class="request-pending-item request-card${isOpen ? ' open' : ''}" id="request-item-${escapeHtml(r.id)}">
       <div class="request-pending-top" onclick="toggleRequestDetail(${jsArg(r.id)})">
         <div>
           <span class="request-pending-type">${r.type === 'moving' ? '이사' : '배송'}</span>
           <span style="margin-left:6px; font-weight:700;">${escapeHtml(r.customer_name || '-')}</span>
-          ${r.edit_count ? `<span class="badge badge-warning request-edit-badge">수정됨 ${r.edit_count}회</span>` : ''}
+          ${r.edit_count ? `<span class="request-edit-count">수정 ${r.edit_count}회</span>` : ''}
           ${r.quote_issued_at ? '<span class="badge badge-gray request-edit-badge">견적서 발행됨</span>' : ''}
           <span class="request-caret${isOpen ? ' open' : ''}">▾</span>
-          <div style="font-size:12px; color:var(--text-secondary); margin-top:3px;">${escapeHtml(r.summary)}</div>
-          <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">${escapeHtml(r.customer_phone)} · ${shortDateTime(r.created_at)}</div>
+          <div style="font-size: var(--fs-caption); color:var(--muted); margin-top:3px;">${escapeHtml(r.summary)}</div>
+          ${r.type === 'delivery' && deliveryChecks(r.payload || {}).length ? `<div class="request-checks"><b>확인</b> ${escapeHtml(deliveryChecks(r.payload || {}).join(', '))}</div>` : ''}
+          <div style="font-size: var(--fs-caption); color:var(--faint); margin-top:2px;">${shortDateTime(r.created_at)}</div>
         </div>
         <div class="request-pending-actions" onclick="event.stopPropagation()">
           <button class="btn btn-primary btn-sm" onclick="confirmRequest(${jsArg(r.id)})">확정</button>
@@ -1519,12 +1529,22 @@ function renderAdminRequestsTab() {
 // 신규 요청 목록은 실시간 백그라운드 폴링(loadDataFromSupabase)마다 통째로 다시 그려지므로,
 // 펼침 상태를 DOM이 아니라 state에 저장해야 폴링 중에도 펼쳐놓은 상태가 유지된다.
 function toggleRequestDetail(id) {
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const opts = { duration: 240, easing: 'cubic-bezier(.2, .8, .2, 1)' };
   if (state.expandedRequestIds.has(id)) {
-    state.expandedRequestIds.delete(id);
-  } else {
-    state.expandedRequestIds.add(id);
+    const el = document.getElementById(`request-detail-${id}`);
+    const close = () => { state.expandedRequestIds.delete(id); renderAdminRequestsTab(); };
+    if (!el || reduce) return close();
+    el.style.overflow = 'hidden';
+    el.animate([{ height: `${el.offsetHeight}px`, opacity: 1 }, { height: '0px', opacity: 0 }], { ...opts, duration: 180 }).onfinish = close;
+    return;
   }
+  state.expandedRequestIds.add(id);
   renderAdminRequestsTab();
+  const el = document.getElementById(`request-detail-${id}`);
+  if (!el || reduce) return;
+  el.style.overflow = 'hidden';
+  el.animate([{ height: '0px', opacity: 0 }, { height: `${el.offsetHeight}px`, opacity: 1 }], opts).onfinish = () => { el.style.overflow = ''; };
 }
 
 // 상세 안에서 접었다 펼치는 칸 (수정 내용·박스)
@@ -1577,8 +1597,8 @@ function renderRequestVersions(r) {
   }
   if (revs === 'loading') return { bar: '<div class="rv-bar rv-muted">수정 이력 불러오는 중…</div>', payload: r.payload, isCurrent: true };
   if (revs === 'error' || !revs.length) {
-    const msg = revs === 'error' ? '수정 이력을 불러오지 못했습니다.' : '이전 버전이 저장되기 전에 수정된 요청입니다.';
-    return { bar: `<div class="rv-bar rv-muted">${msg}</div>`, payload: r.payload, isCurrent: true };
+    const bar = revs === 'error' ? '<div class="rv-bar rv-muted">수정 이력을 불러오지 못했습니다.</div>' : '';
+    return { bar, payload: r.payload, isCurrent: true };
   }
   const versions = requestVersionList(r);
   const wanted = state.requestVersion.get(r.id);
@@ -1595,17 +1615,38 @@ function renderRequestVersions(r) {
     const now = String(f(chosen.payload || {}) || '');
     const before = prev ? String(f(prev || {}) || '') : now;
     const changed = prev && before !== now;
+    if (!now && !changed) return ''; // 비어 있고 바뀌지도 않은 항목은 숨긴다
     return `<div class="rv-row${changed ? ' changed' : ''}"><span class="rv-label">${escapeHtml(label)}</span><span class="rv-value">${escapeHtml(now) || '<em>없음</em>'}${changed ? `<span class="rv-before">이전: ${escapeHtml(before) || '없음'}</span>` : ''}</span></div>`;
   }).join('');
   const changedCount = prev ? REQUEST_DIFF_FIELDS.filter(([, f]) => String(f(prev || {}) || '') !== String(f(chosen.payload || {}) || '')).length : 0;
   const note = prev ? (changedCount ? `앞 버전보다 ${changedCount}개 항목이 바뀌었습니다.` : '앞 버전과 같은 내용입니다.') : '처음 신청한 내용입니다.';
-  const bar = `<section class="rd-group rv">
-    <h4 class="rd-gtitle">버전</h4>
-    <div class="rv-tabs">${tabs}</div>
+  const chosenLabel = chosen.version == null ? '현재' : `v${chosen.version}`;
+  const meta = `${chosenLabel} 보는 중 · 전체 ${versions.length}개${prev && changedCount ? ` · ${changedCount}개 바뀜` : ''}`;
+  const bar = foldSection(r, 'versions', '버전', meta, `<div class="rv-tabs">${tabs}</div>
     <div class="rv-note">${note}${chosen.version != null ? ' 아래 상세도 이 버전 기준입니다.' : ''}</div>
-    <div class="rv-table">${rows}</div>
-  </section>`;
+    <div class="rv-table">${rows}</div>`);
   return { bar, payload: chosen.payload, isCurrent: chosen.version == null };
+}
+
+// 배송 요청에서 관리자가 따로 확인할 것 (초과·캐리어·분유/주류 등·신상품·이사화물·배송지 미정). 요청 목록 요약 아래에 보인다.
+function deliveryChecks(p) {
+  const CATEGORY = { health: '건강기능식품', formula: '분유', alcohol: '주류' };
+  const boxes = p.boxes || [];
+  const items = boxes.flatMap(b => b.items || []);
+  const count = pred => boxes.filter(pred).length;
+  const overweight = count(b => b.quote && b.quote.isOverweight);
+  const oversize = count(b => b.quote && b.quote.isOversize);
+  const carriers = count(b => b.carrier);
+  const checks = [
+    overweight && `중량 초과 ${overweight}박스`,
+    oversize && `규격 초과 ${oversize}박스`,
+    carriers && `캐리어 ${carriers}개`,
+    ...[...new Set(items.map(it => CATEGORY[it.category]).filter(Boolean))],
+    items.some(it => it.isNew) && '신상품',
+    p.movingStatus && p.movingStatus !== 'none' && `${{ moving: '이사화물', import: '반입 건' }[p.movingStatus] || p.movingStatus}${p.entryDate ? `(입국 ${p.entryDate.slice(5).replace('-', '/').replace(/^0/, '')})` : ''}`,
+    p.deliveryUndecided && '배송지 미정',
+  ].filter(Boolean);
+  return checks;
 }
 
 // payload는 type별로 모양이 다르므로, 요청 상세 보기에서 사람이 읽기 좋은 항목만 뽑아 보여준다.
@@ -1614,7 +1655,7 @@ function renderRequestDetailBody(r) {
   if (r.type === 'delivery' && r.edit_count > 0 && !r.versionView) {
     const v = renderRequestVersions(r);
     const body = renderRequestDetailBody({ ...r, payload: v.payload, payload_before_edit: v.isCurrent ? r.payload_before_edit : null, versionView: true });
-    return body.replace('<div class="request-detail-full rd">', `<div class="request-detail-full rd">${v.bar}`);
+    return body.replace(/<\/div>$/, `${v.bar}</div>`); // 버전 칸은 상세 맨 아래에 둔다
   }
   const p = r.payload || {};
   if (r.type === 'moving') {
@@ -1647,19 +1688,6 @@ function renderRequestDetailBody(r) {
   const boxes = p.boxes || [];
   const t = p.quoteTotals || {};
   const items = boxes.flatMap(b => b.items || []);
-  const count = pred => boxes.filter(pred).length;
-  const overweight = count(b => b.quote && b.quote.isOverweight);
-  const oversize = count(b => b.quote && b.quote.isOversize);
-  const carriers = count(b => b.carrier);
-  const checks = [
-    overweight && `중량 초과 ${overweight}박스`,
-    oversize && `규격 초과 ${oversize}박스`,
-    carriers && `캐리어 ${carriers}개`,
-    ...[...new Set(items.map(it => CATEGORY[it.category]).filter(Boolean))],
-    items.some(it => it.isNew) && '신상품',
-    p.movingStatus && p.movingStatus !== 'none' && `${{ moving: '이사화물', import: '반입 건' }[p.movingStatus] || p.movingStatus}${p.entryDate ? `(입국 ${p.entryDate.slice(5).replace('-', '/').replace(/^0/, '')})` : ''}`,
-    p.deliveryUndecided && '배송지 미정',
-  ].filter(Boolean);
 
   const region = p.pickupRegion ? `${p.pickupRegion.zip || ''} ${p.pickupRegion.city || ''}`.trim() : '';
   const cargoText = (p.cargoes || []).map(c => `${c.name} ${c.quantity}개`).join(', ');
@@ -1671,10 +1699,9 @@ function renderRequestDetailBody(r) {
     ${stat('화물', boxes.length ? `${boxes.length}박스 · ${e(p.chargeableKg)}kg` : e(cargoText || '-'), boxes.length ? `신고가 ${euro(p.declaredTotal)}` : '')}
     ${stat('통관', e(customsLabel), p.deliveryUndecided ? '' : e(p.customsCode || '고유부호 없음'))}
   </dl>`;
-  const checkHtml = checks.length ? `<div class="rd-check"><b>확인</b> ${e(checks.join(', '))}</div>` : '';
 
   const diffRows = isEditUnreviewed(r) ? requestDiff(r.payload_before_edit, r.payload) : null;
-  const diffSection = diffRows
+  const diffSection = diffRows && diffRows.length
     ? foldSection(r, 'diff', '수정 내용', diffRows.length ? `${diffRows.length}개 항목` : '바뀐 항목 없음', renderRequestDiff(r))
     : '';
 
@@ -1738,7 +1765,7 @@ function renderRequestDetailBody(r) {
     ${etc ? `<div><h5 class="rd-sub">기타</h5>${line(e(etc))}</div>` : ''}
   </div></section>`;
 
-  const overview = `<section class="rd-group"><h4 class="rd-gtitle">개요</h4>${summary}${checkHtml}</section>`;
+  const overview = `<section class="rd-group"><h4 class="rd-gtitle">개요</h4>${summary}</section>`;
   return `<div class="request-detail-full rd">${diffSection}${overview}${boxSection}${people}${bottom}</div>`;
 }
 
@@ -1813,13 +1840,13 @@ function mapRequestToScheduleFields(r) {
 async function confirmRequest(id) {
   const r = state.requests.find(x => x.id === id);
   if (!r) return;
-  if (!confirm('이 요청을 확정하고 스케줄에 배정하시겠습니까?')) return;
+  if (!(await uiConfirm('확정하면 이 요청으로 스케줄이 만들어집니다.', { title: '요청을 확정할까요?', okText: '확정' }))) return;
 
   const fields = mapRequestToScheduleFields(r);
   const newId = 'sch-' + Date.now();
   const { error: insertError } = await sb.from('schedules').insert({ id: newId, ...fields, assignments: [] });
   if (insertError) {
-    alert('스케줄 등록 오류: ' + insertError.message);
+    uiAlert('스케줄 등록 오류: ' + insertError.message);
     return;
   }
 
@@ -1827,7 +1854,7 @@ async function confirmRequest(id) {
     .update({ status: 'confirmed', schedule_id: newId, confirmed_at: new Date().toISOString(), payload_before_edit: null })
     .eq('id', id);
   if (updateError) {
-    alert('요청 상태 업데이트 오류: ' + updateError.message);
+    uiAlert('요청 상태 업데이트 오류: ' + updateError.message);
     return;
   }
 
@@ -1838,7 +1865,7 @@ async function confirmRequest(id) {
 }
 
 async function rejectRequest(id) {
-  if (!confirm('이 요청을 거절하시겠습니까?')) return;
+  if (!(await uiConfirm('거절한 요청은 목록에서 사라집니다.', { title: '요청을 거절할까요?', okText: '거절', danger: true }))) return;
   await sb.from('requests').update({ status: 'rejected' }).eq('id', id);
   await loadDataFromSupabase();
   renderApp();
@@ -2608,7 +2635,7 @@ async function confirmAvailabilityChange(dateStr, nextVal) {
     is_available: nextVal
   });
   if (error) {
-    alert('저장 실패: ' + error.message);
+    uiAlert('저장 실패: ' + error.message);
     await loadDataFromSupabase();
     renderCrewCalendar();
     return;
@@ -3026,17 +3053,17 @@ async function resendCrewInvite(id, name) {
     });
     const result = await res.json();
     if (!res.ok) {
-      alert(result.error || '재전송에 실패했습니다.');
+      uiAlert(result.error || '재전송에 실패했습니다.');
       return;
     }
     showToast(`${name}님에게 로그인 링크를 다시 보냈습니다.`);
   } catch (e) {
-    alert('재전송 요청 중 오류가 발생했습니다: ' + e.message);
+    uiAlert('재전송 요청 중 오류가 발생했습니다: ' + e.message);
   }
 }
 
 async function deleteCrewMember(id, name) {
-  if (!confirm(`${name} 크루를 삭제하시겠습니까? 계정 자체가 삭제되어 더 이상 로그인할 수 없습니다.`)) return;
+  if (!(await uiConfirm('계정 자체가 삭제되어 더 이상 로그인할 수 없습니다.', { title: `${name} 크루를 삭제할까요?`, okText: '삭제', danger: true }))) return;
 
   const { data: { session } } = await sb.auth.getSession();
   try {
@@ -3050,14 +3077,14 @@ async function deleteCrewMember(id, name) {
     });
     const result = await res.json();
     if (!res.ok) {
-      alert(result.error || '삭제에 실패했습니다.');
+      uiAlert(result.error || '삭제에 실패했습니다.');
       return;
     }
     await loadDataFromSupabase();
     renderApp();
     showToast('크루가 삭제되었습니다.');
   } catch (e) {
-    alert('삭제 요청 중 오류가 발생했습니다: ' + e.message);
+    uiAlert('삭제 요청 중 오류가 발생했습니다: ' + e.message);
   }
 }
 
@@ -3072,7 +3099,7 @@ async function handleSaveSchedule(e) {
   const timeEnd = document.getElementById('f-time-end').value;
   const endDate = document.getElementById('f-end-date').value;
   if (`${endDate} ${timeEnd}` <= `${jobDate} ${timeStart}`) {
-    alert('종료 일시가 시작 일시보다 뒤여야 합니다. 자정을 넘기는 작업은 종료 날짜를 다음날 이후로 설정하세요.');
+    uiAlert('종료 일시가 시작 일시보다 뒤여야 합니다. 자정을 넘기는 작업은 종료 날짜를 다음날 이후로 설정하세요.');
     return;
   }
   const timeRange = `${timeStart} ~ ${timeEnd}`;
@@ -3111,7 +3138,7 @@ async function handleSaveSchedule(e) {
     ({ error } = await sb.from('schedules').insert({ id: newId, ...fieldsPayload, assignments: [] }));
   }
   if (error) {
-    alert('DB 저장 오류: ' + error.message);
+    uiAlert('DB 저장 오류: ' + error.message);
     return;
   }
 
@@ -3126,9 +3153,9 @@ async function handleSaveSchedule(e) {
 async function deleteSchedule(scheduleId) {
   const linkedWorkLogs = state.workLogs.filter(w => w.scheduleId === scheduleId).length;
   const warning = linkedWorkLogs > 0
-    ? `이 스케줄에는 이미 제출된 근무시간 기록이 ${linkedWorkLogs}건 있습니다.\n삭제하면 그 근무기록도 함께 영구 삭제됩니다. 정말 삭제하시겠습니까?`
-    : '삭제하시겠습니까?';
-  if (!confirm(warning)) return;
+    ? `이미 제출된 근무시간 기록이 ${linkedWorkLogs}건 있습니다.\n삭제하면 그 근무기록도 함께 영구 삭제됩니다.`
+    : '삭제한 스케줄은 되돌릴 수 없습니다.';
+  if (!(await uiConfirm(warning, { title: '스케줄을 삭제할까요?', okText: '삭제', danger: true }))) return;
 
   const { error } = await sb.from('schedules').delete().eq('id', scheduleId);
   if (error) {
@@ -3137,7 +3164,7 @@ async function deleteSchedule(scheduleId) {
     const message = error.code === '23503'
       ? '이 스케줄에 연결된 근무기록 또는 요청이 있어 삭제할 수 없습니다. (관리자: sql/auth.sql의 cascade 설정을 적용해 주세요)'
       : error.message;
-    alert('삭제 실패: ' + message);
+    uiAlert('삭제 실패: ' + message);
     return;
   }
   closeScheduleModal();
@@ -3154,7 +3181,7 @@ async function deleteSchedule(scheduleId) {
 async function writeScheduleAssignments(scheduleId, assignments) {
   const { error } = await sb.from('schedules').update({ assignments }).eq('id', scheduleId);
   if (error) {
-    alert('저장 실패: ' + error.message);
+    uiAlert('저장 실패: ' + error.message);
     return false;
   }
   await loadDataFromSupabase();
@@ -3184,7 +3211,7 @@ async function addCrewToSchedule() {
     const type = other.jobType === 'delivery' ? '[배송] ' : '';
     warnings.push(`${name}님은 같은 시간에 ${type}${other.customerName || '-'} 작업(${monthDayLabel(other.jobDate)} ${r.start}–${r.end})에 배정돼 있습니다.`);
   }
-  if (warnings.length && !confirm(`${warnings.join('\n')}\n\n그래도 배정할까요?`)) {
+  if (warnings.length && !(await uiConfirm(warnings.join('\n'), { title: '그래도 배정할까요?', okText: '배정' }))) {
     select.value = '';
     return;
   }
@@ -3282,6 +3309,45 @@ function changeMonth(delta) {
     state.currentYear += 1;
   }
   renderApp();
+}
+
+// 확인·알림 팝업. 확인 → true, 취소·바깥 클릭·Esc → false. danger면 확인 버튼이 빨간색.
+let uiDialogClose = null;
+function uiDialog({ title = '', message = '', okText = '확인', cancelText = '', danger = false }) {
+  if (uiDialogClose) uiDialogClose(false);
+  const overlay = document.getElementById('ui-dialog');
+  const ok = document.getElementById('ui-dialog-ok');
+  const cancel = document.getElementById('ui-dialog-cancel');
+  document.getElementById('ui-dialog-title').textContent = title;
+  document.getElementById('ui-dialog-title').classList.toggle('hidden', !title);
+  document.getElementById('ui-dialog-msg').textContent = message;
+  ok.textContent = okText;
+  ok.className = `btn ${danger ? 'btn-danger' : 'btn-primary'}`;
+  cancel.textContent = cancelText;
+  cancel.classList.toggle('hidden', !cancelText);
+  const opener = document.activeElement;
+  overlay.classList.remove('hidden');
+  ok.focus();
+  return new Promise(resolve => {
+    const done = (value) => {
+      overlay.classList.add('hidden');
+      ok.onclick = cancel.onclick = overlay.onclick = overlay.onkeydown = null;
+      uiDialogClose = null;
+      if (opener && opener.focus) opener.focus();
+      resolve(value);
+    };
+    uiDialogClose = done;
+    ok.onclick = () => done(true);
+    cancel.onclick = () => done(false);
+    overlay.onclick = (e) => { if (e.target === overlay) done(false); };
+    overlay.onkeydown = (e) => { if (e.key === 'Escape') done(false); };
+  });
+}
+const uiConfirm = (message, opts = {}) => uiDialog({ cancelText: '취소', ...opts, message });
+const uiAlert = (message, opts = {}) => uiDialog({ ...opts, message: String(message) });
+
+async function confirmLogout() {
+  if (await uiConfirm('이 기기에서 로그아웃합니다.', { title: '로그아웃할까요?', okText: '로그아웃', danger: true })) sb.auth.signOut();
 }
 
 function showToast(msg) {
