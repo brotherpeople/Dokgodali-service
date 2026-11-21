@@ -9,6 +9,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="dokgodali-config.js"></script>
 <script src="dokgodali-delivery-caution.js"></script>
+<script src="dokgodali-export.js"></script>
 <link rel="stylesheet" href="dokgodali-schedule.css">
 <!-- 아이폰에서 "홈 화면에 추가"로 설치해야 웹 푸시가 동작하기 때문에 PWA로 설치 가능하게 만든다 -->
 <link rel="manifest" href="manifest.json">
@@ -556,6 +557,8 @@ let state = {
   requests: [],
   expandedRequestIds: new Set(),
   openRequestSections: new Set(), // '요청id:칸' (diff, boxes, address)
+  requestRevisions: new Map(), // 요청id → [{version, payload, created_at}] | 'loading' | 'error'
+  requestVersion: new Map(), // 요청id → 보고 있는 버전 번호 (없으면 현재)
   adminTab: 'dashboard',
   editingScheduleId: null,
   jobDetail: null, // 열려 있는 작업 상세 팝업 { scheduleId, siblings }
@@ -1344,9 +1347,50 @@ const editedLabel = r => (r.edit_count ? `고객 수정 ${r.edit_count}회${r.ed
 // 견적서 발행 표시: 발행되면 고객은 수정 링크로 더 이상 고칠 수 없다.
 function renderQuoteControl(r) {
   if (!r || r.type !== 'delivery') return '';
-  return r.quote_issued_at
+  return renderExportControl(r) + (r.quote_issued_at
     ? `<div class="request-quote-row">견적서 발행됨 (${shortDateTime(r.quote_issued_at)}) · 고객 수정 잠김 <button class="btn btn-secondary btn-sm" onclick="setQuoteIssued(${jsArg(r.id)}, false)">발행 취소</button></div>`
-    : `<div class="request-quote-row">견적서 발행 전 <button class="btn btn-secondary btn-sm" onclick="setQuoteIssued(${jsArg(r.id)}, true)">발행 표시</button></div>`;
+    : `<div class="request-quote-row">견적서 발행 전 <button class="btn btn-secondary btn-sm" onclick="setQuoteIssued(${jsArg(r.id)}, true)">발행 표시</button></div>`);
+}
+
+// ---------- 대량등록 엑셀 내보내기 (dokgodali-export.js, SheetJS는 처음 누를 때 vendor에서 불러온다)
+function renderExportControl(r) {
+  return `<div class="request-quote-row">대량등록 엑셀 <button class="btn btn-secondary btn-sm" onclick="exportRequestXlsx(${jsArg(r.id)})">엑셀 내보내기</button></div>`;
+}
+let sheetJsLoading = null;
+function loadSheetJs() {
+  if (window.XLSX) return Promise.resolve();
+  sheetJsLoading ??= new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'vendor/xlsx.full.min.js';
+    script.onload = resolve;
+    script.onerror = () => { sheetJsLoading = null; reject(new Error('엑셀 모듈을 불러오지 못했습니다.')); };
+    document.head.append(script);
+  });
+  return sheetJsLoading;
+}
+async function exportRequestXlsx(id) {
+  const r = state.requests.find(x => x.id === id);
+  if (!r) return;
+  let rows;
+  try {
+    rows = window.DokgodaliExport.toRows(r);
+  } catch (error) {
+    return alert(error.message === 'delivery_undecided' ? '배송지가 미정인 요청이라 내보낼 수 없습니다. 고객에게 배송지를 받은 뒤 내보내 주세요.' : '엑셀 변환 오류: ' + error.message);
+  }
+  if (!rows.length) return alert('내보낼 물품이 없습니다.');
+  try {
+    await loadSheetJs();
+  } catch (error) {
+    return alert(error.message);
+  }
+  const sheet = XLSX.utils.aoa_to_sheet([window.DokgodaliExport.HEADERS, ...rows]);
+  const book = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(book, sheet, '신청');
+  const p = r.payload || {};
+  const d = new Date();
+  const ymd = `${String(d.getFullYear()).slice(2)}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+  const name = String(p.recipientNameKo || r.customer_name || r.id).replace(/[\\/:*?"<>|]/g, '');
+  XLSX.writeFile(book, `대량등록_${name}_${ymd}.xlsx`);
 }
 async function setQuoteIssued(id, issued) {
   if (!confirm(issued ? '견적서 발행을 표시하면 고객은 수정 링크로 신청 내용을 고칠 수 없습니다. 표시할까요?' : '견적서 발행 표시를 취소하면 고객이 다시 수정할 수 있습니다. 취소할까요?')) return;
@@ -1494,8 +1538,75 @@ function detailRow(label, value) {
   return `<div class="request-detail-row"><span>${label}</span><strong>${value}</strong></div>`;
 }
 
+// ---------- 수정 이력 버전 보기 (11/09 피드백, sql/requests.sql request_revisions)
+// 고객이 수정할 때마다 고치기 전 payload가 request_revisions에 쌓인다. v1 = 처음 신청, 마지막 = 현재.
+// 버전을 고르면 그 버전의 내용으로 상세 전체를 다시 그리고, 바로 앞 버전과 달라진 항목을 강조한다.
+async function loadRequestRevisions(id) {
+  state.requestRevisions.set(id, 'loading');
+  const { data, error } = await sb.from('request_revisions').select('version, payload, created_at').eq('request_id', id).order('version');
+  state.requestRevisions.set(id, error ? 'error' : data);
+  renderAdminRequestsTab();
+}
+function requestVersionList(r) {
+  const revs = state.requestRevisions.get(r.id);
+  if (!Array.isArray(revs)) return null;
+  // 각 버전이 '현재'가 된 시각: v1은 신청 시각, 그다음부터는 앞 버전이 이력으로 넘어간 시각
+  const versions = revs.map((v, i) => ({ version: v.version, payload: v.payload, at: i === 0 ? r.created_at : revs[i - 1].created_at }));
+  versions.push({ version: null, payload: r.payload, at: revs.length ? revs[revs.length - 1].created_at : r.edited_at });
+  return versions;
+}
+function selectRequestVersion(id, version) {
+  if (version == null) state.requestVersion.delete(id);
+  else state.requestVersion.set(id, version);
+  renderAdminRequestsTab();
+}
+function renderRequestVersions(r) {
+  const revs = state.requestRevisions.get(r.id);
+  if (revs === undefined) {
+    loadRequestRevisions(r.id);
+    return { bar: '<div class="rv-bar rv-muted">수정 이력 불러오는 중…</div>', payload: r.payload, isCurrent: true };
+  }
+  if (revs === 'loading') return { bar: '<div class="rv-bar rv-muted">수정 이력 불러오는 중…</div>', payload: r.payload, isCurrent: true };
+  if (revs === 'error' || !revs.length) {
+    const msg = revs === 'error' ? '수정 이력을 불러오지 못했습니다.' : '이전 버전이 저장되기 전에 수정된 요청입니다.';
+    return { bar: `<div class="rv-bar rv-muted">${msg}</div>`, payload: r.payload, isCurrent: true };
+  }
+  const versions = requestVersionList(r);
+  const wanted = state.requestVersion.get(r.id);
+  let idx = versions.findIndex(v => v.version === wanted);
+  if (idx < 0) idx = versions.length - 1;
+  const chosen = versions[idx];
+  const tabs = versions.map((v, i) => {
+    const label = v.version == null ? '현재' : `v${v.version}${i === 0 && v.version === 1 ? ' (신청)' : ''}`;
+    return `<button type="button" class="rv-tab${i === idx ? ' active' : ''}" onclick="selectRequestVersion(${jsArg(r.id)}, ${v.version == null ? 'null' : v.version})">${label}<small>${v.at ? escapeHtml(shortDateTime(v.at)) : ''}</small></button>`;
+  }).join('');
+  // 바로 앞 버전과 비교해 바뀐 항목을 강조한다. v1은 비교 대상이 없다.
+  const prev = idx > 0 ? versions[idx - 1].payload : null;
+  const rows = REQUEST_DIFF_FIELDS.map(([label, f]) => {
+    const now = String(f(chosen.payload || {}) || '');
+    const before = prev ? String(f(prev || {}) || '') : now;
+    const changed = prev && before !== now;
+    return `<div class="rv-row${changed ? ' changed' : ''}"><span class="rv-label">${escapeHtml(label)}</span><span class="rv-value">${escapeHtml(now) || '<em>없음</em>'}${changed ? `<span class="rv-before">이전: ${escapeHtml(before) || '없음'}</span>` : ''}</span></div>`;
+  }).join('');
+  const changedCount = prev ? REQUEST_DIFF_FIELDS.filter(([, f]) => String(f(prev || {}) || '') !== String(f(chosen.payload || {}) || '')).length : 0;
+  const note = prev ? (changedCount ? `앞 버전보다 ${changedCount}개 항목이 바뀌었습니다.` : '앞 버전과 같은 내용입니다.') : '처음 신청한 내용입니다.';
+  const bar = `<section class="rd-group rv">
+    <h4 class="rd-gtitle">버전</h4>
+    <div class="rv-tabs">${tabs}</div>
+    <div class="rv-note">${note}${chosen.version != null ? ' 아래 상세도 이 버전 기준입니다.' : ''}</div>
+    <div class="rv-table">${rows}</div>
+  </section>`;
+  return { bar, payload: chosen.payload, isCurrent: chosen.version == null };
+}
+
 // payload는 type별로 모양이 다르므로, 요청 상세 보기에서 사람이 읽기 좋은 항목만 뽑아 보여준다.
 function renderRequestDetailBody(r) {
+  // 고객이 고친 적이 있는 배송 요청은 위에 버전 선택을 두고, 고른 버전의 내용으로 상세를 그린다.
+  if (r.type === 'delivery' && r.edit_count > 0 && !r.versionView) {
+    const v = renderRequestVersions(r);
+    const body = renderRequestDetailBody({ ...r, payload: v.payload, payload_before_edit: v.isCurrent ? r.payload_before_edit : null, versionView: true });
+    return body.replace('<div class="request-detail-full rd">', `<div class="request-detail-full rd">${v.bar}`);
+  }
   const p = r.payload || {};
   if (r.type === 'moving') {
     // 공개 견적 페이지에서 누구나 넣을 수 있는 값이므로 전부 escapeHtml을 거친다.

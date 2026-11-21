@@ -636,6 +636,23 @@
   .request-diff-after { font-weight: 600; word-break: break-word; }
   .request-diff-before em, .request-diff-after em { font-style: normal; color: var(--text-muted); }
   .request-diff-empty { margin-top: 8px; font-size: 12px; color: var(--text-muted); }
+  /* 수정 이력 버전 보기 */
+  .rv-bar { padding: 8px 12px; border-radius: var(--radius-md); font-size: 12px; }
+  .rv-muted { color: var(--text-muted); background: var(--bg); }
+  .rv-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .rv-tab { display: inline-flex; flex-direction: column; align-items: flex-start; padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--text); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+  .rv-tab small { font-size: 11px; font-weight: 500; color: var(--text-muted); }
+  .rv-tab.active { border-color: var(--accent); background: var(--accent); color: #fff; }
+  .rv-tab.active small { color: rgba(255, 255, 255, .85); }
+  .rv-note { margin-top: 8px; font-size: 12px; color: var(--text-secondary); }
+  .rv-table { display: grid; gap: 2px; margin-top: 8px; font-size: 12px; }
+  .rv-row { display: grid; grid-template-columns: 110px 1fr; gap: 10px; padding: 4px 8px; border-radius: 6px; }
+  .rv-row.changed { background: #fef3c7; }
+  .rv-label { color: var(--text-secondary); }
+  .rv-value { word-break: break-word; }
+  .rv-row.changed .rv-value { font-weight: 600; }
+  .rv-value em { font-style: normal; color: var(--text-muted); }
+  .rv-before { display: block; font-weight: 400; color: var(--text-muted); text-decoration: line-through; }
   .request-quote-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--text-secondary); }
   .detail-edit-warning { margin-bottom: 6px; padding: 8px 10px; border-radius: 8px; background: #fffbeb; color: #92400e; font-size: 12.5px; }
 

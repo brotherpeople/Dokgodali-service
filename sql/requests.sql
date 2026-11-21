@@ -43,6 +43,21 @@ create policy "관리자만 요청 읽기" on requests for select
 create policy "관리자만 요청 확정-거절" on requests for update
   using (is_admin()) with check (is_admin());
 
+-- 고객이 수정 링크로 고칠 때마다 고치기 전 payload를 한 줄씩 쌓는다 (11/09 피드백: 버전 보기).
+-- version 1 = 처음 신청한 내용, 2 = 첫 수정 뒤 내용 … 지금 내용은 requests.payload.
+-- 고객은 직접 읽거나 쓸 수 없고, update_request() 안에서만 쌓인다.
+create table request_revisions (
+  id bigint generated always as identity primary key,
+  request_id text not null references requests(id) on delete cascade,
+  version int not null,
+  payload jsonb not null,
+  created_at timestamptz not null default now(),
+  unique (request_id, version)
+);
+alter table request_revisions enable row level security;
+create policy "관리자만 수정 이력 읽기" on request_revisions for select
+  using (is_admin());
+
 -- 수정 링크로 요청을 불러온다. 링크가 맞고, 거절되지 않았고, 견적서 발행 전이어야 한다.
 -- 결과: {payload, status, edit_count} 또는 {error: 'not_found' | 'rejected' | 'quote_issued'}
 create or replace function get_request_for_edit(p_id text, p_key text)
@@ -99,6 +114,8 @@ begin
   if r.quote_issued_at is not null then
     return jsonb_build_object('error', 'quote_issued');
   end if;
+  insert into request_revisions (request_id, version, payload)
+  values (p_id, r.edit_count + 1, r.payload);
   update requests set
     payload = p_payload,
     customer_name = p_customer_name,
@@ -132,3 +149,7 @@ grant execute on function update_request(text, text, jsonb, text, text, text, te
 --     and payload_before_edit is null and quote_issued_at is null
 --   );
 -- 그리고 위의 함수 두 개와 revoke/grant 네 줄을 그대로 실행한다.
+
+-- ===== 기존 DB에 적용할 때 (2026-11-21, 수정 이력) =====
+-- 위의 create table request_revisions ~ create policy "관리자만 수정 이력 읽기" 블록을 실행하고,
+-- update_request() 함수를 다시 실행(create or replace)한다. 함수 권한(grant)은 그대로 유지된다.
