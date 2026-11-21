@@ -1345,18 +1345,20 @@ const shortDateTime = iso => {
 };
 const editedLabel = r => (r.edit_count ? `고객 수정 ${r.edit_count}회${r.edited_at ? ' · ' + new Date(r.edited_at).toLocaleString('ko-KR') : ''}` : '');
 // 견적서 발행 표시: 발행되면 고객은 수정 링크로 더 이상 고칠 수 없다.
+// 요청 상세·작업 팝업 아래 상자: 왼쪽 엑셀 내보내기, 오른쪽 견적서 발행 표시(발행 후에는 발행 시각 + 취소)
 function renderQuoteControl(r) {
   if (!r || r.type !== 'delivery') return '';
-  return renderExportControl(r) + (r.quote_issued_at
-    ? `<div class="request-quote-row">견적서 발행됨 (${shortDateTime(r.quote_issued_at)}) · 고객 수정 잠김 <button class="btn btn-secondary btn-sm" onclick="setQuoteIssued(${jsArg(r.id)}, false)">발행 취소</button></div>`
-    : `<div class="request-quote-row">견적서 발행 전 <button class="btn btn-secondary btn-sm" onclick="setQuoteIssued(${jsArg(r.id)}, true)">발행 표시</button></div>`);
+  const quote = r.quote_issued_at
+    ? `<span class="request-actions-note">견적서 발행됨 ${shortDateTime(r.quote_issued_at)}</span><button class="btn btn-secondary btn-sm" onclick="setQuoteIssued(${jsArg(r.id)}, false)">발행 취소</button>`
+    : `<button class="btn btn-secondary btn-sm" onclick="setQuoteIssued(${jsArg(r.id)}, true)">발행 표시</button>`;
+  return `<div class="request-actions-box">
+    <button class="btn btn-secondary btn-sm" onclick="exportRequestXlsx(${jsArg(r.id)})">엑셀 내보내기</button>
+    <div class="request-actions-right">${quote}</div>
+  </div>`;
 }
 
 // ---------- 대량등록 엑셀 내보내기 (dokgodali-export.js)
 // 참고 엑셀과 서식이 똑같도록 templates/bulk-upload-template.xlsx에 값만 채운다. ExcelJS는 처음 누를 때 vendor에서 불러온다.
-function renderExportControl(r) {
-  return `<div class="request-quote-row">대량등록 엑셀 <button class="btn btn-secondary btn-sm" onclick="exportRequestXlsx(${jsArg(r.id)})">엑셀 내보내기</button></div>`;
-}
 let excelJsLoading = null;
 function loadExcelJs() {
   if (window.ExcelJS) return Promise.resolve();
@@ -1493,7 +1495,7 @@ function renderAdminRequestsTab() {
   list.innerHTML = editedSection + pending.map(r => {
     const isOpen = state.expandedRequestIds.has(r.id);
     return `
-    <div class="request-pending-item" id="request-item-${escapeHtml(r.id)}">
+    <div class="request-pending-item${isOpen ? ' open' : ''}" id="request-item-${escapeHtml(r.id)}">
       <div class="request-pending-top" onclick="toggleRequestDetail(${jsArg(r.id)})">
         <div>
           <span class="request-pending-type">${r.type === 'moving' ? '이사' : '배송'}</span>

@@ -652,7 +652,6 @@
   .rv-row.changed .rv-value { font-weight: var(--fw-medium); }
   .rv-value em { font-style: normal; color: var(--faint); }
   .rv-before { display: block; font-weight: var(--fw-regular); color: var(--faint); text-decoration: line-through; }
-  .request-quote-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; font-size: var(--fs-caption); color: var(--muted); }
   .detail-edit-warning { margin-bottom: 6px; padding: 8px 10px; border-radius: 8px; background: var(--accent-light); color: var(--accent-dark); font-size: var(--fs-body); }
 
   /* 관리자 대시보드: 숫자 카드 3개 (마지막 칸은 이번 달 매출) */
@@ -916,3 +915,17 @@
   /* 크루 근무시간 달력: 빈 날은 선 없이 옅은 배경만, 근무·예정·미제출처럼 상태가 있는 날만 색과 선을 쓴다 */
   .cc-day { border-color: transparent; background: var(--surface-subtle); border-radius: var(--radius-xs); }
   .cc-day.blank { background: none; }
+
+  /* 신규 요청: 펼친 건은 머리(옅은 배경)와 상세를 상자 하나로 묶어 어느 건의 상세인지 보이게 한다.
+     상세 묶음들은 이 상자 안에서 구분선으로만 나눈다. */
+  .request-pending-item.open { margin: 12px 0; padding: 0; border: 1px solid var(--border-strong); border-radius: var(--radius-md); overflow: hidden; }
+  .request-pending-item.open + .request-pending-item { border-top: 0; }
+  .request-pending-item.open .request-pending-top { padding: 14px 16px; background: var(--surface-subtle); border-bottom: 1px solid var(--border); }
+  .request-pending-item.open .request-detail { margin-top: 0; padding: 0; }
+  .request-pending-item.open .rd { border: 0; border-radius: 0; }
+  .request-pending-item.open .request-actions-box { margin: 0 16px 16px; }
+
+  /* 엑셀 내보내기(왼쪽) · 견적서 발행(오른쪽) */
+  .request-actions-box { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+  .request-actions-right { display: flex; align-items: center; gap: 8px; }
+  .request-actions-note { font-size: var(--fs-caption); color: var(--muted); }
