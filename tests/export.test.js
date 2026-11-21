@@ -1,7 +1,7 @@
 // 실행: node --test tests/export.test.js
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const E = require('../dokgodali-export.js');
+const E = require('../public/dokgodali-export.js');
 
 const item = (nameEn, extra = {}) => ({ nameEn, brand: '', color: '', size: '', quantity: '1', unitPrice: '10', imageUrl: '', productUrl: '', ...extra });
 const req = {

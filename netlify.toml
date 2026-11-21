@@ -1,0 +1,4 @@
+# Netlify(실사용, main 브랜치): public/ 폴더만 배포한다.
+# sql·supabase·tests·scripts 등 저장소의 나머지 파일은 사이트 주소로 열리지 않는다.
+[build]
+  publish = "public"
