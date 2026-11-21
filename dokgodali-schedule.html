@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="dokgodali-config.js"></script>
+<script src="dokgodali-delivery-caution.js"></script>
 <link rel="stylesheet" href="dokgodali-schedule.css">
 <!-- 아이폰에서 "홈 화면에 추가"로 설치해야 웹 푸시가 동작하기 때문에 PWA로 설치 가능하게 만든다 -->
 <link rel="manifest" href="manifest.json">
@@ -1314,7 +1315,7 @@ const REQUEST_DIFF_FIELDS = [
   ['연락처', p => [p.customerPhone, p.customerEmail, p.kakaoId && `카톡 ${p.kakaoId}`].filter(Boolean).join(' · ')],
   ['신청인 주소', p => p.customerAddress || ''],
   ['픽업지', p => [p.pickupAddress, p.pickupKlingel && `초인종 ${p.pickupKlingel}`].filter(Boolean).join(' · ')],
-  ['배송지', p => (p.deliveryUndecided ? '미정' : [`${p.deliveryZip || ''} ${p.deliveryAddress || ''}`.trim(), p.deliveryAddressEn].filter(Boolean).join(' / '))],
+  ['배송지', p => (p.deliveryUndecided ? '미정' : [`${p.deliveryZip || ''} ${p.deliveryAddress || ''} ${p.deliveryAddressDetail || ''}`.trim(), [p.deliveryAddressEn, p.deliveryAddressDetailEn].filter(Boolean).join(', ')].filter(Boolean).join(' / '))],
   ['수취인', p => (p.deliveryUndecided ? '' : [p.recipientNameKo, p.recipientNameEn, p.recipientPhone, p.recipientEmail].filter(Boolean).join(' · '))],
   ['개인통관고유부호', p => (p.deliveryUndecided ? '' : p.customsCode || '')],
   ['통관 구분', p => ({ ecommerce: '전자상거래', general: '일반통관' }[p.customsType] || p.customsType || '')],
@@ -1565,7 +1566,9 @@ function renderRequestDetailBody(r) {
       const extra = [it.brand, it.color, it.size].filter(v => v && String(v).trim() !== '-').join(', ');
       const links = [link(it.productUrl, '상품'), link(it.imageUrl, '이미지')].filter(Boolean).join(' · ');
       const category = CATEGORY[it.category];
-      return `${category ? `[${category}] ` : ''}${e(it.nameEn)}${extra ? ` (${e(extra)})` : ''} ×${e(it.quantity)}, ${euro(it.unitPrice)}${it.isNew ? ', 신상품' : ''}${links ? ' — ' + links : ''}`;
+      // 옛 신청에는 cautionFlags가 없으므로 품명으로 다시 계산한다.
+      const cautions = (it.cautionFlags || window.DokgodaliCaution.match(it.nameEn)).map(k => `<span class="rd-flag rd-caution">${window.DokgodaliCaution.LABELS[k]}</span>`).join('');
+      return `${cautions}${category ? `[${category}] ` : ''}${e(it.nameEn)}${extra ? ` (${e(extra)})` : ''} ×${e(it.quantity)}, ${euro(it.unitPrice)}${it.isNew ? ', 신상품' : ''}${links ? ' — ' + links : ''}`;
     }).join('<br>');
     return `<tr class="rd-box"><td>${i + 1}. ${e(b.length)}×${e(b.width)}×${e(b.height)}cm${flags ? `<span class="rd-flag">${flags}</span>` : ''}</td><td class="rd-num rd-weight">${e(b.weight)}kg</td><td class="rd-num">${e(q.chargeable)}kg</td><td class="rd-num">${euro(q.total)}</td></tr>`
       + (itemLines ? `<tr class="rd-items"><td colspan="4">${itemLines}</td></tr>` : '');
@@ -1585,8 +1588,8 @@ function renderRequestDetailBody(r) {
     ? line('미정', false)
     : line(e(recipientName || '-'), false)
       + line(e([p.recipientPhone, p.recipientEmail].filter(Boolean).join(' · ')))
-      + line(e(`${p.deliveryZip || ''} ${p.deliveryAddress || ''}`.trim()))
-      + line(e(p.deliveryAddressEn));
+      + line(e(`${p.deliveryZip || ''} ${p.deliveryAddress || ''} ${p.deliveryAddressDetail || ''}`.trim()))
+      + line(e([p.deliveryAddressEn, p.deliveryAddressDetailEn].filter(Boolean).join(', ')));
   const applicant = line(e([r.customer_name, p.customerNameEn && `(${p.customerNameEn})`].filter(Boolean).join(' ') || '-'), false)
     + line(e([r.customer_phone, p.kakaoId && `카톡 ${p.kakaoId}`].filter(Boolean).join(' · ')))
     + line(e(r.customer_email))

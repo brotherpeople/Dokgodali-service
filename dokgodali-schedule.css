@@ -607,6 +607,7 @@
   .rd-box td { border-top: 1px solid var(--border); font-weight: 600; }
   .rd-items td { padding: 0 0 8px; font-size: 12.5px; line-height: 1.6; color: var(--text-secondary); word-break: break-word; }
   .rd-flag { margin-left: 6px; font-weight: 500; color: #b45309; }
+  .rd-flag.rd-caution { display: inline-block; margin: 0 6px 0 0; padding: 0 6px; border-radius: 999px; background: #fef3c7; font-size: 11.5px; font-weight: 700; }
   .rd a { color: var(--accent); text-decoration: none; }
   .rd-fees { max-width: 340px; }
   .rd-fees td { padding: 1px 0; }
@@ -621,6 +622,7 @@
     .rd-columns > div + div { padding-top: 12px; border-top: 1px solid var(--border); }
     .rd .rd-weight { display: none; }
     .rd-flag { display: block; margin-left: 0; }
+    .rd-flag.rd-caution { display: inline-block; }
     .rd-fold-body .request-diff { grid-template-columns: 1fr; gap: 2px; }
     .rd-fold-body .request-diff-label { margin-top: 6px; }
   }

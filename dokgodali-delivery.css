@@ -255,3 +255,15 @@ details[open] .more-link { display: none; }
   .actions { margin-top: 24px; }
   .btn { padding: 12px 14px; }
 }
+
+/* 한국 주소 검색 */
+.zip-search-row { display: flex; gap: 6px; }
+.zip-search-row .text-input { flex: 1; min-width: 0; }
+.zip-search-btn { flex: none; padding: 0 12px; white-space: nowrap; }
+/* 이사화물 서류 */
+.docs-notice-inline { margin-top: 0; margin-bottom: 14px; }
+.doc-after-return { padding: 2px 6px; margin-left: -6px; border-radius: 6px; background: var(--accent-light); color: var(--text); }
+.doc-badge { display: inline-block; padding: 0 6px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; }
+/* 배터리·의약품·위험물 의심 */
+.item-caution:empty { display: none; }
+.item-caution { margin-top: 8px; padding: 8px 10px; border-radius: 7px; background: var(--amber-light); color: #92400e; font-size: 12px; line-height: 1.5; word-break: keep-all; }

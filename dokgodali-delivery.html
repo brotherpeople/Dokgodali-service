@@ -10,6 +10,7 @@
         <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
         <script src="dokgodali-config.js"></script>
         <script src="dokgodali-delivery-pricing.js"></script>
+        <script src="dokgodali-delivery-caution.js"></script>
     </head>
     <body>
         <main class="page">
@@ -607,13 +608,16 @@
                                                     >*필수</span
                                                 >
                                             </div>
-                                            <input
-                                                class="text-input address-required"
-                                                id="deliveryZip"
-                                                type="text"
-                                                inputmode="numeric"
-                                                placeholder="예: 06133"
-                                            />
+                                            <div class="zip-search-row">
+                                                <input
+                                                    class="text-input address-required"
+                                                    id="deliveryZip"
+                                                    type="text"
+                                                    inputmode="numeric"
+                                                    placeholder="예: 06133"
+                                                />
+                                                <button class="btn btn-secondary zip-search-btn" id="deliveryAddressSearch" type="button">주소 검색</button>
+                                            </div>
                                         </div>
                                         <div>
                                             <div class="field-title">
@@ -628,6 +632,25 @@
                                                 type="text"
                                                 placeholder="예: 서울특별시 강남구 테헤란로 231"
                                             />
+                                        </div>
+                                        <div>
+                                            <div class="field-title">상세주소</div>
+                                            <input
+                                                class="text-input"
+                                                id="deliveryAddressDetail"
+                                                type="text"
+                                                placeholder="예: H동 701호"
+                                            />
+                                        </div>
+                                        <div>
+                                            <div class="field-title">영문 상세주소</div>
+                                            <input
+                                                class="text-input"
+                                                id="deliveryAddressDetailEn"
+                                                type="text"
+                                                placeholder="예: H-701"
+                                            />
+                                            <div class="field-hint">동·호수는 영문자, 숫자, 하이픈(-)으로 적어 주세요.</div>
                                         </div>
                                         <div class="field-full">
                                             <div class="field-title">
@@ -818,6 +841,16 @@
                                         />
                                     </div>
                                 </div>
+                                <div class="docs-notice docs-notice-inline hidden" data-moving-docs>
+                                    <strong>이삿짐 통관 서류 3종이 필요합니다</strong>
+                                    서명한 서류를 스캔해 info@dokgodali.de로 보내 주세요. 서류가 없으면 통관이 되지 않아 물건을 받으실 수 없습니다.
+                                    <ul>
+                                        <li>여권 사본 (가족은 전원)</li>
+                                        <li class="doc-after-return"><span class="doc-badge">귀국 후 발급</span> 출입국에 관한 사실증명 (최초 출국일부터 최근 입국일까지, 가족은 전원) · <a href="https://www.gov.kr/search?srhQuery=%EC%B6%9C%EC%9E%85%EA%B5%AD%EC%97%90%20%EA%B4%80%ED%95%9C%20%EC%82%AC%EC%8B%A4%EC%A6%9D%EB%AA%85" target="_blank" rel="noopener">정부24에서 발급 ↗</a></li>
+                                        <li>해외 거주 사실 확인서 (사유·날짜·성명·서명, 가족은 세대원 포함)</li>
+                                    </ul>
+                                    출입국에 관한 사실증명은 한국 입국일이 찍혀야 하므로 귀국한 뒤에 발급해 보내 주세요.
+                                </div>
                                 <div class="choice-group" id="customsTypeGroup">
                                     <div class="field-title">
                                         통관 구분
@@ -912,7 +945,7 @@
                                     않아 물건을 받으실 수 없습니다.
                                     <ul>
                                         <li>여권 사본 (가족은 전원)</li>
-                                        <li>출입국 사실 증명 (최초 출국일부터 최근 입국일까지, 가족은 전원)</li>
+                                        <li class="doc-after-return"><span class="doc-badge">귀국 후 발급</span> 출입국에 관한 사실증명 (최초 출국일부터 최근 입국일까지, 가족은 전원) · <a href="https://www.gov.kr/search?srhQuery=%EC%B6%9C%EC%9E%85%EA%B5%AD%EC%97%90%20%EA%B4%80%ED%95%9C%20%EC%82%AC%EC%8B%A4%EC%A6%9D%EB%AA%85" target="_blank" rel="noopener">정부24에서 발급 ↗</a></li>
                                         <li>해외 거주 사실 확인서 (사유·날짜·성명·서명, 가족은 세대원 포함)</li>
                                     </ul>
                                     중고 물품만 면세되며, 새 상품·선물·미사용
@@ -1006,7 +1039,7 @@
                                     않아 물건을 받으실 수 없습니다.
                                     <ul>
                                         <li>여권 사본 (가족은 전원)</li>
-                                        <li>출입국 사실 증명 (최초 출국일부터 최근 입국일까지, 가족은 전원)</li>
+                                        <li class="doc-after-return"><span class="doc-badge">귀국 후 발급</span> 출입국에 관한 사실증명 (최초 출국일부터 최근 입국일까지, 가족은 전원) · <a href="https://www.gov.kr/search?srhQuery=%EC%B6%9C%EC%9E%85%EA%B5%AD%EC%97%90%20%EA%B4%80%ED%95%9C%20%EC%82%AC%EC%8B%A4%EC%A6%9D%EB%AA%85" target="_blank" rel="noopener">정부24에서 발급 ↗</a></li>
                                         <li>해외 거주 사실 확인서 (사유·날짜·성명·서명, 가족은 세대원 포함)</li>
                                     </ul>
                                     중고 물품만 면세되며, 새 상품·선물·미사용
@@ -1527,6 +1560,7 @@
                     <div class="item-field item-field-imageUrl"><span class="box-field-label">이미지 URL</span><div class="image-input-row"><input class="text-input" data-item-field="imageUrl" type="url" placeholder="https:// 또는 사진 첨부" value="${escapeAttr(item.imageUrl)}" /><button class="image-upload-btn" type="button" data-upload>사진 첨부</button><input type="file" accept="image/*" hidden data-upload-file /></div><div class="image-upload-status" data-upload-status>${uploadedThumb(item.imageUrl)}</div></div>
                     ${canRemove ? `<button class="item-remove" type="button" aria-label="박스 ${boxNo} 물품 ${i + 1} 삭제">삭제</button>` : ""}
                   </div>
+                  <div class="item-caution" data-caution>${cautionHtml(item.nameEn)}</div>
                 </div>`;
             }
             // 물품 사진 업로드 (sql/storage.sql의 item-images 공개 버킷).
@@ -1560,6 +1594,19 @@
                 url && url.includes(`/${IMAGE_BUCKET}/`)
                     ? `<a href="${escapeAttr(url)}" target="_blank" rel="noopener"><img src="${escapeAttr(url)}" alt="첨부한 사진" /></a><span>사진이 첨부되었습니다</span><button class="image-remove-btn" type="button" data-upload-remove>사진 삭제</button>`
                     : "";
+            // 배터리·의약품·위험물 의심 품목 안내 (dokgodali-delivery-caution.js). 경고만 하고 진행은 막지 않는다.
+            const Caution = window.DokgodaliCaution;
+            const CAUTION_TEXT = {
+                battery: "배터리가 들어 있을 수 있는 물품입니다. 배터리는 보낼 수 없으니 분리해 주세요.",
+                medicine: "의약품은 통관이 제한되거나 폐기될 수 있습니다.",
+                hazmat: "향수·스프레이·가스 등 위험물은 항공 운송이 금지되어 있습니다.",
+            };
+            const cautionHtml = (name) => {
+                const kinds = Caution.match(name);
+                return kinds.length
+                    ? `${kinds.map((kind) => `<div>${CAUTION_TEXT[kind]}</div>`).join("")}<div>담당자가 확인한 뒤 연락드립니다.</div>`
+                    : "";
+            };
             // 입력 중에는 박스별 계산 결과 줄만 갱신한다.
             function updateBoxCalcs() {
                 $$("#boxList .box-row").forEach((row, index) => {
@@ -1685,6 +1732,8 @@
                 "#deliveryZip",
                 "#deliveryAddress",
                 "#deliveryAddressEn",
+                "#deliveryAddressDetail",
+                "#deliveryAddressDetailEn",
                 "#recipientNameKo",
                 "#recipientNameEn",
                 "#recipientPhone",
@@ -1823,6 +1872,11 @@
                     const field = itemInput.dataset.itemField;
                     item[field] =
                         field === "isNew" ? itemInput.checked : itemInput.value;
+                    if (field === "nameEn")
+                        itemInput
+                            .closest(".item-row")
+                            .querySelector("[data-caution]").innerHTML =
+                            cautionHtml(item.nameEn);
                     if (field === "imageUrl")
                         itemInput
                             .closest(".item-row")
@@ -2223,6 +2277,48 @@
                     $("#referral").value !== "other",
                 ),
             );
+            // 한국 배송지 주소 검색: Daum 우편번호 서비스 (키 불필요). 영문 주소도 함께 채운다.
+            // 스크립트는 처음 누를 때만 불러온다.
+            let daumPostcodeLoading = null;
+            function loadDaumPostcode() {
+                if (window.daum && window.daum.Postcode) return Promise.resolve();
+                daumPostcodeLoading ??= new Promise((resolve, reject) => {
+                    const script = document.createElement("script");
+                    script.src = "https://t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
+                    script.onload = resolve;
+                    script.onerror = () => {
+                        daumPostcodeLoading = null;
+                        reject(new Error("load_failed"));
+                    };
+                    document.head.append(script);
+                });
+                return daumPostcodeLoading;
+            }
+            $("#deliveryAddressSearch").addEventListener("click", async () => {
+                try {
+                    await loadDaumPostcode();
+                } catch {
+                    $("#deliveryAddress").focus();
+                    return;
+                }
+                new window.daum.Postcode({
+                    oncomplete(data) {
+                        const road = data.roadAddress || data.autoRoadAddress || data.jibunAddress;
+                        const roadEn = data.roadAddressEnglish || data.autoRoadAddressEnglish || data.jibunAddressEnglish;
+                        const values = {
+                            "#deliveryZip": data.zonecode,
+                            "#deliveryAddress": data.buildingName ? `${road} ${data.buildingName}` : road,
+                            "#deliveryAddressEn": roadEn,
+                        };
+                        Object.entries(values).forEach(([id, value]) => {
+                            $(id).value = value || "";
+                            $(id).classList.remove("input-error");
+                            $(id).dispatchEvent(new Event("input", { bubbles: true }));
+                        });
+                        $("#deliveryAddressDetail").focus();
+                    },
+                }).open();
+            });
             $("#movingStatus").addEventListener("change", () => {
                 updateMovingStatus();
                 render();
@@ -2332,6 +2428,10 @@
                 return {
                     boxes: state.boxes.map((box) => ({
                         ...box,
+                        items: box.items.map((item) => ({
+                            ...item,
+                            cautionFlags: Caution.match(item.nameEn),
+                        })),
                         quote: Pricing.quoteBox(toPricingBox(box)),
                     })),
                     method: state.method,
@@ -2384,6 +2484,8 @@
                     deliveryZip: deliveryValue("#deliveryZip"),
                     deliveryAddress: deliveryValue("#deliveryAddress"),
                     deliveryAddressEn: deliveryValue("#deliveryAddressEn"),
+                    deliveryAddressDetail: deliveryValue("#deliveryAddressDetail"),
+                    deliveryAddressDetailEn: deliveryValue("#deliveryAddressDetailEn"),
                     recipientNameKo: deliveryValue("#recipientNameKo"),
                     recipientNameEn: deliveryValue("#recipientNameEn"),
                     recipientPhone: deliveryValue("#recipientPhone"),
@@ -2447,6 +2549,7 @@
                 $("#deliveryUndecided").checked = !!p.deliveryUndecided;
                 [
                     "deliveryZip", "deliveryAddress", "deliveryAddressEn",
+                    "deliveryAddressDetail", "deliveryAddressDetailEn",
                     "recipientNameKo", "recipientNameEn", "recipientPhone",
                     "recipientEmail", "customsCode",
                     "customerName", "customerNameEn", "customerEmail", "customerPhone",
