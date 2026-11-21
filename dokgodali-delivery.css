@@ -59,8 +59,15 @@ body { background: var(--surface); }
 .layout { gap: 48px; }
 .sidebar-card { border: 1px solid var(--text); background: var(--surface); }
 .step:not(.active):not(.done) { background: none; }
+/* 드롭다운: 브라우저 기본 화살표는 칸 끝에 붙어 있어 오른쪽 14px 안쪽에 직접 그린다 */
+.select-input { appearance: none; padding-right: 40px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; background-size: 12px; }
+.item-field .select-input { padding-right: 30px; background-position: right 10px center; }
+/* 3단계 개인 정보: 입력칸을 모두 1열, 폭 520px로 맞춘다 (2열·전체 폭이 섞여 있던 것을 통일) */
+#personalCard .field-grid { grid-template-columns: minmax(0, 520px); }
+#personalCard .field-full { grid-column: auto; }
+#personalCard .address-card, #personalCard .docs-notice-inline { max-width: 568px; }
 /* 입력칸은 흰색으로 통일해 회색 패널 안에서도 또렷하게 보이게 한다 */
-.text-input, .select-input, textarea { background: var(--surface); }
+.text-input, .select-input, textarea { background-color: var(--surface); }
 
 .hidden { display: none !important; }
 
@@ -143,7 +150,7 @@ body { background: var(--surface); }
 .field-full { grid-column: 1 / -1; }
 .text-input:focus, .select-input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
 .input-error { border-color: var(--red) !important; }
-.text-input:disabled, .select-input:disabled { background: var(--surface-subtle); color: var(--faint); cursor: not-allowed; }
+.text-input:disabled, .select-input:disabled { background-color: var(--surface-subtle); color: var(--faint); cursor: not-allowed; }
 .field-help { display: inline-flex; align-items: center; margin-left: 4px; color: var(--accent); vertical-align: middle; }
 .field-help svg { width: 14px; height: 14px; }
 .field-hint { margin-top: 8px; color: var(--muted); font-size: var(--fs-caption); line-height: 1.5; }
@@ -318,9 +325,13 @@ details[open] .more-link { display: none; }
 .zip-search-btn { flex: none; padding: 0 14px; border: 1px solid var(--accent-border); border-radius: 8px; background: var(--accent-light); color: var(--accent-dark); font: inherit; font-size: var(--fs-body); font-weight: var(--fw-bold); white-space: nowrap; cursor: pointer; }
 .zip-search-btn:hover { border-color: var(--accent); }
 /* 이사화물 서류 */
-.docs-notice-inline { margin-top: 0; margin-bottom: 20px; }
-.doc-after-return { padding: 2px 6px; margin-left: -6px; border-radius: 6px; background: var(--accent-light); color: var(--text); }
-.doc-badge { display: inline-block; padding: 0 6px; border-radius: 999px; background: var(--accent); color: var(--surface); font-size: var(--fs-caption); font-weight: var(--fw-bold); }
+.docs-notice-inline { margin: 20px 0 0; padding: 16px 20px; border-radius: 12px; background: var(--surface-subtle); color: var(--muted); font-size: var(--fs-small); }
+.docs-notice-inline strong { margin-bottom: 4px; font-size: var(--fs-small); font-weight: var(--fw-bold); }
+.docs-notice-inline li + li { margin-top: 4px; }
+.docs-notice-note { margin: 0; color: var(--muted); font-size: var(--fs-caption); }
+.doc-after-return { color: var(--text); font-weight: var(--fw-medium); }
+.doc-after-return a { color: var(--accent-dark); font-weight: var(--fw-bold); }
+.doc-badge { display: inline-block; margin-right: 4px; padding: 1px 8px; border-radius: 999px; background: var(--accent); color: var(--surface); font-size: var(--fs-caption); font-weight: var(--fw-bold); }
 /* 배터리·의약품·위험물 의심 */
 .item-caution:empty { display: none; }
 .item-caution { margin-top: 8px; padding: 8px 10px; border-radius: 7px; background: var(--accent-light); color: var(--accent-dark); font-size: var(--fs-caption); line-height: 1.5; word-break: keep-all; }
