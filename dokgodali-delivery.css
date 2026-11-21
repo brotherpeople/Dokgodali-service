@@ -45,7 +45,7 @@ h1 { margin: 0 0 12px; font-size: var(--fs-heading); font-weight: var(--fw-bold)
 .step-desc { font-size: var(--fs-caption); }
 .section-hint { margin: -4px 0 0; color: var(--muted); font-size: var(--fs-small); line-height: 1.6; }
 .field-title { margin-bottom: 8px; color: var(--text); font-size: var(--fs-small); font-weight: var(--fw-medium); letter-spacing: 0; }
-.required { margin-left: 4px; font-size: var(--fs-caption); font-weight: var(--fw-medium); }
+.required { margin-left: 2px; color: var(--red); font-weight: var(--fw-medium); }
 .field-error { margin-top: 8px; font-size: var(--fs-caption); }
 .actions { margin-top: 32px; }
 .btn { font-size: var(--fs-body); }
@@ -104,7 +104,6 @@ body { background: var(--surface); }
 .box-remove:hover { color: var(--red); }
 .box-fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .box-field { display: block; }
-.box-field-label { display: block; margin-bottom: 6px; color: var(--text); font-size: var(--fs-small); font-weight: var(--fw-medium); }
 .box-carrier { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--text); font-size: var(--fs-small); cursor: pointer; }
 .box-carrier input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
 .box-carrier-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 12px; }
@@ -123,8 +122,8 @@ body { background: var(--surface); }
 .item-row { padding: 12px 0; border-bottom: 1px solid var(--border); }
 .item-grid { display: grid; grid-template-columns: 1.5fr 2fr 1.2fr 1fr 0.9fr 0.8fr 1fr; gap: 8px; }
 .item-grid-urls { grid-template-columns: auto 1fr 1fr auto; align-items: start; gap: 12px; margin-top: 12px; }
-.item-grid-urls .item-new { padding: 30px 0 0; }
-.item-grid-urls .item-remove { margin-top: 30px; }
+.item-grid-urls .item-new { padding: 16px 0 0; }
+.item-grid-urls .item-remove { margin-top: 16px; }
 .image-input-row { display: flex; gap: 6px; }
 .image-input-row .text-input { flex: 1; min-width: 0; }
 .image-upload-btn { flex: none; padding: 0 10px; border: 1px solid var(--accent-border); border-radius: 8px; background: var(--accent-light); color: var(--accent-dark); font: inherit; font-size: var(--fs-caption); font-weight: var(--fw-bold); cursor: pointer; }
@@ -360,3 +359,10 @@ details[open] .more-link { display: none; }
 .float-field:has(input[type="date"]) > .field-title { top: 14px; font-size: var(--fs-caption); font-weight: var(--fw-medium); }
 .float-field:focus-within > .field-title { color: var(--accent-dark); }
 .float-field .zip-search-row .zip-search-btn { height: 50px; }
+/* 1단계 박스·물품 칸: 촘촘한 표라 글씨와 좌우 여백을 한 단계 줄인다 */
+.item-field.float-field > .field-title { left: 11px; right: 11px; font-size: var(--fs-small); }
+.item-field.float-field:focus-within > .field-title,
+.item-field.float-field:has(.text-input:not(:placeholder-shown)) > .field-title,
+.item-field.float-field:has(select) > .field-title { font-size: var(--fs-caption); }
+.float-field .image-upload-btn { height: 50px; }
+.date-row .float-field + .schedule-hint, .date-row > div > .schedule-hint { margin-top: 8px; }
