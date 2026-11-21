@@ -1345,15 +1345,14 @@ const shortDateTime = iso => {
 };
 const editedLabel = r => (r.edit_count ? `고객 수정 ${r.edit_count}회${r.edited_at ? ' · ' + new Date(r.edited_at).toLocaleString('ko-KR') : ''}` : '');
 // 견적서 발행 표시: 발행되면 고객은 수정 링크로 더 이상 고칠 수 없다.
-// 요청 상세·작업 팝업 아래 상자: 왼쪽 엑셀 내보내기, 오른쪽 견적서 발행 표시(발행 후에는 발행 시각 + 취소)
+// 요청 상세·작업 팝업 아래 버튼 줄: 엑셀 내보내기 · 견적서 발행 표시(발행 후에는 발행 취소 + 발행 시각)
 function renderQuoteControl(r) {
   if (!r || r.type !== 'delivery') return '';
   const quote = r.quote_issued_at
-    ? `<span class="request-actions-note">견적서 발행됨 ${shortDateTime(r.quote_issued_at)}</span><button class="btn btn-secondary btn-sm" onclick="setQuoteIssued(${jsArg(r.id)}, false)">발행 취소</button>`
+    ? `<button class="btn btn-secondary btn-sm" onclick="setQuoteIssued(${jsArg(r.id)}, false)">발행 취소</button><span class="request-actions-note">견적서 발행됨 ${shortDateTime(r.quote_issued_at)}</span>`
     : `<button class="btn btn-secondary btn-sm" onclick="setQuoteIssued(${jsArg(r.id)}, true)">발행 표시</button>`;
-  return `<div class="request-actions-box">
-    <button class="btn btn-secondary btn-sm" onclick="exportRequestXlsx(${jsArg(r.id)})">엑셀 내보내기</button>
-    <div class="request-actions-right">${quote}</div>
+  return `<div class="request-actions">
+    <button class="btn btn-secondary btn-sm" onclick="exportRequestXlsx(${jsArg(r.id)})">엑셀 내보내기</button>${quote}
   </div>`;
 }
 
@@ -1601,12 +1600,11 @@ function renderRequestVersions(r) {
   }).join('');
   const changedCount = prev ? REQUEST_DIFF_FIELDS.filter(([, f]) => String(f(prev || {}) || '') !== String(f(chosen.payload || {}) || '')).length : 0;
   const note = prev ? (changedCount ? `앞 버전보다 ${changedCount}개 항목이 바뀌었습니다.` : '앞 버전과 같은 내용입니다.') : '처음 신청한 내용입니다.';
-  const bar = `<section class="rd-group rv">
-    <h4 class="rd-gtitle">버전</h4>
-    <div class="rv-tabs">${tabs}</div>
+  const chosenLabel = chosen.version == null ? '현재' : `v${chosen.version}`;
+  const meta = `${chosenLabel} 보는 중 · 전체 ${versions.length}개${prev && changedCount ? ` · ${changedCount}개 바뀜` : ''}`;
+  const bar = foldSection(r, 'versions', '버전', meta, `<div class="rv-tabs">${tabs}</div>
     <div class="rv-note">${note}${chosen.version != null ? ' 아래 상세도 이 버전 기준입니다.' : ''}</div>
-    <div class="rv-table">${rows}</div>
-  </section>`;
+    <div class="rv-table">${rows}</div>`);
   return { bar, payload: chosen.payload, isCurrent: chosen.version == null };
 }
 
