@@ -198,7 +198,7 @@ async function sendRequestMail(record: any) {
     ["물건", record.summary || ""],
     ["접수 방식", [p.methodName, p.scheduleDate, p.scheduleTime].filter(Boolean).join(" · ")],
     ["픽업지", p.method === "dropoff" ? "접수처 방문" : p.pickupAddress || ""],
-    ["배송지", p.deliveryUndecided ? "미정" : `${p.deliveryZip || ""} ${p.deliveryAddress || ""}`.trim()],
+    ["배송지", p.deliveryUndecided ? "미정" : `${p.deliveryZip || ""} ${p.deliveryAddress || ""} ${p.deliveryAddressDetail || ""}`.trim()],
     ["예상 배송비", p.estimatedTotal != null ? `€${Number(p.estimatedTotal).toFixed(2)}` : ""],
   ];
   const name = record.customer_name || "고객";

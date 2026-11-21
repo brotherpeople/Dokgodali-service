@@ -10,6 +10,7 @@
         <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
         <script src="dokgodali-config.js"></script>
         <script src="dokgodali-delivery-pricing.js"></script>
+        <script src="dokgodali-delivery-caution.js"></script>
     </head>
     <body>
         <main class="page">
@@ -275,7 +276,7 @@
                                             <div class="method-note">베를린 외 지역 방문 픽업</div>
                                         </div>
                                         <div class="method-price">
-                                            창고 기준 1km당 €1<br />(견적 시
+                                            창고 기준 직선거리 1km당 €1<br />(견적 시
                                             산정)
                                         </div>
                                     </div>
@@ -607,13 +608,16 @@
                                                     >*필수</span
                                                 >
                                             </div>
-                                            <input
-                                                class="text-input address-required"
-                                                id="deliveryZip"
-                                                type="text"
-                                                inputmode="numeric"
-                                                placeholder="예: 06133"
-                                            />
+                                            <div class="zip-search-row">
+                                                <input
+                                                    class="text-input address-required"
+                                                    id="deliveryZip"
+                                                    type="text"
+                                                    inputmode="numeric"
+                                                    placeholder="예: 06133"
+                                                />
+                                                <button class="zip-search-btn" id="deliveryAddressSearch" type="button">주소 검색</button>
+                                            </div>
                                         </div>
                                         <div>
                                             <div class="field-title">
@@ -628,6 +632,25 @@
                                                 type="text"
                                                 placeholder="예: 서울특별시 강남구 테헤란로 231"
                                             />
+                                        </div>
+                                        <div>
+                                            <div class="field-title">상세주소</div>
+                                            <input
+                                                class="text-input"
+                                                id="deliveryAddressDetail"
+                                                type="text"
+                                                placeholder="예: H동 701호"
+                                            />
+                                        </div>
+                                        <div>
+                                            <div class="field-title">영문 상세주소</div>
+                                            <input
+                                                class="text-input"
+                                                id="deliveryAddressDetailEn"
+                                                type="text"
+                                                placeholder="예: H-701"
+                                            />
+                                            <div class="field-hint">동·호수는 영문자, 숫자, 하이픈(-)으로 적어 주세요.</div>
                                         </div>
                                         <div class="field-full">
                                             <div class="field-title">
@@ -818,6 +841,16 @@
                                         />
                                     </div>
                                 </div>
+                                <div class="docs-notice docs-notice-inline hidden" data-moving-docs>
+                                    <strong>이삿짐 통관 서류 3종이 필요합니다</strong>
+                                    서명한 서류를 스캔해 info@dokgodali.de로 보내 주세요. 서류가 없으면 통관이 되지 않아 물건을 받으실 수 없습니다.
+                                    <ul>
+                                        <li>여권 사본 (가족은 전원)</li>
+                                        <li class="doc-after-return"><span class="doc-badge">귀국 후 발급</span> 출입국에 관한 사실증명 (최초 출국일부터 최근 입국일까지, 가족은 전원) · <a href="https://www.gov.kr/search?srhQuery=%EC%B6%9C%EC%9E%85%EA%B5%AD%EC%97%90%20%EA%B4%80%ED%95%9C%20%EC%82%AC%EC%8B%A4%EC%A6%9D%EB%AA%85" target="_blank" rel="noopener">정부24에서 발급 ↗</a></li>
+                                        <li>해외 거주 사실 확인서 (사유·날짜·성명·서명, 가족은 세대원 포함)</li>
+                                    </ul>
+                                    출입국에 관한 사실증명은 한국 입국일이 찍혀야 하므로 귀국한 뒤에 발급해 보내 주세요.
+                                </div>
                                 <div class="choice-group" id="customsTypeGroup">
                                     <div class="field-title">
                                         통관 구분
@@ -912,7 +945,7 @@
                                     않아 물건을 받으실 수 없습니다.
                                     <ul>
                                         <li>여권 사본 (가족은 전원)</li>
-                                        <li>출입국 사실 증명 (최초 출국일부터 최근 입국일까지, 가족은 전원)</li>
+                                        <li class="doc-after-return"><span class="doc-badge">귀국 후 발급</span> 출입국에 관한 사실증명 (최초 출국일부터 최근 입국일까지, 가족은 전원) · <a href="https://www.gov.kr/search?srhQuery=%EC%B6%9C%EC%9E%85%EA%B5%AD%EC%97%90%20%EA%B4%80%ED%95%9C%20%EC%82%AC%EC%8B%A4%EC%A6%9D%EB%AA%85" target="_blank" rel="noopener">정부24에서 발급 ↗</a></li>
                                         <li>해외 거주 사실 확인서 (사유·날짜·성명·서명, 가족은 세대원 포함)</li>
                                     </ul>
                                     중고 물품만 면세되며, 새 상품·선물·미사용
@@ -943,7 +976,7 @@
                                         >개인정보 수집·이용 및 배송 약관에 동의합니다. <b class="required">(필수)</b></span
                                     ></label
                                 >
-                                <details class="confirm-more"><summary>내용 보기</summary><p>예약과 배송 안내를 위한 목적 외에는 고객 정보를 사용하지 않습니다. 분실 시 신고가액 기준으로 보상하며, 파손은 수령 후 14일 안에 신청해야 합니다. 품명·수량·금액을 빠뜨리거나 사실과 다르게 신고한 경우 보상받을 수 없습니다.</p></details>
+                                <details class="confirm-more"><summary>내용 보기</summary><p>예약과 배송 안내를 위한 목적 외에는 고객 정보를 사용하지 않습니다. 물품 사진을 첨부하시면 누구나 열 수 있는 공개 링크로 저장되며, 통관·배송 처리를 위해 배송사에 전달됩니다. 분실 시 신고가액 기준으로 보상하며, 파손은 수령 후 14일 안에 신청해야 합니다. 품명·수량·금액을 빠뜨리거나 사실과 다르게 신고한 경우 보상받을 수 없습니다.</p></details>
                                 <div class="field-error" id="personalError">
                                     필수 개인정보(이메일 형식 포함), 통관 구분, 촬영 동의
                                     여부, 위험물·포장 확인, 약관 동의를 모두 확인해
@@ -1006,7 +1039,7 @@
                                     않아 물건을 받으실 수 없습니다.
                                     <ul>
                                         <li>여권 사본 (가족은 전원)</li>
-                                        <li>출입국 사실 증명 (최초 출국일부터 최근 입국일까지, 가족은 전원)</li>
+                                        <li class="doc-after-return"><span class="doc-badge">귀국 후 발급</span> 출입국에 관한 사실증명 (최초 출국일부터 최근 입국일까지, 가족은 전원) · <a href="https://www.gov.kr/search?srhQuery=%EC%B6%9C%EC%9E%85%EA%B5%AD%EC%97%90%20%EA%B4%80%ED%95%9C%20%EC%82%AC%EC%8B%A4%EC%A6%9D%EB%AA%85" target="_blank" rel="noopener">정부24에서 발급 ↗</a></li>
                                         <li>해외 거주 사실 확인서 (사유·날짜·성명·서명, 가족은 세대원 포함)</li>
                                     </ul>
                                     중고 물품만 면세되며, 새 상품·선물·미사용
@@ -1019,6 +1052,15 @@
             </section>
             </div>
         </main>
+        <div class="postcode-layer hidden" id="postcodeLayer" role="dialog" aria-modal="true" aria-label="주소 검색">
+            <div class="postcode-panel">
+                <div class="postcode-head">
+                    <strong>주소 검색</strong>
+                    <button class="postcode-close" id="postcodeClose" type="button" aria-label="주소 검색 닫기">닫기</button>
+                </div>
+                <div class="postcode-body" id="postcodeBody"></div>
+            </div>
+        </div>
 
         <script>
             /* ================================================================
@@ -1104,7 +1146,7 @@
                 },
                 region: {
                     name: "타지역 픽업",
-                    condition: "창고 기준 거리 1km당 €1 (견적 시 산정)",
+                    condition: "창고 기준 직선거리 1km당 €1 (견적 시 산정)",
                 },
                 dropoff: {
                     name: "접수처 방문",
@@ -1121,6 +1163,8 @@
             };
             const PREMIUM_MIN_TOTAL = 250;
             // 프랑크푸르트 허브 노선: 배송비 합계가 기준 이상이면 픽업비 무료.
+            // 11/09 피드백: 화면에는 도시 이름만 보이고 허브 노선·무료 조건은 숨긴다.
+            // 가격 기준은 클라이언트가 아직 정하지 않아(Q7) REGION_FREE_MIN 데이터는 남겨 둔다.
             // TODO(클라이언트 확인) #7: "인근" 범위를 Frankfurt, Marburg, Gießen으로 가정
             const REGION_OTHER = "other";
             const REGION_HUBS = [
@@ -1139,15 +1183,8 @@
                 ["Dessau-Roßlau", "far"],
             ];
             const REGION_FREE_MIN = { near: 70, far: 350 };
-            function regionCondition(subtotal) {
-                const hub = REGION_HUBS.find(
-                    ([city]) => city === $("#regionHub").value,
-                );
-                if (!hub) return methodData.region.condition;
-                const min = REGION_FREE_MIN[hub[1]];
-                return subtotal >= min
-                    ? `허브 노선 픽업비 무료 (€${min} 이상)`
-                    : `허브 노선 €${min} 이상 시 무료, 미만은 1km당 €1`;
+            function regionCondition() {
+                return methodData.region.condition;
             }
             const $ = (selector) => document.querySelector(selector);
             const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -1437,7 +1474,7 @@
                     ["중량별 운임", quote.totals.base, true],
                     ["규격 초과 (OVER SIZE)", quote.totals.oversize],
                     ["중량 초과 (OVER WEIGHT)", quote.totals.overweight],
-                    ["캐리어 핸들링", quote.totals.carrier],
+                    ["바퀴 가방 핸들링", quote.totals.carrier],
                     ["멀티 화물 할증", quote.totals.multiBox],
                     ["이삿짐 통관", quote.totals.movingCustoms],
                     ["픽업비", methodFee],
@@ -1469,12 +1506,15 @@
                     linkTips($(id));
                 });
             }
+            // 규격·중량 초과 기준 안내. 실제로 넘으면 updateBoxCalcs()가 주황색으로 바꾼다.
+            const SIZE_HINT = `가로+세로+높이 합 ${Pricing.RATES.oversize.sumCm}cm 이상 또는 한 변 ${Pricing.RATES.oversize.sideCm}cm 이상이면 규격 초과 (박스당 €${Pricing.RATES.oversize.fee})`;
+            const WEIGHT_HINT = `실중량 ${Pricing.RATES.overweight.actualKg}kg 이상이면 중량 초과 (박스당 €${Pricing.RATES.overweight.fee})`;
             // 박스 목록 DOM은 추가·삭제 때만 다시 그린다.
             // (입력할 때마다 다시 그리면 입력 중인 칸의 포커스가 풀린다.)
             function renderBoxes() {
                 const canRemove = state.boxes.length > 1;
                 const field = (box, name, label) =>
-                    `<label class="box-field"><span class="box-field-label">${label}</span><input class="text-input" data-field="${name}" type="number" inputmode="decimal" min="0" step="${name === "weight" ? "0.5" : "1"}" value="${escapeAttr(box[name])}" /></label>`;
+                    `<label class="box-field"><span class="box-field-label">${label}</span><input class="text-input" data-field="${name}" type="number" inputmode="decimal" min="0" step="0.5" value="${escapeAttr(box[name])}" /></label>`;
                 $("#boxList").innerHTML = state.boxes
                     .map((box, index) => {
                         const n = index + 1;
@@ -1486,7 +1526,8 @@
                 ${canRemove ? `<button class="box-remove" type="button" aria-label="박스 ${n} 삭제">삭제</button>` : ""}
               </div>
               <div class="box-fields">${field(box, "length", "가로 (cm)")}${field(box, "width", "세로 (cm)")}${field(box, "height", "높이 (cm)")}${field(box, "weight", "실중량 (kg)")}</div>
-              <label class="box-carrier"><input type="checkbox" data-field="carrier" ${box.carrier ? "checked" : ""} /><span>캐리어(여행 가방)로 보냅니다 (핸들링 비용 €${Pricing.RATES.carrierHandling})</span></label>
+              <div class="box-hints"><div class="box-hint" data-hint="size">${SIZE_HINT}</div><div class="box-hint" data-hint="weight">${WEIGHT_HINT}</div></div>
+              <div class="box-carrier-row"><label class="box-carrier"><input type="checkbox" data-field="carrier" ${box.carrier ? "checked" : ""} /><span>바퀴가 달린 가방(캐리어, 이민가방 등)으로 보냅니다</span></label><span class="box-carrier-fee">(<span class="tip tip-start"><button class="tip-btn tip-text" type="button" aria-label="핸들링 비용 설명">핸들링 비용</button><span class="tip-body" role="tooltip">바퀴는 운송 중 부러지거나 상하기 쉬워 따로 보호 포장과 취급이 필요합니다. 그래서 가방당 핸들링 비용이 붙습니다.</span></span> €${Pricing.RATES.carrierHandling})</span></div>
               <div class="box-warnings" data-warnings></div>
               <div class="item-section">
                 <div class="item-section-head"><span class="item-section-title">박스 ${n} 물품 목록</span><span class="item-section-value" data-items-value></span></div>
@@ -1498,6 +1539,7 @@
                     .join("");
                 $("#addBox").disabled =
                     state.boxes.length >= Pricing.RATES.maxBoxes;
+                linkTips($("#boxList"));
                 $("#boxCount").textContent =
                     `${state.boxes.length} / ${Pricing.RATES.maxBoxes}개`;
             }
@@ -1522,13 +1564,58 @@
                     ${input("unitPrice", "단가 (€) *", 'type="number" inputmode="decimal" min="0" step="0.01"')}
                   </div>
                   <div class="item-grid item-grid-urls">
-                    ${input("imageUrl", "이미지 URL", 'type="url" placeholder="https://"')}
-                    ${input("productUrl", "상품 URL", 'type="url" placeholder="https://"')}
-                    <label class="item-new"><input type="checkbox" data-item-field="isNew" ${item.isNew ? "checked" : ""} /><span>신상품 (상품 URL 필수)</span></label>
+                    <label class="item-new"><input type="checkbox" data-item-field="isNew" ${item.isNew ? "checked" : ""} /><span>신상품입니다 (상품 URL 필요)</span></label>
+                    ${input("productUrl", item.isNew ? "상품 URL *" : "상품 URL", `type="url" placeholder="${item.isNew ? "https://" : "신상품 체크 시 입력"}" ${item.isNew ? "" : "disabled"}`)}
+                    <div class="item-field item-field-imageUrl"><span class="box-field-label">이미지 URL</span><div class="image-input-row"><input class="text-input" data-item-field="imageUrl" type="url" placeholder="https:// 또는 사진 첨부" value="${escapeAttr(item.imageUrl)}" /><button class="image-upload-btn" type="button" data-upload>사진 첨부</button><input type="file" accept="image/*" hidden data-upload-file /></div><div class="image-upload-status" data-upload-status>${uploadedThumb(item.imageUrl)}</div></div>
                     ${canRemove ? `<button class="item-remove" type="button" aria-label="박스 ${boxNo} 물품 ${i + 1} 삭제">삭제</button>` : ""}
                   </div>
+                  <div class="item-caution" data-caution>${cautionHtml(item.nameEn)}</div>
                 </div>`;
             }
+            // 물품 사진 업로드 (sql/storage.sql의 item-images 공개 버킷).
+            // 긴 변 1600px JPEG로 줄여 올린다. 브라우저가 못 여는 형식(HEIC 등)은 원본 그대로 올린다.
+            const IMAGE_BUCKET = "item-images";
+            const IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+            async function uploadItemImage(file) {
+                let blob = file;
+                let ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+                try {
+                    const bitmap = await createImageBitmap(file);
+                    const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+                    const canvas = document.createElement("canvas");
+                    canvas.width = Math.round(bitmap.width * scale);
+                    canvas.height = Math.round(bitmap.height * scale);
+                    canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+                    blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
+                    ext = "jpg";
+                } catch {
+                    blob = file;
+                }
+                if (!blob || blob.size > IMAGE_MAX_BYTES) throw new Error("too_large");
+                const path = `${crypto.randomUUID()}.${ext}`;
+                const { error } = await sb.storage
+                    .from(IMAGE_BUCKET)
+                    .upload(path, blob, { contentType: blob.type || file.type });
+                if (error) throw error;
+                return sb.storage.from(IMAGE_BUCKET).getPublicUrl(path).data.publicUrl;
+            }
+            const uploadedThumb = (url) =>
+                url && url.includes(`/${IMAGE_BUCKET}/`)
+                    ? `<a href="${escapeAttr(url)}" target="_blank" rel="noopener"><img src="${escapeAttr(url)}" alt="첨부한 사진" /></a><span>사진이 첨부되었습니다</span><button class="image-remove-btn" type="button" data-upload-remove>사진 삭제</button>`
+                    : "";
+            // 배터리·의약품·위험물 의심 품목 안내 (dokgodali-delivery-caution.js). 경고만 하고 진행은 막지 않는다.
+            const Caution = window.DokgodaliCaution;
+            const CAUTION_TEXT = {
+                battery: "배터리가 들어 있을 수 있는 물품입니다. 배터리는 보낼 수 없으니 분리해 주세요.",
+                medicine: "의약품은 통관이 제한되거나 폐기될 수 있습니다.",
+                hazmat: "향수·스프레이·가스 등 위험물은 항공 운송이 금지되어 있습니다.",
+            };
+            const cautionHtml = (name) => {
+                const kinds = Caution.match(name);
+                return kinds.length
+                    ? `${kinds.map((kind) => `<div>${CAUTION_TEXT[kind]}</div>`).join("")}<div>담당자가 확인한 뒤 연락드립니다.</div>`
+                    : "";
+            };
             // 입력 중에는 박스별 계산 결과 줄만 갱신한다.
             function updateBoxCalcs() {
                 $$("#boxList .box-row").forEach((row, index) => {
@@ -1541,6 +1628,9 @@
                         .map((text) => `<div class="box-warning">${text}</div>`)
                         .join("");
                     const calc = row.querySelector("[data-calc]");
+                    const hintQuote = Pricing.quoteBox(toPricingBox(box));
+                    row.querySelector('[data-hint="size"]').classList.toggle("is-over", hintQuote.isOversize);
+                    row.querySelector('[data-hint="weight"]').classList.toggle("is-over", hintQuote.isOverweight);
                     if (!isBoxComplete(box)) {
                         calc.textContent = "";
                         calc.classList.remove("ready");
@@ -1581,13 +1671,15 @@
                     $("#regionHub").value !== REGION_OTHER,
                 );
                 $("#regionHint").textContent = isRegion
-                    ? regionCondition(calcSubtotal())
+                    ? regionCondition()
                     : "";
                 const isFixed = state.method === "fixed";
                 $("#pickupTime").classList.toggle("hidden", isFixed);
                 $("#pickupTime").disabled = isFixed;
                 if (state.method === "dropoff") {
                     ensureTimeOptions(10 * 60 + 30, 17 * 60);
+                } else if (state.method === "premium") {
+                    ensureTimeOptions(7 * 60, 18 * 60);
                 } else {
                     ensureTimeOptions(7 * 60, 20 * 60);
                 }
@@ -1649,6 +1741,8 @@
                 "#deliveryZip",
                 "#deliveryAddress",
                 "#deliveryAddressEn",
+                "#deliveryAddressDetail",
+                "#deliveryAddressDetailEn",
                 "#recipientNameKo",
                 "#recipientNameEn",
                 "#recipientPhone",
@@ -1787,6 +1881,16 @@
                     const field = itemInput.dataset.itemField;
                     item[field] =
                         field === "isNew" ? itemInput.checked : itemInput.value;
+                    if (field === "nameEn")
+                        itemInput
+                            .closest(".item-row")
+                            .querySelector("[data-caution]").innerHTML =
+                            cautionHtml(item.nameEn);
+                    if (field === "imageUrl")
+                        itemInput
+                            .closest(".item-row")
+                            .querySelector("[data-upload-status]").innerHTML =
+                            uploadedThumb(item.imageUrl);
                     if (!itemMissing(item).includes(field))
                         itemInput.classList.remove("input-error");
                     if (state.boxes.every(isBoxValid))
@@ -1796,6 +1900,9 @@
                             .closest(".item-row")
                             .querySelector('[data-item-field="productUrl"]');
                         urlInput.classList.toggle("is-required", item.isNew);
+                        urlInput.disabled = !item.isNew;
+                        urlInput.placeholder = item.isNew ? "https://" : "신상품 체크 시 입력";
+                        urlInput.previousElementSibling.textContent = item.isNew ? "상품 URL *" : "상품 URL";
                         if (!item.isNew)
                             urlInput.classList.remove("input-error");
                     }
@@ -1822,12 +1929,53 @@
                 const rounded =
                     input.dataset.field === "weight"
                         ? Pricing.roundWeight(value)
-                        : Pricing.roundDimensions({ length: value, width: 0, height: 0 })[0];
+                        : Math.ceil(value * 2 - 1e-9) / 2;
                 if (rounded === value) return;
                 input.value = rounded;
                 input.dispatchEvent(new Event("input", { bubbles: true }));
             });
+            $("#boxList").addEventListener("change", async (event) => {
+                const fileInput = event.target.closest("[data-upload-file]");
+                if (!fileInput || !fileInput.files[0]) return;
+                const itemRow = fileInput.closest(".item-row");
+                const item =
+                    state.boxes[Number(itemRow.closest(".box-row").dataset.index)]
+                        .items[Number(itemRow.dataset.item)];
+                const status = itemRow.querySelector("[data-upload-status]");
+                const button = itemRow.querySelector("[data-upload]");
+                const urlInput = itemRow.querySelector('[data-item-field="imageUrl"]');
+                button.disabled = true;
+                status.textContent = "사진을 올리는 중…";
+                try {
+                    const url = await uploadItemImage(fileInput.files[0]);
+                    item.imageUrl = url;
+                    urlInput.value = url;
+                    urlInput.classList.remove("input-error");
+                    status.innerHTML = uploadedThumb(url);
+                } catch (error) {
+                    status.innerHTML = `<span class="image-upload-error">${error.message === "too_large" ? "5MB 이하 사진만 올릴 수 있습니다." : "사진을 올리지 못했습니다."} 이미지 URL을 직접 넣어 주셔도 됩니다.</span>`;
+                } finally {
+                    button.disabled = false;
+                    fileInput.value = "";
+                }
+            });
             $("#boxList").addEventListener("click", (event) => {
+                const removePhoto = event.target.closest("[data-upload-remove]");
+                if (removePhoto) {
+                    // 신청서에서 링크만 뺀다. 저장소 파일은 고객이 지울 수 없게 되어 있다(sql/storage.sql).
+                    const itemRow = removePhoto.closest(".item-row");
+                    state.boxes[Number(itemRow.closest(".box-row").dataset.index)]
+                        .items[Number(itemRow.dataset.item)].imageUrl = "";
+                    itemRow.querySelector('[data-item-field="imageUrl"]').value = "";
+                    itemRow.querySelector("[data-upload-status]").innerHTML = "";
+                    render();
+                    return;
+                }
+                const uploadButton = event.target.closest("[data-upload]");
+                if (uploadButton) {
+                    uploadButton.parentElement.querySelector("[data-upload-file]").click();
+                    return;
+                }
                 const addItem = event.target.closest(".item-add");
                 const removeItem = event.target.closest(".item-remove");
                 if (addItem || removeItem) {
@@ -2138,6 +2286,64 @@
                     $("#referral").value !== "other",
                 ),
             );
+            // 한국 배송지 주소 검색: Daum 우편번호 서비스 (키 불필요). 영문 주소도 함께 채운다.
+            // 스크립트는 처음 누를 때만 불러온다. 팝업 창(open)은 선택 결과가 원래 페이지로 돌아오지 않는
+            // 경우가 있고 모바일에서 차단되기도 해서, 페이지 안 레이어에 넣는다(embed).
+            let daumPostcodeLoading = null;
+            function loadDaumPostcode() {
+                if (window.daum && window.daum.Postcode) return Promise.resolve();
+                daumPostcodeLoading ??= new Promise((resolve, reject) => {
+                    const script = document.createElement("script");
+                    script.src = "https://t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
+                    script.onload = resolve;
+                    script.onerror = () => {
+                        daumPostcodeLoading = null;
+                        reject(new Error("load_failed"));
+                    };
+                    document.head.append(script);
+                });
+                return daumPostcodeLoading;
+            }
+            $("#deliveryAddressSearch").addEventListener("click", async () => {
+                try {
+                    await loadDaumPostcode();
+                } catch {
+                    $("#deliveryAddress").focus();
+                    return;
+                }
+                const layer = $("#postcodeLayer");
+                const body = $("#postcodeBody");
+                body.innerHTML = "";
+                layer.classList.remove("hidden");
+                new window.daum.Postcode({
+                    width: "100%",
+                    height: "100%",
+                    oncomplete(data) {
+                        layer.classList.add("hidden");
+                        const road = data.roadAddress || data.autoRoadAddress || data.jibunAddress;
+                        const roadEn = data.roadAddressEnglish || data.autoRoadAddressEnglish || data.jibunAddressEnglish;
+                        const values = {
+                            "#deliveryZip": data.zonecode,
+                            "#deliveryAddress": data.buildingName ? `${road} ${data.buildingName}` : road,
+                            "#deliveryAddressEn": roadEn,
+                        };
+                        Object.entries(values).forEach(([id, value]) => {
+                            $(id).value = value || "";
+                            $(id).classList.remove("input-error");
+                            $(id).dispatchEvent(new Event("input", { bubbles: true }));
+                        });
+                        $("#deliveryAddressDetail").focus();
+                    },
+                }).embed(body, { q: $("#deliveryAddress").value.trim(), autoClose: true });
+            });
+            const closePostcode = () => $("#postcodeLayer").classList.add("hidden");
+            $("#postcodeClose").addEventListener("click", closePostcode);
+            $("#postcodeLayer").addEventListener("click", (event) => {
+                if (event.target.id === "postcodeLayer") closePostcode();
+            });
+            document.addEventListener("keydown", (event) => {
+                if (event.key === "Escape") closePostcode();
+            });
             $("#movingStatus").addEventListener("change", () => {
                 updateMovingStatus();
                 render();
@@ -2247,6 +2453,10 @@
                 return {
                     boxes: state.boxes.map((box) => ({
                         ...box,
+                        items: box.items.map((item) => ({
+                            ...item,
+                            cautionFlags: Caution.match(item.nameEn),
+                        })),
                         quote: Pricing.quoteBox(toPricingBox(box)),
                     })),
                     method: state.method,
@@ -2299,6 +2509,8 @@
                     deliveryZip: deliveryValue("#deliveryZip"),
                     deliveryAddress: deliveryValue("#deliveryAddress"),
                     deliveryAddressEn: deliveryValue("#deliveryAddressEn"),
+                    deliveryAddressDetail: deliveryValue("#deliveryAddressDetail"),
+                    deliveryAddressDetailEn: deliveryValue("#deliveryAddressDetailEn"),
                     recipientNameKo: deliveryValue("#recipientNameKo"),
                     recipientNameEn: deliveryValue("#recipientNameEn"),
                     recipientPhone: deliveryValue("#recipientPhone"),
@@ -2362,6 +2574,7 @@
                 $("#deliveryUndecided").checked = !!p.deliveryUndecided;
                 [
                     "deliveryZip", "deliveryAddress", "deliveryAddressEn",
+                    "deliveryAddressDetail", "deliveryAddressDetailEn",
                     "recipientNameKo", "recipientNameEn", "recipientPhone",
                     "recipientEmail", "customsCode",
                     "customerName", "customerNameEn", "customerEmail", "customerPhone",
@@ -2453,14 +2666,8 @@
 
             $("#regionHub").append(
                 new Option("선택", ""),
-                ...REGION_HUBS.map(
-                    ([city, zone]) =>
-                        new Option(
-                            `${city} (허브 노선, €${REGION_FREE_MIN[zone]} 이상 무료)`,
-                            city,
-                        ),
-                ),
-                new Option("그 외 지역 (직접 입력)", REGION_OTHER),
+                ...REGION_HUBS.map(([city]) => new Option(city, city)),
+                new Option("그 외", REGION_OTHER),
             );
             updateMovingDocs();
             renderBoxes();
