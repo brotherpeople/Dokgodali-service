@@ -91,18 +91,7 @@
     align-items: center;
     gap: 8px;
   }
-  .brand-logo {
-    width: 26px;
-    height: 26px;
-    background: var(--navy);
-    color: var(--surface);
-    border-radius: var(--radius-sm);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: var(--fw-bold);
-    font-size: var(--fs-body);
-  }
+  .brand-logo { display: block; width: auto; height: 22px; }
   .brand-name {
     font-size: var(--fs-title);
     font-weight: var(--fw-bold);
@@ -979,3 +968,13 @@
   .ui-dialog-actions .btn { min-width: 72px; min-height: 36px; }
   .btn-danger { background: var(--red); color: var(--surface); }
   .btn-danger:hover { background: var(--red-dark); }
+
+  /* 상단바: 남색 배경. 글씨는 흰색·옅은 회색, 버튼은 투명 바탕에 옅은 선 (로그아웃은 옅은 빨강) */
+  header { background: var(--navy); border-bottom: 0; }
+  header .brand-area { gap: 12px; }
+  header .brand-name { color: var(--surface); }
+  header .header-user { color: var(--faint); }
+  header .btn-secondary { background: transparent; border-color: rgba(255, 255, 255, .28); color: var(--surface); }
+  header .btn-secondary:hover { background: rgba(255, 255, 255, .08); }
+  header .btn-danger-outline { background: transparent; border-color: rgba(254, 202, 202, .45); color: var(--red-border); }
+  header .btn-danger-outline:hover { background: rgba(220, 38, 38, .18); }
