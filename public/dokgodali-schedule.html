@@ -1352,21 +1352,22 @@ function renderQuoteControl(r) {
     : `<div class="request-quote-row">견적서 발행 전 <button class="btn btn-secondary btn-sm" onclick="setQuoteIssued(${jsArg(r.id)}, true)">발행 표시</button></div>`);
 }
 
-// ---------- 대량등록 엑셀 내보내기 (dokgodali-export.js, SheetJS는 처음 누를 때 vendor에서 불러온다)
+// ---------- 대량등록 엑셀 내보내기 (dokgodali-export.js)
+// 참고 엑셀과 서식이 똑같도록 templates/bulk-upload-template.xlsx에 값만 채운다. ExcelJS는 처음 누를 때 vendor에서 불러온다.
 function renderExportControl(r) {
   return `<div class="request-quote-row">대량등록 엑셀 <button class="btn btn-secondary btn-sm" onclick="exportRequestXlsx(${jsArg(r.id)})">엑셀 내보내기</button></div>`;
 }
-let sheetJsLoading = null;
-function loadSheetJs() {
-  if (window.XLSX) return Promise.resolve();
-  sheetJsLoading ??= new Promise((resolve, reject) => {
+let excelJsLoading = null;
+function loadExcelJs() {
+  if (window.ExcelJS) return Promise.resolve();
+  excelJsLoading ??= new Promise((resolve, reject) => {
     const script = document.createElement('script');
-    script.src = 'vendor/xlsx.full.min.js';
+    script.src = 'vendor/exceljs.min.js';
     script.onload = resolve;
-    script.onerror = () => { sheetJsLoading = null; reject(new Error('엑셀 모듈을 불러오지 못했습니다.')); };
+    script.onerror = () => { excelJsLoading = null; reject(new Error('엑셀 모듈을 불러오지 못했습니다.')); };
     document.head.append(script);
   });
-  return sheetJsLoading;
+  return excelJsLoading;
 }
 async function exportRequestXlsx(id) {
   const r = state.requests.find(x => x.id === id);
@@ -1378,19 +1379,27 @@ async function exportRequestXlsx(id) {
     return alert(error.message === 'delivery_undecided' ? '배송지가 미정인 요청이라 내보낼 수 없습니다. 고객에게 배송지를 받은 뒤 내보내 주세요.' : '엑셀 변환 오류: ' + error.message);
   }
   if (!rows.length) return alert('내보낼 물품이 없습니다.');
+  let buffer;
   try {
-    await loadSheetJs();
+    await loadExcelJs();
+    const res = await fetch('templates/bulk-upload-template.xlsx', { cache: 'no-cache' });
+    if (!res.ok) throw new Error('엑셀 양식 파일을 불러오지 못했습니다.');
+    const book = new ExcelJS.Workbook();
+    await book.xlsx.load(await res.arrayBuffer());
+    window.DokgodaliExport.fillTemplate(book.getWorksheet('신청'), rows);
+    buffer = await book.xlsx.writeBuffer();
   } catch (error) {
     return alert(error.message);
   }
-  const sheet = XLSX.utils.aoa_to_sheet([window.DokgodaliExport.HEADERS, ...rows]);
-  const book = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(book, sheet, '신청');
   const p = r.payload || {};
   const d = new Date();
   const ymd = `${String(d.getFullYear()).slice(2)}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
   const name = String(p.recipientNameKo || r.customer_name || r.id).replace(/[\\/:*?"<>|]/g, '');
-  XLSX.writeFile(book, `대량등록_${name}_${ymd}.xlsx`);
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+  link.download = `대량등록_${name}_${ymd}.xlsx`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
 async function setQuoteIssued(id, issued) {
   if (!confirm(issued ? '견적서 발행을 표시하면 고객은 수정 링크로 신청 내용을 고칠 수 없습니다. 표시할까요?' : '견적서 발행 표시를 취소하면 고객이 다시 수정할 수 있습니다. 취소할까요?')) return;
