@@ -1558,7 +1558,7 @@
             }
             const uploadedThumb = (url) =>
                 url && url.includes(`/${IMAGE_BUCKET}/`)
-                    ? `<a href="${escapeAttr(url)}" target="_blank" rel="noopener"><img src="${escapeAttr(url)}" alt="첨부한 사진" /></a><span>사진이 첨부되었습니다</span>`
+                    ? `<a href="${escapeAttr(url)}" target="_blank" rel="noopener"><img src="${escapeAttr(url)}" alt="첨부한 사진" /></a><span>사진이 첨부되었습니다</span><button class="image-remove-btn" type="button" data-upload-remove>사진 삭제</button>`
                     : "";
             // 입력 중에는 박스별 계산 결과 줄만 갱신한다.
             function updateBoxCalcs() {
@@ -1823,6 +1823,11 @@
                     const field = itemInput.dataset.itemField;
                     item[field] =
                         field === "isNew" ? itemInput.checked : itemInput.value;
+                    if (field === "imageUrl")
+                        itemInput
+                            .closest(".item-row")
+                            .querySelector("[data-upload-status]").innerHTML =
+                            uploadedThumb(item.imageUrl);
                     if (!itemMissing(item).includes(field))
                         itemInput.classList.remove("input-error");
                     if (state.boxes.every(isBoxValid))
@@ -1892,6 +1897,17 @@
                 }
             });
             $("#boxList").addEventListener("click", (event) => {
+                const removePhoto = event.target.closest("[data-upload-remove]");
+                if (removePhoto) {
+                    // 신청서에서 링크만 뺀다. 저장소 파일은 고객이 지울 수 없게 되어 있다(sql/storage.sql).
+                    const itemRow = removePhoto.closest(".item-row");
+                    state.boxes[Number(itemRow.closest(".box-row").dataset.index)]
+                        .items[Number(itemRow.dataset.item)].imageUrl = "";
+                    itemRow.querySelector('[data-item-field="imageUrl"]').value = "";
+                    itemRow.querySelector("[data-upload-status]").innerHTML = "";
+                    render();
+                    return;
+                }
                 const uploadButton = event.target.closest("[data-upload]");
                 if (uploadButton) {
                     uploadButton.parentElement.querySelector("[data-upload-file]").click();
