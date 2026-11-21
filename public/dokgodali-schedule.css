@@ -585,8 +585,6 @@
   .rd-summary dt { font-size: var(--fs-caption); color: var(--faint); }
   .rd-summary dd { margin: 3px 0 0; font-size: var(--fs-title); font-weight: var(--fw-bold); }
   .rd-summary dd small { display: block; margin-top: 1px; font-size: var(--fs-caption); font-weight: var(--fw-regular); color: var(--muted); }
-  .rd-check { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); font-size: var(--fs-body); line-height: 1.6; color: var(--accent-dark); }
-  .rd-check b { margin-right: 4px; font-weight: var(--fw-bold); }
   .rd-fold { padding: 0; }
   .rd-fold-head { display: flex; align-items: center; gap: 8px; width: 100%; padding: 13px 16px; border: none; background: none; font: inherit; text-align: left; cursor: pointer; border-radius: var(--radius-md); }
   .rd-fold-head .rd-gtitle { margin: 0; }
@@ -627,6 +625,7 @@
     .rd-fold-body .request-diff-label { margin-top: 6px; }
   }
   .request-edit-badge { margin-left: 6px; font-size: var(--fs-caption); }
+  .request-edit-count { margin-left: 6px; font-size: var(--fs-caption); color: var(--faint); }
   .request-edited-card { margin-bottom: 14px; padding: 14px; border: 1px solid var(--accent-border); background: var(--accent-light); }
   .request-diff-title { margin-bottom: 6px; font-size: var(--fs-caption); font-weight: var(--fw-bold); color: var(--accent-dark); }
   .request-diff { display: grid; grid-template-columns: 110px 1fr 1fr; gap: 4px 10px; margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); font-size: var(--fs-caption); }
@@ -949,8 +948,6 @@
   .rd-summary { gap: 12px 24px; }
   .rd-summary dd { margin: 0; font-size: var(--fs-title); font-weight: var(--fw-bold); line-height: 1.4; }
   .rd-summary dd small { margin-top: 2px; font-size: var(--fs-caption); font-weight: var(--fw-regular); }
-  .rd-check { margin-top: 14px; padding-top: 12px; font-size: var(--fs-body); }
-  .rd-check b { margin-right: 8px; font-weight: var(--fw-bold); }
   .rd p { font-size: var(--fs-body); }
   .rd-columns > div > p:first-of-type:not(.rd-muted), .rd-box td { font-weight: var(--fw-medium); }
   .rd-muted { font-size: var(--fs-body); color: var(--muted); }
@@ -967,3 +964,11 @@
   .rv-table, .request-diff { font-size: var(--fs-body); }
   .rv-label, .request-diff-label { color: var(--muted); }
   .rv-before { font-size: var(--fs-caption); }
+
+  /* 신규 요청 목록: 유형 라벨은 흰 바탕 + 선 (펼친 건의 회색 머리 위에서도 보이게),
+     확인할 것은 요약 아래 주황 한 줄, 버전 칸 요약은 강조하지 않는다 */
+  .request-pending-type { border: 1px solid var(--border-strong); background: var(--surface); }
+  .request-checks { margin-top: 3px; font-size: var(--fs-caption); line-height: 1.5; color: var(--accent-dark); }
+  .request-checks b { margin-right: 6px; font-weight: var(--fw-bold); }
+  .rd-fold-versions .rd-meta { color: var(--muted); }
+  .request-pending-item, .request-pending-item .request-pending-top { transition: background-color .2s ease, border-color .2s ease; }

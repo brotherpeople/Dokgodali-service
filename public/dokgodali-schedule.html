@@ -1350,7 +1350,7 @@ function renderQuoteControl(r) {
   if (!r || r.type !== 'delivery') return '';
   const quote = r.quote_issued_at
     ? `<button class="btn btn-secondary btn-sm" onclick="setQuoteIssued(${jsArg(r.id)}, false)">발행 취소</button><span class="request-actions-note">견적서 발행됨 ${shortDateTime(r.quote_issued_at)}</span>`
-    : `<button class="btn btn-secondary btn-sm" onclick="setQuoteIssued(${jsArg(r.id)}, true)">발행 표시</button>`;
+    : `<button class="btn btn-primary btn-sm" onclick="setQuoteIssued(${jsArg(r.id)}, true)">견적서 발행 표시</button>`;
   return `<div class="request-actions">
     <button class="btn btn-secondary btn-sm" onclick="exportRequestXlsx(${jsArg(r.id)})">엑셀 내보내기</button>${quote}
   </div>`;
@@ -1499,10 +1499,11 @@ function renderAdminRequestsTab() {
         <div>
           <span class="request-pending-type">${r.type === 'moving' ? '이사' : '배송'}</span>
           <span style="margin-left:6px; font-weight:700;">${escapeHtml(r.customer_name || '-')}</span>
-          ${r.edit_count ? `<span class="badge badge-warning request-edit-badge">수정됨 ${r.edit_count}회</span>` : ''}
+          ${r.edit_count ? `<span class="request-edit-count">수정 ${r.edit_count}회</span>` : ''}
           ${r.quote_issued_at ? '<span class="badge badge-gray request-edit-badge">견적서 발행됨</span>' : ''}
           <span class="request-caret${isOpen ? ' open' : ''}">▾</span>
           <div style="font-size: var(--fs-caption); color:var(--muted); margin-top:3px;">${escapeHtml(r.summary)}</div>
+          ${r.type === 'delivery' && deliveryChecks(r.payload || {}).length ? `<div class="request-checks"><b>확인</b> ${escapeHtml(deliveryChecks(r.payload || {}).join(', '))}</div>` : ''}
           <div style="font-size: var(--fs-caption); color:var(--faint); margin-top:2px;">${shortDateTime(r.created_at)}</div>
         </div>
         <div class="request-pending-actions" onclick="event.stopPropagation()">
@@ -1519,12 +1520,22 @@ function renderAdminRequestsTab() {
 // 신규 요청 목록은 실시간 백그라운드 폴링(loadDataFromSupabase)마다 통째로 다시 그려지므로,
 // 펼침 상태를 DOM이 아니라 state에 저장해야 폴링 중에도 펼쳐놓은 상태가 유지된다.
 function toggleRequestDetail(id) {
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const opts = { duration: 240, easing: 'cubic-bezier(.2, .8, .2, 1)' };
   if (state.expandedRequestIds.has(id)) {
-    state.expandedRequestIds.delete(id);
-  } else {
-    state.expandedRequestIds.add(id);
+    const el = document.getElementById(`request-detail-${id}`);
+    const close = () => { state.expandedRequestIds.delete(id); renderAdminRequestsTab(); };
+    if (!el || reduce) return close();
+    el.style.overflow = 'hidden';
+    el.animate([{ height: `${el.offsetHeight}px`, opacity: 1 }, { height: '0px', opacity: 0 }], { ...opts, duration: 180 }).onfinish = close;
+    return;
   }
+  state.expandedRequestIds.add(id);
   renderAdminRequestsTab();
+  const el = document.getElementById(`request-detail-${id}`);
+  if (!el || reduce) return;
+  el.style.overflow = 'hidden';
+  el.animate([{ height: '0px', opacity: 0 }, { height: `${el.offsetHeight}px`, opacity: 1 }], opts).onfinish = () => { el.style.overflow = ''; };
 }
 
 // 상세 안에서 접었다 펼치는 칸 (수정 내용·박스)
@@ -1608,13 +1619,34 @@ function renderRequestVersions(r) {
   return { bar, payload: chosen.payload, isCurrent: chosen.version == null };
 }
 
+// 배송 요청에서 관리자가 따로 확인할 것 (초과·캐리어·분유/주류 등·신상품·이사화물·배송지 미정). 요청 목록 요약 아래에 보인다.
+function deliveryChecks(p) {
+  const CATEGORY = { health: '건강기능식품', formula: '분유', alcohol: '주류' };
+  const boxes = p.boxes || [];
+  const items = boxes.flatMap(b => b.items || []);
+  const count = pred => boxes.filter(pred).length;
+  const overweight = count(b => b.quote && b.quote.isOverweight);
+  const oversize = count(b => b.quote && b.quote.isOversize);
+  const carriers = count(b => b.carrier);
+  const checks = [
+    overweight && `중량 초과 ${overweight}박스`,
+    oversize && `규격 초과 ${oversize}박스`,
+    carriers && `캐리어 ${carriers}개`,
+    ...[...new Set(items.map(it => CATEGORY[it.category]).filter(Boolean))],
+    items.some(it => it.isNew) && '신상품',
+    p.movingStatus && p.movingStatus !== 'none' && `${{ moving: '이사화물', import: '반입 건' }[p.movingStatus] || p.movingStatus}${p.entryDate ? `(입국 ${p.entryDate.slice(5).replace('-', '/').replace(/^0/, '')})` : ''}`,
+    p.deliveryUndecided && '배송지 미정',
+  ].filter(Boolean);
+  return checks;
+}
+
 // payload는 type별로 모양이 다르므로, 요청 상세 보기에서 사람이 읽기 좋은 항목만 뽑아 보여준다.
 function renderRequestDetailBody(r) {
   // 고객이 고친 적이 있는 배송 요청은 위에 버전 선택을 두고, 고른 버전의 내용으로 상세를 그린다.
   if (r.type === 'delivery' && r.edit_count > 0 && !r.versionView) {
     const v = renderRequestVersions(r);
     const body = renderRequestDetailBody({ ...r, payload: v.payload, payload_before_edit: v.isCurrent ? r.payload_before_edit : null, versionView: true });
-    return body.replace('<div class="request-detail-full rd">', `<div class="request-detail-full rd">${v.bar}`);
+    return body.replace(/<\/div>$/, `${v.bar}</div>`); // 버전 칸은 상세 맨 아래에 둔다
   }
   const p = r.payload || {};
   if (r.type === 'moving') {
@@ -1647,19 +1679,6 @@ function renderRequestDetailBody(r) {
   const boxes = p.boxes || [];
   const t = p.quoteTotals || {};
   const items = boxes.flatMap(b => b.items || []);
-  const count = pred => boxes.filter(pred).length;
-  const overweight = count(b => b.quote && b.quote.isOverweight);
-  const oversize = count(b => b.quote && b.quote.isOversize);
-  const carriers = count(b => b.carrier);
-  const checks = [
-    overweight && `중량 초과 ${overweight}박스`,
-    oversize && `규격 초과 ${oversize}박스`,
-    carriers && `캐리어 ${carriers}개`,
-    ...[...new Set(items.map(it => CATEGORY[it.category]).filter(Boolean))],
-    items.some(it => it.isNew) && '신상품',
-    p.movingStatus && p.movingStatus !== 'none' && `${{ moving: '이사화물', import: '반입 건' }[p.movingStatus] || p.movingStatus}${p.entryDate ? `(입국 ${p.entryDate.slice(5).replace('-', '/').replace(/^0/, '')})` : ''}`,
-    p.deliveryUndecided && '배송지 미정',
-  ].filter(Boolean);
 
   const region = p.pickupRegion ? `${p.pickupRegion.zip || ''} ${p.pickupRegion.city || ''}`.trim() : '';
   const cargoText = (p.cargoes || []).map(c => `${c.name} ${c.quantity}개`).join(', ');
@@ -1671,7 +1690,6 @@ function renderRequestDetailBody(r) {
     ${stat('화물', boxes.length ? `${boxes.length}박스 · ${e(p.chargeableKg)}kg` : e(cargoText || '-'), boxes.length ? `신고가 ${euro(p.declaredTotal)}` : '')}
     ${stat('통관', e(customsLabel), p.deliveryUndecided ? '' : e(p.customsCode || '고유부호 없음'))}
   </dl>`;
-  const checkHtml = checks.length ? `<div class="rd-check"><b>확인</b> ${e(checks.join(', '))}</div>` : '';
 
   const diffRows = isEditUnreviewed(r) ? requestDiff(r.payload_before_edit, r.payload) : null;
   const diffSection = diffRows && diffRows.length
@@ -1738,7 +1756,7 @@ function renderRequestDetailBody(r) {
     ${etc ? `<div><h5 class="rd-sub">기타</h5>${line(e(etc))}</div>` : ''}
   </div></section>`;
 
-  const overview = `<section class="rd-group"><h4 class="rd-gtitle">개요</h4>${summary}${checkHtml}</section>`;
+  const overview = `<section class="rd-group"><h4 class="rd-gtitle">개요</h4>${summary}</section>`;
   return `<div class="request-detail-full rd">${diffSection}${overview}${boxSection}${people}${bottom}</div>`;
 }
 
