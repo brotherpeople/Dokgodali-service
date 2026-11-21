@@ -25,7 +25,10 @@
 .section-block:first-of-type { margin-top: 0; }
 
 /* 섹션 블록 색 채우기 (Step 1의 화물 선택, Step 3의 4개 블록에서 공용으로 씀) */
-.section-box { padding: 20px; border: 1px solid var(--border); border-radius: 12px; background: #fbfcff; }
+/* 섹션은 박스로 감싸지 않고 제목과 구분선으로 나눈다 (11/21 디자인 피드백: 박스 중첩 줄이기) */
+.section-box { padding: 0; border: 0; background: none; }
+.section-block + .section-block { padding-top: 28px; border-top: 1px solid var(--border); }
+.section-block > .section-label { color: var(--text); font-size: 15px; font-weight: 800; letter-spacing: 0; }
 
 /* Step 1: 박스 목록 */
 .box-list { display: grid; gap: 10px; margin-top: 14px; }
@@ -115,8 +118,8 @@
 .autocomplete-option:hover, .autocomplete-option[aria-selected="true"] { background: var(--accent-light); }
 
 /* 픽업 / 배송지 주소 카드 */
-.address-card { margin-top: 14px; padding: 16px; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
-.address-card + .address-card { margin-top: 10px; }
+.address-card { margin-top: 14px; }
+.address-card + .address-card { margin-top: 26px; }
 .address-caption { display: flex; align-items: center; gap: 7px; margin-bottom: 11px; font-size: 13px; font-weight: 800; }
 .address-caption svg { width: 16px; color: var(--accent); }
 .address-card .field-grid { margin-top: 0; }
@@ -149,12 +152,12 @@
 .edit-link-row .btn { flex: none; padding: 10px 14px; }
 .edit-link-hint { margin-top: 8px; color: var(--muted); font-size: 12px; line-height: 1.5; word-break: keep-all; }
 /* 주의사항: 놓치면 안 되는 안내는 말풍선에 숨기지 않고 항상 보이게 둔다 */
-.caution { margin-top: 12px; padding: 12px 14px; border: 1px solid #f5c98a; border-left: 4px solid var(--amber); border-radius: 9px; background: var(--amber-light); color: #7c4a03; font-size: 12.5px; line-height: 1.6; word-break: keep-all; }
+.caution { margin-top: 12px; color: var(--muted); font-size: 12.5px; line-height: 1.6; word-break: keep-all; }
 .caution-title { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; color: #92400e; font-size: 13px; font-weight: 800; }
 .caution-title svg { flex: none; width: 16px; height: 16px; }
 .caution ul { margin: 0; padding-left: 18px; }
 .caution li + li { margin-top: 2px; }
-.docs-notice { margin-top: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 9px; background: #fafbfe; color: var(--muted); font-size: 12.5px; line-height: 1.6; }
+.docs-notice { margin-top: 12px; color: var(--muted); font-size: 12.5px; line-height: 1.6; }
 .docs-notice strong { display: block; margin-bottom: 4px; color: var(--text); }
 .docs-notice ul { margin: 6px 0; padding-left: 18px; }
 details.docs-notice summary { cursor: pointer; list-style: none; }
@@ -166,7 +169,7 @@ details[open] .more-link { display: none; }
 .confirm-more { margin: 4px 0 0 26px; color: var(--muted); font-size: 12px; line-height: 1.55; }
 .confirm-more summary { width: fit-content; color: var(--accent); font-weight: 700; cursor: pointer; }
 .confirm-more p { margin: 6px 0 0; }
-.docs-notice-complete { max-width: 480px; margin: 20px auto 0; text-align: left; }
+.docs-notice-complete { max-width: 480px; margin: 20px auto 0; padding: 12px 14px; border: 1px solid var(--border); border-radius: 9px; background: #fafbfe; text-align: left; }
 
 /* Step 2: 접수 방식 카드 */
 .method-list { display: grid; gap: 10px; margin-top: 14px; }
