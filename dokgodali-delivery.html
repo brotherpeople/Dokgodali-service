@@ -398,6 +398,7 @@
                                     신청인 주소
                                     <span class="required">*필수</span>
                                 </div>
+                                <div class="form-panel">
                                 <div class="field-grid address-grid">
                                     <label>
                                         <span class="field-title">도로명</span>
@@ -468,6 +469,7 @@
                                             placeholder="dokgodali"
                                         />
                                     </div>
+                                </div>
                                 </div>
                             </div>
                             <div class="section-block section-box">
@@ -751,6 +753,7 @@
                             </div>
                             <div class="section-block section-box">
                                 <div class="section-label">예약자 정보</div>
+                                <div class="form-panel">
                                 <div class="field-grid">
                                     <div>
                                         <div class="field-title">
@@ -872,11 +875,13 @@
                                         >
                                     </div>
                                 </div>
+                                </div>
                             </div>
                             <div class="section-block section-box">
                                 <div class="section-label">
                                     마케팅 활용 및 유입 경로
                                 </div>
+                                <div class="form-panel">
                                 <div class="choice-group" id="mediaConsentGroup">
                                     <div class="field-title">
                                         SNS용 사진·동영상 촬영 동의 (개인을 알아볼 수 없는 형태)
@@ -926,6 +931,7 @@
                                             placeholder="직접 입력"
                                         />
                                     </div>
+                                </div>
                                 </div>
                             </div>
                             <div class="section-block section-box">
@@ -2657,6 +2663,16 @@
                 ...REGION_HUBS.map(([city]) => new Option(city, city)),
                 new Option("그 외", REGION_OTHER),
             );
+            // 떠오르는 라벨 (3단계): 라벨을 입력칸 안에 두었다가, 칸을 누르거나 값이 있으면 위로 작게 올린다.
+            // 값 여부는 CSS(:placeholder-shown)로 판단하므로 placeholder가 없는 칸에는 빈칸 하나를 넣어 둔다.
+            $$("#personalCard .field-title").forEach((title) => {
+                const field = title.parentElement;
+                if (field.firstElementChild !== title) return;
+                const control = field.querySelector("input.text-input, select.select-input, textarea");
+                if (!control) return;
+                field.classList.add("float-field");
+                if (control.matches("input") && !control.placeholder) control.placeholder = " ";
+            });
             updateMovingDocs();
             renderBoxes();
             render();
