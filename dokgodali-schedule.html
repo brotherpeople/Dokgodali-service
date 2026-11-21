@@ -8,6 +8,8 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="dokgodali-config.js"></script>
+<script src="dokgodali-delivery-caution.js"></script>
+<script src="dokgodali-export.js"></script>
 <link rel="stylesheet" href="dokgodali-schedule.css">
 <!-- 아이폰에서 "홈 화면에 추가"로 설치해야 웹 푸시가 동작하기 때문에 PWA로 설치 가능하게 만든다 -->
 <link rel="manifest" href="manifest.json">
@@ -65,8 +67,6 @@
     <div style="display: flex; gap: 8px; align-items: center;">
       <span id="current-user-badge" class="badge badge-navy">관리자</span>
       <button id="btn-toggle-push" class="btn btn-secondary btn-sm" onclick="togglePushSubscription()">🔔 알림 켜기</button>
-      <button id="btn-open-invite-crew" class="btn btn-secondary btn-sm" onclick="openInviteCrewModal()">+ 크루 초대</button>
-      <button id="btn-open-new-schedule" class="btn btn-primary btn-sm" onclick="openCreateScheduleModal()">+ 스케줄 등록</button>
     </div>
   </div>
 </header>
@@ -167,14 +167,25 @@
   <!-- ADMIN VIEW -->
   <div id="admin-section">
     <div class="admin-tab-bar">
-      <button class="admin-tab-btn active" id="admin-tab-dispatch-btn" onclick="switchAdminTab('dispatch')">스케줄 관리</button>
+      <button class="admin-tab-btn active" id="admin-tab-dashboard-btn" onclick="switchAdminTab('dashboard')">대시보드</button>
+      <button class="admin-tab-btn" id="admin-tab-dispatch-btn" onclick="switchAdminTab('dispatch')">스케줄 관리</button>
       <button class="admin-tab-btn" id="admin-tab-worklog-btn" onclick="switchAdminTab('worklog')">근무시간 승인</button>
       <button class="admin-tab-btn" id="admin-tab-requests-btn" onclick="switchAdminTab('requests')">신규 요청<span id="admin-requests-badge" class="hidden"></span></button>
       <button class="admin-tab-btn" id="admin-tab-crew-btn" onclick="switchAdminTab('crew')">크루 관리</button>
     </div>
-    <div class="admin-layout">
-      
-      <!-- Left: Monthly Calendar -->
+
+    <!-- 대시보드: 위에 숫자 카드 3개, 아래에 완료(어제) | 오늘 | 예정(옆으로 넘기면 30일 뒤까지) -->
+    <div id="admin-dashboard-section">
+      <div class="dash-kpis" id="dash-kpis"></div>
+      <div class="dash-cols">
+        <div class="dash-panel" id="dash-panel-done"></div>
+        <div class="dash-panel" id="dash-panel-today"></div>
+        <div class="dash-panel" id="dash-panel-upcoming"></div>
+      </div>
+    </div>
+
+    <!-- 스케줄 관리: 넓은 캘린더, 날짜를 누르면 아래에 그날 작업 목록 -->
+    <div id="admin-dispatch-section">
       <div class="calendar-container">
         <div class="calendar-header">
           <button class="calendar-nav-btn" onclick="changeMonth(-1)">이전 달</button>
@@ -190,18 +201,24 @@
           <div class="cal-weekday sat">토</div>
           <div class="cal-weekday sun">일</div>
         </div>
-        <div id="admin-cal-days" class="calendar-grid"></div>
+        <div id="admin-cal-days" class="calendar-grid cal-full"></div>
+        <div class="cal-legend">
+          <span><i class="lg-active"></i>진행 중 · 예정</span>
+          <span><i class="lg-done"></i>완료</span>
+          <span><i class="lg-alert"></i>인원 부족 · 충돌</span>
+        </div>
       </div>
 
-      <!-- Right: Selected Date & Dispatch Panel -->
-      <div class="card" style="padding: 14px;">
+      <div class="card" id="admin-day-detail" style="padding: 14px;">
         <div class="card-header" style="margin-bottom: 10px; padding-bottom: 8px;">
-          <div class="card-title" id="admin-selected-date-title"></div>
-          <div id="admin-crew-avail-summary" style="font-size: 11.5px; color: var(--text-secondary);"></div>
+          <div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;">
+            <div class="card-title" id="admin-selected-date-title"></div>
+            <div id="admin-crew-avail-summary" style="font-size: 11.5px; color: var(--text-secondary);"></div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openCreateScheduleModal(state.selectedDate)">+ 스케줄 등록</button>
         </div>
         <div id="admin-schedules-list"></div>
       </div>
-
     </div>
 
     <div id="admin-worklog-section" class="hidden">
@@ -215,14 +232,26 @@
         <div id="az-pdf-status" style="font-size:12px; color:var(--text-secondary); margin-top:6px;"></div>
       </div>
       <div id="admin-worklog-pending-list"></div>
+      <div class="card" style="margin-top:14px; padding:14px;">
+        <div class="card-title">근무시간 미제출 <span style="font-size:12px; font-weight:500; color:var(--text-muted);">최근 30일</span></div>
+        <div id="admin-worklog-missing-list"></div>
+      </div>
     </div>
 
     <div id="admin-requests-section" class="hidden">
       <div id="admin-requests-pending-list"></div>
     </div>
 
+    <!-- 크루 관리: 왼쪽에서 크루를 고르면 그 달 근무를 캘린더로, 아래는 크루 목록(연락처·수정·삭제) -->
     <div id="admin-crew-section" class="hidden">
-      <div id="admin-crew-list"></div>
+      <div class="crew-layout">
+        <div class="crew-picker" id="admin-crew-picker"></div>
+        <div class="dash-panel" id="admin-crew-month"></div>
+      </div>
+      <div class="card" style="margin-top: 12px; padding: 14px;">
+        <div class="card-title">크루 목록</div>
+        <div id="admin-crew-list"></div>
+      </div>
     </div>
   </div>
 
@@ -238,6 +267,14 @@
     <form id="schedule-form" onsubmit="handleSaveSchedule(event)">
       <div class="modal-body">
         
+        <div class="form-group">
+          <label class="form-label">작업 종류</label>
+          <select id="f-job-type" class="form-control">
+            <option value="moving">이사</option>
+            <option value="delivery">배송</option>
+          </select>
+        </div>
+
         <div class="form-row" style="background: #f8fafc; border: 1px solid var(--border); padding: 8px 10px; border-radius: 4px; margin-bottom: 12px;">
           <div>
             <label class="form-label">견적번호 (관리자용)</label>
@@ -400,6 +437,22 @@
   </div>
 </div>
 
+<!-- MODAL: 작업 상세 (관리자). 스케줄 등록 팝업과 같은 순서로 값만 보여주고, 맨 아래에 배정 크루별 근무시간 -->
+<div id="job-detail-modal" class="modal-overlay hidden" onclick="if (event.target === this) closeJobDetailModal()">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <div class="card-title"><span id="job-detail-title"></span><span id="job-detail-status" style="margin-left: 6px;"></span></div>
+      <button class="btn btn-secondary btn-sm" onclick="closeJobDetailModal()">닫기</button>
+    </div>
+    <div class="modal-body" id="job-detail-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-whatsapp btn-sm" style="margin-right: auto;" id="job-detail-wa-btn">WhatsApp</button>
+      <button class="btn btn-secondary btn-sm" id="job-detail-edit-btn">수정</button>
+      <button class="btn btn-primary btn-sm" onclick="closeJobDetailModal()">닫기</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: WhatsApp Text -->
 <div id="whatsapp-modal" class="modal-overlay hidden">
   <div class="modal-dialog">
@@ -503,8 +556,16 @@ let state = {
   workLogs: [],
   requests: [],
   expandedRequestIds: new Set(),
-  adminTab: 'dispatch',
-  editingScheduleId: null
+  openRequestSections: new Set(), // '요청id:칸' (diff, boxes, address)
+  requestRevisions: new Map(), // 요청id → [{version, payload, created_at}] | 'loading' | 'error'
+  requestVersion: new Map(), // 요청id → 보고 있는 버전 번호 (없으면 현재)
+  adminTab: 'dashboard',
+  editingScheduleId: null,
+  jobDetail: null, // 열려 있는 작업 상세 팝업 { scheduleId, siblings }
+  // 크루 관리 탭에서 고른 크루와 보고 있는 달
+  crewViewUserId: null,
+  crewViewYear: new Date().getFullYear(),
+  crewViewMonth: new Date().getMonth()
 };
 
 function vehicleDutyLabel(value) {
@@ -977,6 +1038,7 @@ async function loadDataFromSupabase(isBackground = false) {
 function mapScheduleFromDB(s) {
   return {
     id: s.id,
+    jobType: s.job_type || 'moving',
     quoteNo: s.quote_no,
     quotePrice: s.quote_price,
     customerName: s.customer_name,
@@ -1080,21 +1142,15 @@ function switchRole(roleKey) {
   state.currentRole = roleKey;
 
   const badge = document.getElementById('current-user-badge');
-  const btnNew = document.getElementById('btn-open-new-schedule');
-  const btnInvite = document.getElementById('btn-open-invite-crew');
   const btnPush = document.getElementById('btn-toggle-push');
 
   if (roleKey === 'admin') {
     badge.className = 'badge badge-navy';
     badge.textContent = '관리자';
-    btnNew.classList.remove('hidden');
-    btnInvite.classList.remove('hidden');
   } else {
     const crew = CREW_USERS.find(c => c.id === roleKey);
     badge.className = 'badge badge-blue';
     badge.textContent = crew ? `${crew.name} (${crew.canDrive ? '운전가능' : '면허없음'})` : '크루';
-    btnNew.classList.add('hidden');
-    btnInvite.classList.add('hidden');
   }
 
   // 알림 켜기/끄기는 관리자·크루 둘 다 필요하다 (관리자는 신규 요청/근무시간 제출 알림,
@@ -1123,15 +1179,19 @@ function renderApp() {
   document.getElementById('crew-history-section').classList.toggle('hidden', isAdmin);
 
   if (isAdmin) {
+    document.getElementById('admin-dashboard-section').classList.toggle('hidden', state.adminTab !== 'dashboard');
     document.getElementById('admin-worklog-section').classList.toggle('hidden', state.adminTab !== 'worklog');
     document.getElementById('admin-requests-section').classList.toggle('hidden', state.adminTab !== 'requests');
     document.getElementById('admin-crew-section').classList.toggle('hidden', state.adminTab !== 'crew');
-    document.querySelector('.admin-layout').classList.toggle('hidden', state.adminTab !== 'dispatch');
+    document.getElementById('admin-dispatch-section').classList.toggle('hidden', state.adminTab !== 'dispatch');
+    document.getElementById('admin-tab-dashboard-btn').classList.toggle('active', state.adminTab === 'dashboard');
     document.getElementById('admin-tab-dispatch-btn').classList.toggle('active', state.adminTab === 'dispatch');
     document.getElementById('admin-tab-worklog-btn').classList.toggle('active', state.adminTab === 'worklog');
     document.getElementById('admin-tab-requests-btn').classList.toggle('active', state.adminTab === 'requests');
     document.getElementById('admin-tab-crew-btn').classList.toggle('active', state.adminTab === 'crew');
-    if (state.adminTab === 'worklog') {
+    if (state.adminTab === 'dashboard') {
+      renderAdminDashboard();
+    } else if (state.adminTab === 'worklog') {
       renderAdminWorklogTab();
     } else if (state.adminTab === 'requests') {
       renderAdminRequestsTab();
@@ -1142,6 +1202,7 @@ function renderApp() {
       renderAdminSelectedDateSchedules();
     }
     renderAdminRequestsBadge();
+    if (state.jobDetail) renderJobDetailModal();
   } else {
     renderCrewDashboard();
   }
@@ -1157,6 +1218,8 @@ function renderAdminWorklogTab() {
   if (crewSelect.options.length === 0) {
     CREW_USERS.forEach(u => crewSelect.appendChild(new Option(u.name, u.id)));
   }
+
+  renderAdminWorklogMissing();
 
   const list = document.getElementById('admin-worklog-pending-list');
   const pending = state.workLogs.filter(w => w.status === 'pending').sort((a, b) => a.jobDate.localeCompare(b.jobDate));
@@ -1178,6 +1241,39 @@ function renderAdminWorklogTab() {
           <button class="btn btn-primary btn-sm" onclick="approveWorklog('${w.id}')">승인</button>
           <button class="btn btn-secondary btn-sm" onclick="openRejectWorklog('${w.id}')">반려</button>
         </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// 끝난 작업인데 배정된 크루가 근무시간을 안 낸 건. 근무기록 기능 이전의 옛 작업이 계속 뜨지 않게 최근 30일만 본다.
+// 줄을 누르면 작업 상세 팝업 (크루 연락처가 있다).
+function renderAdminWorklogMissing() {
+  const since = addDays(TODAY_DATE, -30);
+  const now = nowKey();
+  const missing = [];
+  state.schedules
+    .filter(s => s.endDate >= since && scheduleStatus(s, now) === 'done')
+    .forEach(s => (s.assignments || []).forEach(a => {
+      if (!state.workLogs.some(w => w.scheduleId === s.id && w.userId === a.userId)) missing.push({ sch: s, a });
+    }));
+  missing.sort((x, y) => y.sch.endDate.localeCompare(x.sch.endDate));
+
+  const list = document.getElementById('admin-worklog-missing-list');
+  if (missing.length === 0) {
+    list.innerHTML = '<div class="worklog-history-empty">미제출 건이 없습니다.</div>';
+    return;
+  }
+  list.innerHTML = missing.map(({ sch, a }) => {
+    const u = CREW_USERS.find(c => c.id === a.userId);
+    const r = scheduleRange(sch);
+    return `
+      <div class="worklog-pending-item" style="cursor:pointer;" onclick="openJobDetailModal('${sch.id}')">
+        <div>
+          <div><strong>${escapeHtml(u ? u.name : a.userId)}</strong> · ${monthDayLabel(sch.jobDate)}(${weekdayLabel(sch.jobDate)}) ${jobLabel(sch)}</div>
+          <div style="font-size:12px; color:var(--text-secondary);">배정 ${a.startTime || r.start}–${a.endTime || r.end}</div>
+        </div>
+        <span class="badge badge-red">미제출</span>
       </div>
     `;
   }).join('');
@@ -1209,9 +1305,169 @@ async function submitRejectWorklog(id) {
   renderApp();
 }
 
+// ---------- 고객 수정 링크로 바뀐 요청 (docs/superpowers/plans/2026-11-06-delivery-request-edit-link.md)
+// payload_before_edit = 관리자가 마지막으로 확인한 내용. 고객이 고치면 채워지고, 관리자가 확인하면 비운다.
+const isEditUnreviewed = r => r.type === 'delivery' && r.payload_before_edit != null && r.status !== 'rejected';
+const REQUEST_DIFF_FIELDS = [
+  ['물건', p => (p.boxes ? `${p.boxes.length}박스 · ${p.chargeableKg ?? '-'}kg / ${p.boxes.flatMap(b => b.items || []).map(it => `${it.nameEn} ×${it.quantity}`).join(', ')}` : '')],
+  ['예상 배송비', p => (p.estimatedTotal != null ? `€${Number(p.estimatedTotal).toFixed(2)}` : '')],
+  ['접수 방식', p => p.methodName || ''],
+  ['일시', p => [p.scheduleDate, p.scheduleTime].filter(Boolean).join(' ')],
+  ['타지역 픽업', p => (p.pickupRegion ? `${p.pickupRegion.zip || ''} ${p.pickupRegion.city || ''}`.trim() : '')],
+  ['신청인', p => [p.customerName, p.customerNameEn].filter(Boolean).join(' / ')],
+  ['연락처', p => [p.customerPhone, p.customerEmail, p.kakaoId && `카톡 ${p.kakaoId}`].filter(Boolean).join(' · ')],
+  ['신청인 주소', p => p.customerAddress || ''],
+  ['픽업지', p => [p.pickupAddress, p.pickupKlingel && `초인종 ${p.pickupKlingel}`].filter(Boolean).join(' · ')],
+  ['배송지', p => (p.deliveryUndecided ? '미정' : [`${p.deliveryZip || ''} ${p.deliveryAddress || ''} ${p.deliveryAddressDetail || ''}`.trim(), [p.deliveryAddressEn, p.deliveryAddressDetailEn].filter(Boolean).join(', ')].filter(Boolean).join(' / '))],
+  ['수취인', p => (p.deliveryUndecided ? '' : [p.recipientNameKo, p.recipientNameEn, p.recipientPhone, p.recipientEmail].filter(Boolean).join(' · '))],
+  ['개인통관고유부호', p => (p.deliveryUndecided ? '' : p.customsCode || '')],
+  ['통관 구분', p => ({ ecommerce: '전자상거래', general: '일반통관' }[p.customsType] || p.customsType || '')],
+  ['이사화물', p => [{ none: '해당 없음', moving: '이사화물', import: '반입 건' }[p.movingStatus] || '', p.entryDate && `입국 ${p.entryDate}`].filter(Boolean).join(' · ')],
+  ['촬영 동의', p => (p.mediaConsent == null ? '' : p.mediaConsent ? '동의' : '미동의')],
+];
+function requestDiff(before, after) {
+  return REQUEST_DIFF_FIELDS
+    .map(([label, f]) => [label, String(f(before || {}) || ''), String(f(after || {}) || '')])
+    .filter(([, a, b]) => a !== b);
+}
+function renderRequestDiff(r) {
+  const rows = requestDiff(r.payload_before_edit, r.payload);
+  if (!rows.length) return '<div class="request-diff-empty">바뀐 항목 없음</div>';
+  return `<div class="request-diff">${rows.map(([label, a, b]) => `
+    <div class="request-diff-label">${escapeHtml(label)}</div>
+    <div class="request-diff-before">${escapeHtml(a) || '<em>없음</em>'}</div>
+    <div class="request-diff-after">${escapeHtml(b) || '<em>없음</em>'}</div>`).join('')}</div>`;
+}
+// 11/6 15:20 처럼 짧게
+const shortDateTime = iso => {
+  const d = new Date(iso);
+  return isNaN(d) ? '' : `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
+const editedLabel = r => (r.edit_count ? `고객 수정 ${r.edit_count}회${r.edited_at ? ' · ' + new Date(r.edited_at).toLocaleString('ko-KR') : ''}` : '');
+// 견적서 발행 표시: 발행되면 고객은 수정 링크로 더 이상 고칠 수 없다.
+function renderQuoteControl(r) {
+  if (!r || r.type !== 'delivery') return '';
+  return renderExportControl(r) + (r.quote_issued_at
+    ? `<div class="request-quote-row">견적서 발행됨 (${shortDateTime(r.quote_issued_at)}) · 고객 수정 잠김 <button class="btn btn-secondary btn-sm" onclick="setQuoteIssued(${jsArg(r.id)}, false)">발행 취소</button></div>`
+    : `<div class="request-quote-row">견적서 발행 전 <button class="btn btn-secondary btn-sm" onclick="setQuoteIssued(${jsArg(r.id)}, true)">발행 표시</button></div>`);
+}
+
+// ---------- 대량등록 엑셀 내보내기 (dokgodali-export.js, SheetJS는 처음 누를 때 vendor에서 불러온다)
+function renderExportControl(r) {
+  return `<div class="request-quote-row">대량등록 엑셀 <button class="btn btn-secondary btn-sm" onclick="exportRequestXlsx(${jsArg(r.id)})">엑셀 내보내기</button></div>`;
+}
+let sheetJsLoading = null;
+function loadSheetJs() {
+  if (window.XLSX) return Promise.resolve();
+  sheetJsLoading ??= new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'vendor/xlsx.full.min.js';
+    script.onload = resolve;
+    script.onerror = () => { sheetJsLoading = null; reject(new Error('엑셀 모듈을 불러오지 못했습니다.')); };
+    document.head.append(script);
+  });
+  return sheetJsLoading;
+}
+async function exportRequestXlsx(id) {
+  const r = state.requests.find(x => x.id === id);
+  if (!r) return;
+  let rows;
+  try {
+    rows = window.DokgodaliExport.toRows(r);
+  } catch (error) {
+    return alert(error.message === 'delivery_undecided' ? '배송지가 미정인 요청이라 내보낼 수 없습니다. 고객에게 배송지를 받은 뒤 내보내 주세요.' : '엑셀 변환 오류: ' + error.message);
+  }
+  if (!rows.length) return alert('내보낼 물품이 없습니다.');
+  try {
+    await loadSheetJs();
+  } catch (error) {
+    return alert(error.message);
+  }
+  const sheet = XLSX.utils.aoa_to_sheet([window.DokgodaliExport.HEADERS, ...rows]);
+  const book = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(book, sheet, '신청');
+  const p = r.payload || {};
+  const d = new Date();
+  const ymd = `${String(d.getFullYear()).slice(2)}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+  const name = String(p.recipientNameKo || r.customer_name || r.id).replace(/[\\/:*?"<>|]/g, '');
+  XLSX.writeFile(book, `대량등록_${name}_${ymd}.xlsx`);
+}
+async function setQuoteIssued(id, issued) {
+  if (!confirm(issued ? '견적서 발행을 표시하면 고객은 수정 링크로 신청 내용을 고칠 수 없습니다. 표시할까요?' : '견적서 발행 표시를 취소하면 고객이 다시 수정할 수 있습니다. 취소할까요?')) return;
+  const { error } = await sb.from('requests').update({ quote_issued_at: issued ? new Date().toISOString() : null }).eq('id', id);
+  if (error) return alert('견적서 발행 표시 오류: ' + error.message);
+  await loadDataFromSupabase();
+  renderApp();
+  if (state.jobDetail) renderJobDetailModal();
+  showToast(issued ? '견적서 발행을 표시했습니다.' : '견적서 발행 표시를 취소했습니다.');
+}
+async function acknowledgeRequestEdit(id) {
+  const { error } = await sb.from('requests').update({ payload_before_edit: null }).eq('id', id);
+  if (error) return alert('확인 처리 오류: ' + error.message);
+  await loadDataFromSupabase();
+  renderApp();
+  showToast('수정 내용을 확인했습니다. 스케줄은 바꾸지 않았습니다.');
+}
+// 고객이 바꾼 내용을 연결된 스케줄에 반영한다. 크루 배정·차량·필요 인원은 그대로 둔다.
+async function applyRequestEditToSchedule(id) {
+  const r = state.requests.find(x => x.id === id);
+  if (!r || !r.schedule_id) return;
+  const sch = state.schedules.find(s => s.id === r.schedule_id);
+  const f = mapRequestToScheduleFields(r);
+  const dateChanged = sch && f.job_date && sch.jobDate !== f.job_date;
+  const crewWarn = dateChanged && (sch.assignments || []).length
+    ? `\n\n⚠ 날짜가 바뀝니다 (${sch.jobDate} → ${f.job_date}). 배정된 크루의 일정을 확인하세요.` : '';
+  if (!confirm(`고객이 수정한 내용으로 스케줄을 바꿉니다.\n크루 배정은 그대로 유지됩니다.${crewWarn}`)) return;
+  const fields = {
+    quote_price: f.quote_price, customer_name: f.customer_name, customer_phone: f.customer_phone,
+    job_date: f.job_date, overall_time_range: f.overall_time_range,
+    origin_address: f.origin_address, origin_spec: f.origin_spec,
+    dest_address: f.dest_address, dest_spec: f.dest_spec, notes: f.notes,
+  };
+  // 하루짜리 작업은 종료일도 함께 옮긴다.
+  if (dateChanged && (!sch.endDate || sch.endDate === sch.jobDate || sch.endDate < f.job_date)) fields.end_date = f.job_date;
+  if (sch) {
+    const { error } = await sb.from('schedules').update(fields).eq('id', sch.id);
+    if (error) return alert('스케줄 반영 오류: ' + error.message);
+  }
+  const { error } = await sb.from('requests').update({ payload_before_edit: null }).eq('id', id);
+  if (error) return alert('확인 처리 오류: ' + error.message);
+  await loadDataFromSupabase();
+  renderApp();
+  broadcastChange();
+  showToast(crewWarn ? '스케줄에 반영했습니다. 바뀐 날짜에 맞춰 크루 일정을 확인하세요.' : '스케줄에 반영했습니다.');
+}
+function renderEditedRequestsSection() {
+  const edited = state.requests
+    .filter(r => isEditUnreviewed(r) && r.status === 'confirmed')
+    .sort((a, b) => String(a.edited_at).localeCompare(String(b.edited_at)));
+  if (!edited.length) return '';
+  return `
+  <div class="card request-edited-card">
+    <div class="card-title">수정된 요청 <span class="badge badge-warning">${edited.length}</span>
+      <span class="request-edited-sub">확정 후 고객이 수정 링크로 고친 요청입니다. 스케줄에 반영하거나 확인만 해 주세요.</span></div>
+    ${edited.map(r => `
+      <div class="request-pending-item">
+        <div class="request-pending-top">
+          <div>
+            <span class="request-pending-type">배송</span>
+            <span style="margin-left:6px; font-weight:700;">${escapeHtml(r.customer_name || '-')}</span>
+            <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">${escapeHtml(editedLabel(r))}${r.schedule_id ? '' : ' · 연결된 스케줄 없음'}</div>
+          </div>
+          <div class="request-pending-actions">
+            ${r.schedule_id ? `<button class="btn btn-primary btn-sm" onclick="applyRequestEditToSchedule(${jsArg(r.id)})">스케줄에 반영</button>` : ''}
+            <button class="btn btn-secondary btn-sm" onclick="acknowledgeRequestEdit(${jsArg(r.id)})">확인만</button>
+          </div>
+        </div>
+        ${renderRequestDiff(r)}
+      </div>`).join('')}
+  </div>`;
+}
+
 function renderAdminRequestsBadge() {
   const badge = document.getElementById('admin-requests-badge');
-  const pendingCount = state.requests.filter(r => r.status === 'pending').length;
+  // 대기 중 요청 + 확정 후 고객이 고쳐 확인이 필요한 요청
+  const pendingCount = state.requests.filter(r => r.status === 'pending' || (isEditUnreviewed(r) && r.status === 'confirmed')).length;
   badge.textContent = pendingCount;
   badge.classList.toggle('hidden', pendingCount === 0);
 }
@@ -1220,29 +1476,32 @@ function renderAdminRequestsTab() {
   const list = document.getElementById('admin-requests-pending-list');
   const pending = state.requests.filter(r => r.status === 'pending').sort((a, b) => a.created_at.localeCompare(b.created_at));
 
+  const editedSection = renderEditedRequestsSection();
   if (pending.length === 0) {
-    list.innerHTML = '<div class="worklog-history-empty">확인 대기중인 신규 요청이 없습니다.</div>';
+    list.innerHTML = editedSection + '<div class="worklog-history-empty">확인 대기중인 신규 요청이 없습니다.</div>';
     return;
   }
 
-  list.innerHTML = pending.map(r => {
+  list.innerHTML = editedSection + pending.map(r => {
     const isOpen = state.expandedRequestIds.has(r.id);
     return `
-    <div class="request-pending-item" id="request-item-${r.id}">
-      <div class="request-pending-top" onclick="toggleRequestDetail('${r.id}')">
+    <div class="request-pending-item" id="request-item-${escapeHtml(r.id)}">
+      <div class="request-pending-top" onclick="toggleRequestDetail(${jsArg(r.id)})">
         <div>
           <span class="request-pending-type">${r.type === 'moving' ? '이사' : '배송'}</span>
-          <span style="margin-left:6px; font-weight:700;">${r.customer_name || '-'}</span>
+          <span style="margin-left:6px; font-weight:700;">${escapeHtml(r.customer_name || '-')}</span>
+          ${r.edit_count ? `<span class="badge badge-warning request-edit-badge">수정됨 ${r.edit_count}회</span>` : ''}
+          ${r.quote_issued_at ? '<span class="badge badge-gray request-edit-badge">견적서 발행됨</span>' : ''}
           <span class="request-caret${isOpen ? ' open' : ''}">▾</span>
-          <div style="font-size:12px; color:var(--text-secondary); margin-top:3px;">${r.summary || ''}</div>
-          <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">${r.customer_phone || ''} · ${new Date(r.created_at).toLocaleString('ko-KR')}</div>
+          <div style="font-size:12px; color:var(--text-secondary); margin-top:3px;">${escapeHtml(r.summary)}</div>
+          <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">${escapeHtml(r.customer_phone)} · ${shortDateTime(r.created_at)}</div>
         </div>
         <div class="request-pending-actions" onclick="event.stopPropagation()">
-          <button class="btn btn-primary btn-sm" onclick="confirmRequest('${r.id}')">확정</button>
-          <button class="btn btn-secondary btn-sm" onclick="rejectRequest('${r.id}')">거절</button>
+          <button class="btn btn-primary btn-sm" onclick="confirmRequest(${jsArg(r.id)})">확정</button>
+          <button class="btn btn-secondary btn-sm" onclick="rejectRequest(${jsArg(r.id)})">거절</button>
         </div>
       </div>
-      <div class="request-detail${isOpen ? '' : ' hidden'}" id="request-detail-${r.id}">${renderRequestDetailBody(r)}</div>
+      <div class="request-detail${isOpen ? '' : ' hidden'}" id="request-detail-${escapeHtml(r.id)}">${renderRequestDetailBody(r)}${r.type === 'delivery' ? `<div class="request-detail-full">${renderQuoteControl(r)}</div>` : ''}</div>
     </div>
   `;
   }).join('');
@@ -1259,41 +1518,237 @@ function toggleRequestDetail(id) {
   renderAdminRequestsTab();
 }
 
+// 상세 안에서 접었다 펼치는 칸 (수정 내용·박스)
+function toggleRequestSection(id, key) {
+  const k = `${id}:${key}`;
+  if (state.openRequestSections.has(k)) state.openRequestSections.delete(k);
+  else state.openRequestSections.add(k);
+  renderAdminRequestsTab();
+}
+function foldSection(r, key, title, meta, body) {
+  const open = state.openRequestSections.has(`${r.id}:${key}`);
+  return `<section class="rd-group rd-fold rd-fold-${key}${open ? ' open' : ''}">
+    <button type="button" class="rd-fold-head" aria-expanded="${open}" onclick="toggleRequestSection(${jsArg(r.id)}, '${key}')"><span class="rd-gtitle">${title}</span><span class="rd-meta">${meta}</span><span class="rd-caret">▾</span></button>
+    ${open ? `<div class="rd-fold-body">${body}</div>` : ''}
+  </section>`;
+}
+
 function detailRow(label, value) {
   if (value === undefined || value === null || value === '') return '';
   return `<div class="request-detail-row"><span>${label}</span><strong>${value}</strong></div>`;
 }
 
+// ---------- 수정 이력 버전 보기 (11/09 피드백, sql/requests.sql request_revisions)
+// 고객이 수정할 때마다 고치기 전 payload가 request_revisions에 쌓인다. v1 = 처음 신청, 마지막 = 현재.
+// 버전을 고르면 그 버전의 내용으로 상세 전체를 다시 그리고, 바로 앞 버전과 달라진 항목을 강조한다.
+async function loadRequestRevisions(id) {
+  state.requestRevisions.set(id, 'loading');
+  const { data, error } = await sb.from('request_revisions').select('version, payload, created_at').eq('request_id', id).order('version');
+  state.requestRevisions.set(id, error ? 'error' : data);
+  renderAdminRequestsTab();
+}
+function requestVersionList(r) {
+  const revs = state.requestRevisions.get(r.id);
+  if (!Array.isArray(revs)) return null;
+  // 각 버전이 '현재'가 된 시각: v1은 신청 시각, 그다음부터는 앞 버전이 이력으로 넘어간 시각
+  const versions = revs.map((v, i) => ({ version: v.version, payload: v.payload, at: i === 0 ? r.created_at : revs[i - 1].created_at }));
+  versions.push({ version: null, payload: r.payload, at: revs.length ? revs[revs.length - 1].created_at : r.edited_at });
+  return versions;
+}
+function selectRequestVersion(id, version) {
+  if (version == null) state.requestVersion.delete(id);
+  else state.requestVersion.set(id, version);
+  renderAdminRequestsTab();
+}
+function renderRequestVersions(r) {
+  const revs = state.requestRevisions.get(r.id);
+  if (revs === undefined) {
+    loadRequestRevisions(r.id);
+    return { bar: '<div class="rv-bar rv-muted">수정 이력 불러오는 중…</div>', payload: r.payload, isCurrent: true };
+  }
+  if (revs === 'loading') return { bar: '<div class="rv-bar rv-muted">수정 이력 불러오는 중…</div>', payload: r.payload, isCurrent: true };
+  if (revs === 'error' || !revs.length) {
+    const msg = revs === 'error' ? '수정 이력을 불러오지 못했습니다.' : '이전 버전이 저장되기 전에 수정된 요청입니다.';
+    return { bar: `<div class="rv-bar rv-muted">${msg}</div>`, payload: r.payload, isCurrent: true };
+  }
+  const versions = requestVersionList(r);
+  const wanted = state.requestVersion.get(r.id);
+  let idx = versions.findIndex(v => v.version === wanted);
+  if (idx < 0) idx = versions.length - 1;
+  const chosen = versions[idx];
+  const tabs = versions.map((v, i) => {
+    const label = v.version == null ? '현재' : `v${v.version}${i === 0 && v.version === 1 ? ' (신청)' : ''}`;
+    return `<button type="button" class="rv-tab${i === idx ? ' active' : ''}" onclick="selectRequestVersion(${jsArg(r.id)}, ${v.version == null ? 'null' : v.version})">${label}<small>${v.at ? escapeHtml(shortDateTime(v.at)) : ''}</small></button>`;
+  }).join('');
+  // 바로 앞 버전과 비교해 바뀐 항목을 강조한다. v1은 비교 대상이 없다.
+  const prev = idx > 0 ? versions[idx - 1].payload : null;
+  const rows = REQUEST_DIFF_FIELDS.map(([label, f]) => {
+    const now = String(f(chosen.payload || {}) || '');
+    const before = prev ? String(f(prev || {}) || '') : now;
+    const changed = prev && before !== now;
+    return `<div class="rv-row${changed ? ' changed' : ''}"><span class="rv-label">${escapeHtml(label)}</span><span class="rv-value">${escapeHtml(now) || '<em>없음</em>'}${changed ? `<span class="rv-before">이전: ${escapeHtml(before) || '없음'}</span>` : ''}</span></div>`;
+  }).join('');
+  const changedCount = prev ? REQUEST_DIFF_FIELDS.filter(([, f]) => String(f(prev || {}) || '') !== String(f(chosen.payload || {}) || '')).length : 0;
+  const note = prev ? (changedCount ? `앞 버전보다 ${changedCount}개 항목이 바뀌었습니다.` : '앞 버전과 같은 내용입니다.') : '처음 신청한 내용입니다.';
+  const bar = `<section class="rd-group rv">
+    <h4 class="rd-gtitle">버전</h4>
+    <div class="rv-tabs">${tabs}</div>
+    <div class="rv-note">${note}${chosen.version != null ? ' 아래 상세도 이 버전 기준입니다.' : ''}</div>
+    <div class="rv-table">${rows}</div>
+  </section>`;
+  return { bar, payload: chosen.payload, isCurrent: chosen.version == null };
+}
+
 // payload는 type별로 모양이 다르므로, 요청 상세 보기에서 사람이 읽기 좋은 항목만 뽑아 보여준다.
 function renderRequestDetailBody(r) {
+  // 고객이 고친 적이 있는 배송 요청은 위에 버전 선택을 두고, 고른 버전의 내용으로 상세를 그린다.
+  if (r.type === 'delivery' && r.edit_count > 0 && !r.versionView) {
+    const v = renderRequestVersions(r);
+    const body = renderRequestDetailBody({ ...r, payload: v.payload, payload_before_edit: v.isCurrent ? r.payload_before_edit : null, versionView: true });
+    return body.replace('<div class="request-detail-full rd">', `<div class="request-detail-full rd">${v.bar}`);
+  }
   const p = r.payload || {};
   if (r.type === 'moving') {
+    // 공개 견적 페이지에서 누구나 넣을 수 있는 값이므로 전부 escapeHtml을 거친다.
+    const e = escapeHtml;
     const timeLabel = { morning: '오전 (08:00~12:00)', afternoon: '오후 (12:00~17:00)', evening: '저녁 (17:00~20:00)' }[p.movingTime] || p.movingTime;
     return [
-      detailRow('이사 예정일', p.movingDate && `${p.movingDate} · ${timeLabel || ''}`),
-      detailRow('이삿짐', (p.items || []).map(i => `${i.name} ${i.qty}개`).join(', ')),
-      detailRow('차량', p.vanModel),
-      detailRow('작업 인원', p.team && `${p.team}명`),
-      detailRow('상차지', p.originAddress && `${p.originAddress} (${p.originFloor}층 · 엘베 ${p.originElevator === 'yes' ? '있음' : '없음'})`),
-      detailRow('하차지', p.destTBD ? '미정' : (p.destAddress && `${p.destAddress} (${p.destFloor}층 · 엘베 ${p.destElevator === 'yes' ? '있음' : '없음'})`)),
+      detailRow('이사 예정일', p.movingDate && e(`${p.movingDate} · ${timeLabel || ''}`)),
+      detailRow('이삿짐', e((p.items || []).map(i => `${i.name} ${i.qty}개`).join(', '))),
+      detailRow('차량', e(p.vanModel)),
+      detailRow('작업 인원', p.team && e(`${p.team}명`)),
+      detailRow('상차지', p.originAddress && e(`${p.originAddress} (${p.originFloor}층 · 엘베 ${p.originElevator === 'yes' ? '있음' : '없음'})`)),
+      detailRow('하차지', p.destTBD ? '미정' : (p.destAddress && e(`${p.destAddress} (${p.destFloor}층 · 엘베 ${p.destElevator === 'yes' ? '있음' : '없음'})`))),
       detailRow('견적 금액', p.total != null && `€${Number(p.total).toFixed(2)}`),
-      detailRow('견적서 번호', p.invoiceNo),
-      detailRow('이메일', r.customer_email),
+      detailRow('견적서 번호', e(p.invoiceNo)),
+      detailRow('이메일', e(r.customer_email)),
     ].filter(Boolean).join('');
   }
-  // delivery
-  const methodLabel = p.methodName ? `${p.methodName}${p.scheduleDate ? ' · ' + p.scheduleDate : ''}${p.scheduleTime ? ' ' + p.scheduleTime : ''}` : '';
+  // delivery — 고객 입력값이 그대로 들어오므로 전부 escapeHtml을 거친다.
+  // 맨 위 요약 → 확인할 것 → 박스 → 픽업지·배송지·신청인 → 요금·기타 순으로 묶어 보여준다.
+  // 옛 요청은 cargoes(소형/중형/대형), 새 요청은 boxes(박스별 치수·물품)를 보낸다.
+  const e = escapeHtml;
+  const euro = n => (n != null && n !== '' ? `€${Number(n).toFixed(2)}` : '-');
+  const day = d => {
+    if (!d) return '';
+    const t = new Date(d + 'T00:00:00');
+    return isNaN(t) ? d : `${t.getMonth() + 1}/${t.getDate()}(${'일월화수목금토'[t.getDay()]})`;
+  };
+  const CATEGORY = { health: '건강기능식품', formula: '분유', alcohol: '주류' };
+  const boxes = p.boxes || [];
+  const t = p.quoteTotals || {};
+  const items = boxes.flatMap(b => b.items || []);
+  const count = pred => boxes.filter(pred).length;
+  const overweight = count(b => b.quote && b.quote.isOverweight);
+  const oversize = count(b => b.quote && b.quote.isOversize);
+  const carriers = count(b => b.carrier);
+  const checks = [
+    overweight && `중량 초과 ${overweight}박스`,
+    oversize && `규격 초과 ${oversize}박스`,
+    carriers && `캐리어 ${carriers}개`,
+    ...[...new Set(items.map(it => CATEGORY[it.category]).filter(Boolean))],
+    items.some(it => it.isNew) && '신상품',
+    p.movingStatus && p.movingStatus !== 'none' && `${{ moving: '이사화물', import: '반입 건' }[p.movingStatus] || p.movingStatus}${p.entryDate ? `(입국 ${p.entryDate.slice(5).replace('-', '/').replace(/^0/, '')})` : ''}`,
+    p.deliveryUndecided && '배송지 미정',
+  ].filter(Boolean);
+
+  const region = p.pickupRegion ? `${p.pickupRegion.zip || ''} ${p.pickupRegion.city || ''}`.trim() : '';
+  const cargoText = (p.cargoes || []).map(c => `${c.name} ${c.quantity}개`).join(', ');
+  const customsLabel = { ecommerce: '전자상거래', general: '일반통관' }[p.customsType] || p.customsType || '-';
+  const stat = (label, value, sub) => `<div><dt>${label}</dt><dd>${value}${sub ? `<small>${sub}</small>` : ''}</dd></div>`;
+  const summary = `<dl class="rd-summary">
+    ${stat('접수', e([day(p.scheduleDate), p.methodName].filter(Boolean).join(' ') || '-'), e([p.scheduleTime, p.method === 'region' && region].filter(Boolean).join(' · ')))}
+    ${stat('예상 배송비', euro(p.estimatedTotal))}
+    ${stat('화물', boxes.length ? `${boxes.length}박스 · ${e(p.chargeableKg)}kg` : e(cargoText || '-'), boxes.length ? `신고가 ${euro(p.declaredTotal)}` : '')}
+    ${stat('통관', e(customsLabel), p.deliveryUndecided ? '' : e(p.customsCode || '고유부호 없음'))}
+  </dl>`;
+  const checkHtml = checks.length ? `<div class="rd-check"><b>확인</b> ${e(checks.join(', '))}</div>` : '';
+
+  const diffRows = isEditUnreviewed(r) ? requestDiff(r.payload_before_edit, r.payload) : null;
+  const diffSection = diffRows
+    ? foldSection(r, 'diff', '수정 내용', diffRows.length ? `${diffRows.length}개 항목` : '바뀐 항목 없음', renderRequestDiff(r))
+    : '';
+
+  const link = (url, label) => isHttpUrl(url) ? `<a href="${e(url)}" target="_blank" rel="noopener">${label}</a>` : url ? `${label}: ${e(url)}` : '';
+  const boxRows = boxes.map((b, i) => {
+    const q = b.quote || {};
+    const flags = [q.isOverweight && '중량 초과', q.isOversize && '규격 초과', b.carrier && '캐리어'].filter(Boolean).join(', ');
+    const itemLines = (b.items || []).map(it => {
+      const extra = [it.brand, it.color, it.size].filter(v => v && String(v).trim() !== '-').join(', ');
+      const links = [link(it.productUrl, '상품'), link(it.imageUrl, '이미지')].filter(Boolean).join(' · ');
+      const category = CATEGORY[it.category];
+      // 옛 신청에는 cautionFlags가 없으므로 품명으로 다시 계산한다.
+      const cautions = (it.cautionFlags || window.DokgodaliCaution.match(it.nameEn)).map(k => `<span class="rd-flag rd-caution">${window.DokgodaliCaution.LABELS[k]}</span>`).join('');
+      return `${cautions}${category ? `[${category}] ` : ''}${e(it.nameEn)}${extra ? ` (${e(extra)})` : ''} ×${e(it.quantity)}, ${euro(it.unitPrice)}${it.isNew ? ', 신상품' : ''}${links ? ' — ' + links : ''}`;
+    }).join('<br>');
+    return `<tr class="rd-box"><td>${i + 1}. ${e(b.length)}×${e(b.width)}×${e(b.height)}cm${flags ? `<span class="rd-flag">${flags}</span>` : ''}</td><td class="rd-num rd-weight">${e(b.weight)}kg</td><td class="rd-num">${e(q.chargeable)}kg</td><td class="rd-num">${euro(q.total)}</td></tr>`
+      + (itemLines ? `<tr class="rd-items"><td colspan="4">${itemLines}</td></tr>` : '');
+  }).join('');
+  const boxSection = boxes.length
+    ? foldSection(r, 'boxes', '박스', `${boxes.length}개 · 물품 ${items.length}종`, `<table class="rd-boxes"><tr><th>규격</th><th class="rd-num rd-weight">실중량</th><th class="rd-num">청구</th><th class="rd-num">운임</th></tr>${boxRows}</table>`)
+    : '';
+
+  const line = (text, muted = true) => (text ? `<p${muted ? ' class="rd-muted"' : ''}>${text}</p>` : '');
+  const pickup = p.method === 'dropoff'
+    ? line('접수처 방문', false)
+    : line(e(p.pickupAddress || region || '-'), false)
+      + (p.method === 'region' && region && p.pickupAddress ? line(`타지역 ${e(region)}`) : '')
+      + line(p.pickupKlingel && `초인종 ${e(p.pickupKlingel)}`);
+  const recipientName = [p.recipientNameKo, p.recipientNameEn && `(${p.recipientNameEn})`].filter(Boolean).join(' ');
+  const destination = p.deliveryUndecided
+    ? line('미정', false)
+    : line(e(recipientName || '-'), false)
+      + line(e([p.recipientPhone, p.recipientEmail].filter(Boolean).join(' · ')))
+      + line(e(`${p.deliveryZip || ''} ${p.deliveryAddress || ''} ${p.deliveryAddressDetail || ''}`.trim()))
+      + line(e([p.deliveryAddressEn, p.deliveryAddressDetailEn].filter(Boolean).join(', ')));
+  const applicant = line(e([r.customer_name, p.customerNameEn && `(${p.customerNameEn})`].filter(Boolean).join(' ') || '-'), false)
+    + line(e([r.customer_phone, p.kakaoId && `카톡 ${p.kakaoId}`].filter(Boolean).join(' · ')))
+    + line(e(r.customer_email))
+    + (p.pickupSameAsCustomer === false ? line(e(p.customerAddress)) : '');
+  // 접었을 때: 픽업 도시 → 배송 시·도
+  const fromCity = p.method === 'dropoff' ? '접수처 방문' : (p.pickupAddressParts && p.pickupAddressParts.city) || (p.pickupRegion && p.pickupRegion.city) || '';
+  const toCity = p.deliveryUndecided ? '미정' : String(p.deliveryAddress || '').split(' ')[0];
+  const people = foldSection(r, 'address', '주소', e([fromCity, toCity].filter(Boolean).join(' → ')), `<div class="rd-columns">
+    <div><h5 class="rd-sub">픽업지</h5>${pickup}</div>
+    <div><h5 class="rd-sub">한국 배송지</h5>${destination}</div>
+    <div><h5 class="rd-sub">신청인</h5>${applicant}</div>
+  </div>`);
+
+  const feeRows = [['기본 운임', t.base], ['규격 초과', t.oversize], ['중량 초과', t.overweight], ['캐리어', t.carrier], ['멀티 화물', t.multiBox], ['이삿짐 통관', t.movingCustoms], ['픽업비', p.methodFee]]
+    .filter(([, v]) => v > 0)
+    .map(([k, v]) => `<tr><td class="rd-muted">${k}</td><td class="rd-num">${euro(v)}</td></tr>`).join('');
+  const referral = p.referral === 'other' ? `기타(${p.referralOther || ''})` : p.referral;
+  // 결제는 계좌이체뿐이라 표시하지 않는다.
+  const etc = [
+    p.mediaConsent != null && `촬영 동의 ${p.mediaConsent ? '예' : '아니오'}`,
+    referral && `유입 경로 ${referral}`,
+  ].filter(Boolean).join(' · ');
+  const hasFees = p.estimatedTotal != null;
+  const bottom = !hasFees && !etc ? '' : `<section class="rd-group"><h4 class="rd-gtitle">${hasFees && etc ? '요금 및 기타' : hasFees ? '요금' : '기타'}</h4><div class="rd-columns rd-columns-2">
+    ${hasFees ? `<div><h5 class="rd-sub">요금</h5><table class="rd-fees">${feeRows}<tr class="rd-sum"><td>합계</td><td class="rd-num">${euro(p.estimatedTotal)}</td></tr></table></div>` : ''}
+    ${etc ? `<div><h5 class="rd-sub">기타</h5>${line(e(etc))}</div>` : ''}
+  </div></section>`;
+
+  const overview = `<section class="rd-group"><h4 class="rd-gtitle">개요</h4>${summary}${checkHtml}</section>`;
+  return `<div class="request-detail-full rd">${diffSection}${overview}${boxSection}${people}${bottom}</div>`;
+}
+
+// 배송 요청을 스케줄로 옮길 때 현장 메모에 넣는 요약 (크루 WhatsApp 브리핑에도 쓰인다).
+function deliveryNotes(r) {
+  const p = r.payload || {};
+  const boxes = p.boxes || [];
+  if (!boxes.length) return r.summary || '';
+  const count = (pred) => boxes.filter(pred).length;
+  const flags = [
+    count(b => b.quote && b.quote.isOversize) && `규격 초과 ${count(b => b.quote && b.quote.isOversize)}`,
+    count(b => b.quote && b.quote.isOverweight) && `중량 초과 ${count(b => b.quote && b.quote.isOverweight)}`,
+    count(b => b.carrier) && `캐리어 ${count(b => b.carrier)}`,
+  ].filter(Boolean);
+  const items = boxes.flatMap(b => b.items || []).map(it => `${it.nameEn} ×${it.quantity}`).join(', ');
   return [
-    detailRow('화물', (p.cargoes || []).map(c => `${c.name} ${c.quantity}개`).join(', ')),
-    detailRow('접수 방식', methodLabel),
-    detailRow('예상 배송비', p.estimatedTotal != null && `€${p.estimatedTotal}`),
-    detailRow('픽업/방문 주소', p.pickupAddress),
-    detailRow('배송지(한국)', (p.deliveryZip || p.deliveryAddress) && `${p.deliveryZip || ''} ${p.deliveryAddress || ''}`.trim()),
-    detailRow('수취인', p.recipientNameKo && `${p.recipientNameKo} (${p.recipientNameEn || ''}) · ${p.recipientPhone || ''}`),
-    detailRow('개인통관고유부호', p.customsCode),
-    detailRow('결제 방법', p.payment),
-    detailRow('이메일', r.customer_email),
-  ].filter(Boolean).join('');
+    `박스 ${boxes.length}개 · 청구 ${p.chargeableKg ?? '-'}kg${flags.length ? ' · ' + flags.join(' · ') : ''}`,
+    items && `물품: ${items}`,
+  ].filter(Boolean).join('\n');
 }
 
 // 새 견적 폼은 'HH:MM' 시작 시간 + 예상 소요시간(duration)을 보낸다(옛 요청은 morning/afternoon/evening).
@@ -1310,6 +1765,7 @@ function mapRequestToScheduleFields(r) {
   const p = r.payload;
   if (r.type === 'moving') {
     return {
+      job_type: 'moving',
       quote_no: p.invoiceNo || '',
       quote_price: p.total ?? null,
       customer_name: r.customer_name,
@@ -1327,6 +1783,7 @@ function mapRequestToScheduleFields(r) {
   }
   // delivery
   return {
+    job_type: 'delivery',
     quote_no: '',
     quote_price: p.estimatedTotal ?? null,
     customer_name: r.customer_name,
@@ -1334,12 +1791,13 @@ function mapRequestToScheduleFields(r) {
     job_date: p.scheduleDate || null,
     overall_time_range: p.scheduleTime || '',
     origin_address: p.pickupAddress || p.customerAddress || '',
-    origin_spec: p.methodName || '',
-    dest_address: `${p.deliveryZip || ''} ${p.deliveryAddress || ''}`.trim(),
-    dest_spec: `수취인 ${p.recipientNameKo || ''} (${p.recipientPhone || ''})`,
+    // 초인종 이름은 주소에 붙이면 지도 검색이 빗나가므로 상세 칸에 둔다.
+    origin_spec: [p.pickupRegion ? `${p.methodName || ''} (${`${p.pickupRegion.zip || ''} ${p.pickupRegion.city || ''}`.trim()})` : (p.methodName || ''), p.pickupKlingel && `Klingel: ${p.pickupKlingel}`].filter(Boolean).join(' · '),
+    dest_address: p.deliveryUndecided ? '미정' : `${p.deliveryZip || ''} ${p.deliveryAddress || ''}`.trim(),
+    dest_spec: p.deliveryUndecided ? '' : `수취인 ${p.recipientNameKo || ''} (${p.recipientPhone || ''})`,
     required_workers: 1,
     vehicles: [],
-    notes: r.summary || ''
+    notes: deliveryNotes(r)
   };
 }
 
@@ -1357,7 +1815,7 @@ async function confirmRequest(id) {
   }
 
   const { error: updateError } = await sb.from('requests')
-    .update({ status: 'confirmed', schedule_id: newId, confirmed_at: new Date().toISOString() })
+    .update({ status: 'confirmed', schedule_id: newId, confirmed_at: new Date().toISOString(), payload_before_edit: null })
     .eq('id', id);
   if (updateError) {
     alert('요청 상태 업데이트 오류: ' + updateError.message);
@@ -1433,10 +1891,335 @@ async function generateAzDocPdf() {
   }
 }
 
+/* ================================================================
+   관리자 대시보드 — 숫자 카드 3개 + 완료(어제) | 오늘 | 예정(30일)
+   ================================================================ */
+const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
+
+function addDays(dateStr, n) {
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + n);
+  return formatDateLocal(d);
+}
+
+// 'YYYY-MM-DD' → '10/27'
+function monthDayLabel(dateStr) {
+  return `${Number(dateStr.slice(5, 7))}/${Number(dateStr.slice(8, 10))}`;
+}
+
+function weekdayLabel(dateStr) {
+  return WEEKDAY_LABELS[new Date(dateStr + 'T00:00:00').getDay()];
+}
+
+function formatEuro(n) {
+  return '€' + Math.round(n).toLocaleString('de-DE');
+}
+
+// 고객 이름은 공개 견적 폼에서 들어오므로 HTML로 끼워 넣기 전에 이스케이프한다.
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+// onclick="fn(...)" 안에 넣을 문자열 인자. JSON으로 감싼 뒤 HTML 이스케이프한다.
+function jsArg(value) {
+  return escapeHtml(JSON.stringify(String(value ?? '')));
+}
+// 고객이 입력한 URL은 http(s)일 때만 링크로 연다.
+function isHttpUrl(url) {
+  return /^https?:\/\//i.test(String(url || '').trim());
+}
+
+// 화면에 쓰는 작업 이름 (HTML 이스케이프됨). 배송이면 "[배송] 송다인", 이사는 이름만.
+// 태그는 span으로 감싸 휴대폰 캘린더처럼 좁은 곳에서는 숨길 수 있게 한다.
+function jobLabel(sch) {
+  const name = escapeHtml(sch.customerName || '-');
+  return sch.jobType === 'delivery' ? `<span class="job-tag">[배송] </span>${name}` : name;
+}
+
+// overall_time_range('HH:MM ~ HH:MM')를 비교용 키('YYYY-MM-DD HH:MM')로 푼다.
+// 시간이 비어 있는 스케줄(시간 미정인 배송 요청 등)은 그날 하루 전체로 본다.
+function scheduleRange(sch) {
+  const [start, end] = (sch.overallTimeRange || '').split('~').map(t => t.trim());
+  const s = /^\d{2}:\d{2}$/.test(start || '') ? start : '00:00';
+  const e = /^\d{2}:\d{2}$/.test(end || '') ? end : '23:59';
+  return { start: s, end: e, startKey: `${sch.jobDate} ${s}`, endKey: `${sch.endDate} ${e}` };
+}
+
+function nowKey() {
+  const d = new Date();
+  return `${formatDateLocal(d)} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+// schedules에는 상태 칸이 없어서 지금 시각을 시작/종료 일시와 비교해 정한다: 'done' | 'ongoing' | 'upcoming'
+function scheduleStatus(sch, now = nowKey()) {
+  const r = scheduleRange(sch);
+  if (now < r.startKey) return 'upcoming';
+  if (now >= r.endKey) return 'done';
+  return 'ongoing';
+}
+
+function compareScheduleStart(a, b) {
+  return scheduleRange(a).startKey.localeCompare(scheduleRange(b).startKey);
+}
+
+function isUnderstaffed(sch) {
+  return (sch.assignments || []).length < (sch.requiredWorkers || 0);
+}
+
+// 이 크루가 이 작업에 배정돼 있을 때(또는 배정하면) 생기는 문제:
+// 'unavailable' = 작업 날짜 중 오늘 이후에 '불가'로 표시한 날이 있음, 'overlap' = 시간이 겹치는 다른 작업에 배정됨
+function assignmentProblem(userId, sch) {
+  if (scheduleDates(sch).some(d => d >= TODAY_DATE && state.availability[`${userId}_${d}`] === false)) return 'unavailable';
+  return overlappingSchedule(userId, sch) ? 'overlap' : null;
+}
+
+// 이 크루가 배정된 다른 작업 중 sch와 시간이 겹치는 것 (없으면 undefined)
+function overlappingSchedule(userId, sch) {
+  const r = scheduleRange(sch);
+  return state.schedules.find(o => {
+    if (o.id === sch.id || !(o.assignments || []).some(a => a.userId === userId)) return false;
+    const ro = scheduleRange(o);
+    return ro.startKey < r.endKey && r.startKey < ro.endKey;
+  });
+}
+
+// 아직 안 끝난 작업 중 배정된 크루에게 문제가 있는 작업 id
+function conflictScheduleIds() {
+  const now = nowKey();
+  return new Set(state.schedules
+    .filter(s => scheduleStatus(s, now) !== 'done' && (s.assignments || []).some(a => assignmentProblem(a.userId, s)))
+    .map(s => s.id));
+}
+
+// 그날에 걸친 작업, 시작 시각순 (여러 날 작업은 걸친 날마다 나온다)
+function jobsOnDate(dateStr) {
+  return state.schedules.filter(s => scheduleCoversDate(s, dateStr)).sort(compareScheduleStart);
+}
+
+// 그날 기준 시간: 하루짜리는 09:00–14:00, 여러 날 작업은 첫날 07:00–, 마지막 날 –18:00, 가운데 날은 종일
+function dayTimeLabel(sch, dateStr) {
+  if (!sch.overallTimeRange) return '시간 미정';
+  const r = scheduleRange(sch);
+  if (sch.jobDate === sch.endDate) return `${r.start}–${r.end}`;
+  if (dateStr === sch.jobDate) return `${r.start}–`;
+  if (dateStr === sch.endDate) return `–${r.end}`;
+  return '종일';
+}
+
+function renderAdminDashboard() {
+  const now = nowKey();
+  const today = jobsOnDate(TODAY_DATE);
+  const ongoingCount = today.filter(s => scheduleStatus(s, now) === 'ongoing').length;
+  const notStartedCount = today.filter(s => scheduleStatus(s, now) === 'upcoming').length;
+
+  // 이번 달 매출: 시작일이 이번 달인 작업의 견적금액, 끝난 것(완료)과 아닌 것(예정)으로 나눈다
+  const monthPrefix = TODAY_DATE.slice(0, 7);
+  let revDone = 0, revPlanned = 0;
+  state.schedules.filter(s => s.jobDate.startsWith(monthPrefix)).forEach(s => {
+    const price = Number(s.quotePrice) || 0;
+    if (scheduleStatus(s, now) === 'done') revDone += price;
+    else revPlanned += price;
+  });
+  const revTotal = revDone + revPlanned;
+  const revPct = n => revTotal ? n / revTotal * 100 : 0;
+
+  // 오늘 작업 = 진행 중 / (진행 중 + 아직 시작 전). 이미 끝난 오늘 작업은 세지 않는다.
+  document.getElementById('dash-kpis').innerHTML = `
+    <div class="dash-kpi">
+      <div class="dash-kpi-label">오늘 작업</div>
+      <div class="dash-kpi-value"><span class="now">${ongoingCount}</span><span class="of">/${ongoingCount + notStartedCount}</span></div>
+    </div>
+    <div class="dash-kpi">
+      <div class="dash-kpi-label">내일 예정 작업</div>
+      <div class="dash-kpi-value">${jobsOnDate(addDays(TODAY_DATE, 1)).length}</div>
+    </div>
+    <div class="dash-kpi">
+      <div class="dash-kpi-label">${Number(monthPrefix.slice(5))}월 매출</div>
+      <div class="dash-kpi-value">${formatEuro(revTotal)}</div>
+      <div class="rev-bar"><div class="done" style="width:${revPct(revDone)}%"></div><div class="planned" style="width:${revPct(revPlanned)}%"></div></div>
+      <div class="rev-legend">
+        <span><span class="rev-dot done"></span>완료 ${formatEuro(revDone)}</span>
+        <span><span class="rev-dot planned"></span>예정 ${formatEuro(revPlanned)}</span>
+      </div>
+    </div>
+  `;
+
+  const conflictIds = conflictScheduleIds();
+  const flags = s => {
+    const short = scheduleStatus(s, now) !== 'done' && isUnderstaffed(s)
+      ? `<span class="badge badge-warning">${(s.assignments || []).length}/${s.requiredWorkers}</span>` : '';
+    return short + (conflictIds.has(s.id) ? '<span class="badge badge-red">충돌</span>' : '');
+  };
+  // 한 줄 = 시간 + 이름. 상태는 이름 글자색 (진행 중 초록, 예정 검정, 완료 회색)
+  const rows = (dateStr, jobs) => jobs.length === 0
+    ? '<div class="dash-empty">일정 없음</div>'
+    : jobs.map(s => `
+      <div class="dash-job" onclick="openJobDetailModal('${s.id}')">
+        <span class="dash-job-time">${dayTimeLabel(s, dateStr)}</span><span class="dash-job-name ${scheduleStatus(s, now)}">${jobLabel(s)}</span>${flags(s)}
+      </div>`).join('');
+  const dateHead = (dateStr, cls = '') => `<div class="dash-date ${cls}">${monthDayLabel(dateStr)}<span class="wd">${weekdayLabel(dateStr)}</span></div>`;
+
+  // 완료: 어제 끝난 작업만
+  const yesterday = addDays(TODAY_DATE, -1);
+  document.getElementById('dash-panel-done').innerHTML = `
+    <div class="dash-panel-title">완료</div>
+    ${dateHead(yesterday)}
+    ${rows(yesterday, jobsOnDate(yesterday).filter(s => s.endDate === yesterday))}
+  `;
+
+  document.getElementById('dash-panel-today').innerHTML = `
+    <div class="dash-panel-title">오늘</div>
+    ${dateHead(TODAY_DATE, 'today')}
+    ${rows(TODAY_DATE, today)}
+  `;
+
+  // 예정: 내일 · 모레 · 글피는 늘 보이고, 그 뒤 30일까지는 작업이 있는 날만 옆으로 이어진다.
+  // 4초마다 다시 그려지므로 옆으로 넘겨 둔 위치를 기억했다가 되돌린다.
+  const upcomingPanel = document.getElementById('dash-panel-upcoming');
+  const oldDays = upcomingPanel.querySelector('.dash-days');
+  const scrollLeft = oldDays ? oldDays.scrollLeft : 0;
+  const days = [];
+  for (let n = 1; n <= 30; n++) {
+    const d = addDays(TODAY_DATE, n);
+    if (n <= 3 || jobsOnDate(d).length) days.push(d);
+  }
+  upcomingPanel.innerHTML = `
+    <div class="dash-panel-title">예정</div>
+    <div class="dash-days" onscroll="showScrollbarWhileScrolling(this)">
+      ${days.map(d => `<div>${dateHead(d)}${rows(d, jobsOnDate(d))}</div>`).join('')}
+    </div>
+  `;
+  upcomingPanel.querySelector('.dash-days').scrollLeft = scrollLeft;
+}
+
+// 터치 기기에서는 예정 칸 스크롤바가 넘기는 동안만 보이고 멈추면 1초 뒤 사라진다 (마우스 기기는 늘 보임, CSS 참고)
+function showScrollbarWhileScrolling(el) {
+  el.classList.add('scrolling');
+  clearTimeout(el.hideScrollbarTimer);
+  el.hideScrollbarTimer = setTimeout(() => el.classList.remove('scrolling'), 1000);
+}
+
+/* ================================================================
+   작업 상세 팝업 — 대시보드·스케줄 관리·크루 관리에서 작업을 누르면 뜬다
+   ================================================================ */
+function formatHours(h) {
+  return `${Math.round(h * 10) / 10}h`;
+}
+
+// siblings: 같은 날 작업 id들을 쉼표로 이은 것. 둘 이상이면 팝업 맨 위에 골라 보는 버튼을 단다.
+// 4초 폴링으로 데이터가 바뀌면 renderApp()이 열려 있는 팝업도 다시 그린다.
+function openJobDetailModal(scheduleId, siblings = '') {
+  state.jobDetail = { scheduleId, siblings };
+  renderJobDetailModal();
+  document.getElementById('job-detail-modal').classList.remove('hidden');
+}
+
+function closeJobDetailModal() {
+  state.jobDetail = null;
+  document.getElementById('job-detail-modal').classList.add('hidden');
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && state.jobDetail) closeJobDetailModal();
+});
+
+function renderJobDetailModal() {
+  const { scheduleId, siblings } = state.jobDetail;
+  const sch = state.schedules.find(s => s.id === scheduleId);
+  if (!sch) {
+    // 다른 기기에서 지워진 경우
+    closeJobDetailModal();
+    return;
+  }
+  const st = scheduleStatus(sch);
+  const [stCls, stLabel] = { done: ['badge-gray', '완료'], ongoing: ['badge-green', '진행 중'], upcoming: ['badge-blue', '예정'] }[st];
+  document.getElementById('job-detail-title').innerHTML = jobLabel(sch);
+  document.getElementById('job-detail-status').innerHTML = `<span class="badge ${stCls}">${stLabel}</span>`;
+  document.getElementById('job-detail-wa-btn').onclick = () => openWhatsappBriefing(sch.id);
+  document.getElementById('job-detail-edit-btn').onclick = () => { closeJobDetailModal(); openEditScheduleModal(sch.id); };
+
+  const ids = siblings ? siblings.split(',') : [];
+  const switcher = ids.length > 1 ? `<div class="detail-switch">${ids.map(id => {
+    const o = state.schedules.find(s => s.id === id);
+    if (!o) return '';
+    return `<button class="${id === scheduleId ? 'active' : ''}" onclick="openJobDetailModal('${id}', '${siblings}')">${scheduleRange(o).start} ${jobLabel(o)}</button>`;
+  }).join('')}</div>` : '';
+
+  const field = (label, value, sub = '') => `
+    <div class="form-group">
+      <label class="form-label">${label}</label>
+      <div class="detail-value${value ? '' : ' muted'}">${value || '없음'}${sub ? `<small>${sub}</small>` : ''}</div>
+    </div>`;
+  const tel = phone => phone ? `<a href="tel:${escapeHtml(phone.replace(/\s/g, ''))}">${escapeHtml(phone)}</a>` : '';
+  const r = scheduleRange(sch);
+  const when = dateStr => `${monthDayLabel(dateStr)}(${weekdayLabel(dateStr)})`;
+  const vehicles = (sch.vehicles || []).map(v => `${escapeHtml(v.type)} × ${v.count}`).join(', ');
+  const assigned = sch.assignments || [];
+
+  // 크루별 근무시간: 근무기록이 있으면 그 시간과 상태, 끝났는데 없으면 미제출, 아직 안 했으면 배정 시간으로 계산한 예정 시간
+  const crewRows = assigned.map(a => {
+    const u = CREW_USERS.find(c => c.id === a.userId);
+    const log = state.workLogs.find(w => w.scheduleId === sch.id && w.userId === a.userId);
+    const start = a.startTime || r.start;
+    const end = a.endTime || r.end;
+    let hours;
+    if (log) {
+      const label = { confirmed: '승인', pending: '승인 대기', rejected: '반려' }[log.status] || log.status;
+      hours = `<div class="detail-crew-hours ${log.status}">${formatHours(log.workedHours)}<small>${label}</small></div>`;
+    } else if (st === 'done') {
+      hours = '<div class="detail-crew-hours missing">미제출</div>';
+    } else {
+      const planned = timeToMinutes(end) > timeToMinutes(start) ? formatHours(calcWorkLog(start, end).workedHours) : '-';
+      hours = `<div class="detail-crew-hours planned">${planned}<small>예정</small></div>`;
+    }
+    const duty = a.vehicleDuty && a.vehicleDuty !== 'none' ? ` · 차량 ${vehicleDutyLabel(a.vehicleDuty)}` : '';
+    const phone = u && u.phone ? ` · ${tel(u.phone)}` : '';
+    return `
+      <div class="detail-crew-row">
+        <div class="detail-crew-name">${escapeHtml(u ? u.name : a.userId)}</div>
+        ${hours}
+        <div class="detail-crew-sub">${start}–${end}${duty}${phone}</div>
+      </div>`;
+  }).join('');
+
+  const linkedRequest = state.requests.find(x => x.schedule_id === sch.id && x.type === 'delivery');
+  const short = st !== 'done' && isUnderstaffed(sch) ? ` <span class="badge badge-warning">${assigned.length}/${sch.requiredWorkers}</span>` : '';
+  document.getElementById('job-detail-body').innerHTML = `
+    ${switcher}
+    <div class="form-row detail-quote">
+      ${field('견적번호', escapeHtml(sch.quoteNo))}
+      ${field('견적금액', sch.quotePrice != null && sch.quotePrice !== '' ? formatEuro(Number(sch.quotePrice)) : '')}
+    </div>
+    <div class="form-row">
+      ${field('고객명', escapeHtml(sch.customerName))}
+      ${field('연락처', tel(sch.customerPhone))}
+    </div>
+    <div class="form-row">
+      ${field('시작', `${when(sch.jobDate)} ${sch.overallTimeRange ? r.start : ''}`)}
+      ${field('종료', `${when(sch.endDate)} ${sch.overallTimeRange ? r.end : ''}`)}
+    </div>
+    ${field('상차지', escapeHtml(sch.originAddress), escapeHtml(sch.originSpec))}
+    ${field('하차지', escapeHtml(sch.destAddress), escapeHtml(sch.destSpec))}
+    <div class="form-row">
+      ${field('필요 인원', `${sch.requiredWorkers || 0}명${short}`)}
+      ${field('차량', vehicles)}
+    </div>
+    ${field('현장 메모', escapeHtml(sch.notes))}
+    ${linkedRequest ? `<div class="form-group"><label class="form-label">고객 신청</label>${isEditUnreviewed(linkedRequest) ? '<div class="detail-edit-warning">고객이 신청 내용을 수정했습니다. 신규 요청 탭의 "수정된 요청"에서 확인해 주세요.</div>' : ''}${renderQuoteControl(linkedRequest)}</div>` : ''}
+    <div class="detail-crew">
+      <label class="form-label">배정 크루 · 근무시간</label>
+      ${crewRows || '<div class="detail-value muted">배정 없음</div>'}
+    </div>
+  `;
+}
+
+// 캘린더 색은 세 가지: 진행 중·예정(초록), 완료(흐리게), 확인 필요(빨강 = 인원 부족 또는 충돌).
+// 가용 인원은 오늘 이후에 누가 '불가'로 표시한 날에만 적는다.
 function renderAdminCalendar() {
   document.getElementById('admin-cal-title').textContent = `${state.currentYear}년 ${state.currentMonth + 1}월`;
   const container = document.getElementById('admin-cal-days');
   container.innerHTML = '';
+  const now = nowKey();
+  const conflictIds = conflictScheduleIds();
 
   const daysInMonth = new Date(state.currentYear, state.currentMonth + 1, 0).getDate();
   // getDay()는 일요일=0 기준이라, 월요일 시작 그리드에 맞게 (일=0 -> 6, 월=1 -> 0, ...)로 보정합니다.
@@ -1460,103 +2243,81 @@ function renderAdminCalendar() {
     dayNum.textContent = day;
     dayEl.appendChild(dayNum);
 
-    const daySchedules = state.schedules.filter(s => scheduleCoversDate(s, dateStr));
-    daySchedules.forEach(sch => {
+    jobsOnDate(dateStr).forEach(sch => {
+      const done = scheduleStatus(sch, now) === 'done';
+      const short = !done && isUnderstaffed(sch);
       const pill = document.createElement('div');
-      const assignedCount = sch.assignments ? sch.assignments.length : 0;
-      const isDeficit = assignedCount < sch.requiredWorkers;
-      pill.className = `cal-event-pill ${isDeficit ? 'deficit' : ''}`;
-      pill.textContent = `${sch.customerName} (${assignedCount}/${sch.requiredWorkers})`;
+      pill.className = `cal-event-pill${done ? ' done' : ''}${short || conflictIds.has(sch.id) ? ' alert' : ''}`;
+      const time = sch.jobDate === dateStr && sch.overallTimeRange ? `<span class="t">${scheduleRange(sch).start}</span>` : '';
+      pill.innerHTML = `${time}${jobLabel(sch)}${short ? ` ${(sch.assignments || []).length}/${sch.requiredWorkers}` : ''}`;
       dayEl.appendChild(pill);
     });
 
-    let availCount = 0;
-    CREW_USERS.forEach(u => {
-      if (state.availability[`${u.id}_${dateStr}`] !== false) availCount++;
-    });
-    const availSummary = document.createElement('div');
-    availSummary.style.fontSize = '9px';
-    availSummary.style.color = '#94a3b8';
-    availSummary.style.marginTop = '2px';
-    availSummary.textContent = `${availCount}명 가용`;
-    dayEl.appendChild(availSummary);
+    const offCount = CREW_USERS.filter(u => state.availability[`${u.id}_${dateStr}`] === false).length;
+    if (offCount > 0 && dateStr >= TODAY_DATE) {
+      const avail = document.createElement('div');
+      avail.className = 'cal-avail-low';
+      avail.textContent = `가용 ${CREW_USERS.length - offCount}`;
+      dayEl.appendChild(avail);
+    }
 
     dayEl.onclick = () => {
       state.selectedDate = dateStr;
       renderAdminCalendar();
       renderAdminSelectedDateSchedules();
+      document.getElementById('admin-day-detail').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     };
 
     container.appendChild(dayEl);
   }
 }
 
-function renderAdminSelectedDateSchedules() {
-  document.getElementById('admin-selected-date-title').textContent = `${state.selectedDate}`;
-  
-  let availList = [];
-  let unavailList = [];
-  CREW_USERS.forEach(u => {
-    if (state.availability[`${u.id}_${state.selectedDate}`] !== false) availList.push(u);
-    else unavailList.push(u);
-  });
+const ICON_WHATSAPP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9 9.5c0 3 2.5 5.5 5.5 5.5l1-1.5-2-1-1 .8c-1-.4-1.8-1.2-2.2-2.2l.8-1-1-2Z"/></svg>';
+const ICON_EDIT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.17 6.81a2.82 2.82 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z"/><path d="m15 5 4 4"/></svg>';
 
-  document.getElementById('admin-crew-avail-summary').innerHTML = 
-    `가용 ${availList.length}명 (${availList.map(u => u.name).join(',') || '-'}) · 불가 ${unavailList.length}명`;
+// 선택한 날 작업 목록: 한 줄에 상태 동그라미 · 인원 · 이름 · 시간 · 크루 · WhatsApp · 수정. 줄을 누르면 상세 팝업.
+function renderAdminSelectedDateSchedules() {
+  const date = state.selectedDate;
+  document.getElementById('admin-selected-date-title').textContent = `${monthDayLabel(date)} ${weekdayLabel(date)}`;
+  const off = CREW_USERS.filter(u => state.availability[`${u.id}_${date}`] === false);
+  document.getElementById('admin-crew-avail-summary').textContent = off.length ? `불가: ${off.map(u => u.name).join(', ')}` : '';
 
   const listContainer = document.getElementById('admin-schedules-list');
-  listContainer.innerHTML = '';
-
-  const daySchedules = state.schedules.filter(s => scheduleCoversDate(s, state.selectedDate));
-
+  const daySchedules = jobsOnDate(date);
   if (daySchedules.length === 0) {
-    listContainer.innerHTML = `
-      <div style="text-align: center; padding: 30px 10px; color: var(--text-muted); font-size: 13px;">
-        일정이 없습니다.
-        <div style="margin-top: 8px;">
-          <button class="btn btn-primary btn-sm" onclick="openCreateScheduleModal('${state.selectedDate}')">+ 스케줄 추가</button>
-        </div>
-      </div>
-    `;
+    listContainer.innerHTML = '<div class="dash-empty" style="text-align: center; padding: 24px 0;">일정 없음</div>';
     return;
   }
 
-  daySchedules.forEach(sch => {
-    const assignedCount = sch.assignments ? sch.assignments.length : 0;
-    const isFull = assignedCount >= sch.requiredWorkers;
-
-    const item = document.createElement('div');
-    item.className = 'schedule-item';
-    item.innerHTML = `
-      <div class="schedule-item-top">
-        <div>
-          <span class="badge ${isFull ? 'badge-green' : 'badge-warning'}">${assignedCount}/${sch.requiredWorkers}명</span>
-          <strong style="font-size: 13.5px; margin-left: 4px;">${sch.customerName}</strong>
-          <span style="font-size: 11.5px; color: var(--text-muted); margin-left: 4px;">${scheduleTimeLabel(sch)}</span>
-        </div>
-        <div style="display: flex; gap: 4px;">
-          <button class="btn btn-whatsapp btn-sm" onclick="openWhatsappBriefing('${sch.id}')">WhatsApp</button>
-          <button class="btn btn-secondary btn-sm" onclick="openEditScheduleModal('${sch.id}')">수정</button>
-        </div>
-      </div>
-
-      <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; background: #f8fafc; padding: 6px 8px; border-radius: 4px;">
-        ${sch.originAddress} ➔ ${sch.destAddress}
-      </div>
-
-      <div style="font-size: 11.5px;">
-        ${(sch.assignments && sch.assignments.length > 0) ? sch.assignments.map(a => {
-          const u = CREW_USERS.find(c => c.id === a.userId);
-          const name = u ? u.name : a.userId;
-          const time = `${a.startTime || ''}${a.endTime ? ' ~ ' + a.endTime : ''}`;
-          const duty = a.vehicleDuty && a.vehicleDuty !== 'none' ? ` · ${vehicleDutyLabel(a.vehicleDuty)}` : '';
-          return `<span style="display:inline-block; background:#f1f5f9; border-radius:4px; padding:2px 6px; margin:0 4px 4px 0;">${name} ${time}${duty}</span>`;
-        }).join('') : `<span style="color: var(--text-muted);">배정 인원 없음</span>`}
-      </div>
-    `;
-
-    listContainer.appendChild(item);
-  });
+  const now = nowKey();
+  const conflictIds = conflictScheduleIds();
+  const siblings = daySchedules.map(s => s.id).join(',');
+  const statusLabel = { done: '완료', ongoing: '진행 중', upcoming: '예정' };
+  listContainer.innerHTML = daySchedules.map(sch => {
+    const st = scheduleStatus(sch, now);
+    const assigned = sch.assignments || [];
+    const staffCls = st !== 'done' && isUnderstaffed(sch) ? 'badge-warning' : 'badge-gray';
+    const crewNames = assigned.map(a => {
+      const u = CREW_USERS.find(c => c.id === a.userId);
+      return escapeHtml(u ? u.name : a.userId);
+    }).join(' · ');
+    return `
+      <div class="day-job ${st}" onclick="openJobDetailModal('${sch.id}', '${siblings}')">
+        <span class="st-dot ${st}" title="${statusLabel[st]}"></span>
+        <span class="badge ${staffCls}">${assigned.length}/${sch.requiredWorkers}</span>
+        <span class="day-job-name">${jobLabel(sch)}</span>
+        ${conflictIds.has(sch.id) ? '<span class="badge badge-red">충돌</span>' : ''}
+        <span class="day-job-time">${dayTimeLabel(sch, date)}</span>
+        <span class="day-job-crew${crewNames ? '' : ' none'}">${crewNames || '배정 없음'}</span>
+        <button class="icon-btn wa" title="WhatsApp" onclick="event.stopPropagation(); openWhatsappBriefing('${sch.id}')">${ICON_WHATSAPP}</button>
+        <button class="icon-btn" title="수정" onclick="event.stopPropagation(); openEditScheduleModal('${sch.id}')">${ICON_EDIT}</button>
+      </div>`;
+  }).join('') + `
+    <div class="day-job-legend">
+      <span><span class="st-dot ongoing"></span>진행 중</span>
+      <span><span class="st-dot upcoming"></span>예정</span>
+      <span><span class="st-dot done"></span>완료</span>
+    </div>`;
 }
 
 function renderModalCrewAssignment(scheduleId) {
@@ -1568,7 +2329,8 @@ function renderModalCrewAssignment(scheduleId) {
     const isAssigned = (sch.assignments || []).some(a => a.userId === u.id);
     if (isAssigned) return '';
     const isAvail = scheduleDates(sch).every(d => state.availability[`${u.id}_${d}`] !== false);
-    return `<option value="${u.id}">${u.name} (${isAvail ? '가능' : '불가'})</option>`;
+    const label = !isAvail ? '불가' : overlappingSchedule(u.id, sch) ? '다른 작업' : '가능';
+    return `<option value="${u.id}">${u.name} (${label})</option>`;
   }).join('');
   // 드롭다운에서 크루를 고르기만 하고 옆의 "추가" 버튼을 따로 안 눌러서 배정이 안 되는
   // 경우가 많아서, 선택하는 즉시 바로 추가되게 한다 ("추가" 버튼은 그대로 남겨둠).
@@ -1629,7 +2391,7 @@ function renderCrewDashboard() {
     todayEmpty.classList.add('hidden');
     const myAssign = myJob.assignments.find(a => a.userId === currentUserId);
 
-    document.getElementById('crew-today-title').textContent = `${myJob.customerName} 님 이사/운송`;
+    document.getElementById('crew-today-title').textContent = `${myJob.customerName} 님 ${myJob.jobType === 'delivery' ? '배송' : '이사/운송'}`;
     document.getElementById('crew-today-time').textContent = myAssign.startTime || '08:00';
     document.getElementById('crew-today-overall-time').textContent = `(전체: ${scheduleTimeLabel(myJob)})`;
 
@@ -1771,8 +2533,8 @@ function openDayDetailModal(dateStr) {
   if (assignedJob) {
     const myAssign = assignedJob.assignments.find(a => a.userId === currentUserId);
     jobInfoEl.innerHTML = `
-      <div style="font-size: 13px; font-weight: 700; margin-bottom: 4px;">${assignedJob.customerName} 님 이사/운송</div>
-      <div style="font-size: 12.5px; color: var(--text-secondary);">배정 시간: ${myAssign.startTime} · ${assignedJob.originAddress} → ${assignedJob.destAddress}</div>
+      <div style="font-size: 13px; font-weight: 700; margin-bottom: 4px;">${escapeHtml(assignedJob.customerName)} 님 ${assignedJob.jobType === 'delivery' ? '배송' : '이사/운송'}</div>
+      <div style="font-size: 12.5px; color: var(--text-secondary);">배정 시간: ${escapeHtml(myAssign.startTime)} · ${escapeHtml(assignedJob.originAddress)} → ${escapeHtml(assignedJob.destAddress)}</div>
     `;
     renderDayDetailWorklog(dateStr, assignedJob, currentUserId);
   } else {
@@ -1956,6 +2718,7 @@ function openEditScheduleModal(scheduleId) {
   deleteBtn.onclick = () => deleteSchedule(scheduleId);
   document.getElementById('modal-crew-section').classList.remove('hidden');
 
+  document.getElementById('f-job-type').value = sch.jobType;
   document.getElementById('f-quote-no').value = sch.quoteNo || '';
   document.getElementById('f-quote-price').value = sch.quotePrice != null ? sch.quotePrice : '';
   document.getElementById('f-customer-name').value = sch.customerName || '';
@@ -2036,6 +2799,153 @@ async function submitInviteCrew() {
 }
 
 function renderAdminCrewTab() {
+  if (!CREW_USERS.some(u => u.id === state.crewViewUserId)) {
+    state.crewViewUserId = CREW_USERS.length ? CREW_USERS[0].id : null;
+  }
+  renderAdminCrewPicker();
+  renderAdminCrewMonth();
+  renderAdminCrewList();
+}
+
+function crewViewMonthPrefix() {
+  return `${state.crewViewYear}-${String(state.crewViewMonth + 1).padStart(2, '0')}`;
+}
+
+// 왼쪽 크루 목록: 이름 + 보고 있는 달의 승인된 근무시간 (크루 화면의 "이번 달 근무시간"과 같은 기준)
+function renderAdminCrewPicker() {
+  const prefix = crewViewMonthPrefix();
+  const confirmedHours = userId => state.workLogs
+    .filter(w => w.userId === userId && w.status === 'confirmed' && w.jobDate.startsWith(prefix))
+    .reduce((sum, w) => sum + w.workedHours, 0);
+  // 휴대폰에서는 가로로 넘기는 목록이라, 4초마다 다시 그려도 넘겨 둔 위치를 유지한다
+  const picker = document.getElementById('admin-crew-picker');
+  const scrollLeft = picker.scrollLeft;
+  picker.innerHTML = `
+    <button class="crew-invite-btn" onclick="openInviteCrewModal()">+ 크루 초대</button>
+    ${CREW_USERS.map(u => `
+      <button class="crew-picker-btn${u.id === state.crewViewUserId ? ' active' : ''}" onclick="selectCrewView('${u.id}')">
+        ${escapeHtml(u.name)}<small>${formatHours(confirmedHours(u.id))}</small>
+      </button>`).join('')}
+  `;
+  picker.scrollLeft = scrollLeft;
+}
+
+// 3시간 이하 초록, 3~6시간 노랑, 6시간 이상 빨강
+function hoursColorClass(h) {
+  return h <= 3 ? 'c-g' : h < 6 ? 'c-y' : 'c-r';
+}
+
+// 고른 크루의 한 달을 일반 캘린더로 그리고, 일한 날을 근무시간 색으로 칠한다. 칸을 누르면 작업 상세 팝업.
+// 시간은 근무기록이 있으면 그 시간, 없으면 배정 시간으로 계산한 시간. 아직 안 한 날(예정)은 옅은 색 + 점선.
+function renderAdminCrewMonth() {
+  const panel = document.getElementById('admin-crew-month');
+  const userId = state.crewViewUserId;
+  if (!userId) {
+    panel.innerHTML = '<div class="worklog-history-empty">등록된 크루가 없습니다. "+ 크루 초대"로 추가해 주세요.</div>';
+    return;
+  }
+  const user = CREW_USERS.find(u => u.id === userId);
+  const prefix = crewViewMonthPrefix();
+  const daysInMonth = new Date(state.crewViewYear, state.crewViewMonth + 1, 0).getDate();
+  const firstDayIndex = (new Date(state.crewViewYear, state.crewViewMonth, 1).getDay() + 6) % 7;
+  const now = nowKey();
+  const sum = { confirmed: 0, pending: 0, planned: 0, missing: 0 };
+  // 하루에 작업이 여럿이면 칸의 상태는 미제출 > 승인 대기 > 예정 > 승인 순으로 정한다
+  const rank = { confirmed: 0, rejected: 0, planned: 1, pending: 2, missing: 3 };
+
+  const cells = ['월', '화', '수', '목', '금', '토', '일'].map((w, i) =>
+    `<div class="cc-wd${i === 5 ? ' sat' : i === 6 ? ' sun' : ''}">${w}</div>`);
+  for (let i = 0; i < firstDayIndex; i++) cells.push('<div class="cc-day blank"></div>');
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${prefix}-${String(d).padStart(2, '0')}`;
+    const wd = new Date(dateStr + 'T00:00:00').getDay();
+    const jobs = jobsOnDate(dateStr).filter(s => (s.assignments || []).some(a => a.userId === userId));
+    const cls = ['cc-day'];
+    if (wd === 6) cls.push('sat');
+    if (wd === 0) cls.push('sun');
+    if (dateStr === TODAY_DATE) cls.push('today');
+
+    let hours = 0, colorHours = 0, kind = null;
+    jobs.forEach(s => {
+      const a = s.assignments.find(x => x.userId === userId);
+      const log = state.workLogs.find(w => w.scheduleId === s.id && w.userId === userId);
+      const k = log ? (log.status === 'pending' ? 'pending' : log.status)
+                    : scheduleStatus(s, now) === 'done' ? 'missing' : 'planned';
+      const r = scheduleRange(s);
+      const start = a.startTime || r.start;
+      const end = a.endTime || r.end;
+      const h = log ? log.workedHours
+                    : timeToMinutes(end) > timeToMinutes(start) ? calcWorkLog(start, end).workedHours : 0;
+      if (kind === null || rank[k] > rank[kind]) kind = k;
+      // 여러 날 작업의 시간은 첫날에 한 번만 센다 (근무기록도 작업 하나에 하나). 이어지는 날은 같은 색만 칠한다.
+      if (dateStr !== s.jobDate) {
+        colorHours = Math.max(colorHours, h);
+        return;
+      }
+      hours += h;
+      colorHours = Math.max(colorHours, hours);
+      if (k === 'missing') sum.missing++;
+      else if (sum[k] !== undefined) sum[k] += h;
+    });
+
+    let text = '', sub = '', onclick = '';
+    if (jobs.length) {
+      cls.push('has', kind === 'missing' ? 'missing' : hoursColorClass(colorHours));
+      if (kind === 'planned') cls.push('planned');
+      text = kind === 'missing' ? '미제출' : hours ? formatHours(hours) : '';
+      sub = [jobs.length > 1 ? `${jobs.length}건` : '', kind === 'pending' ? '대기' : kind === 'rejected' ? '반려' : '']
+        .filter(Boolean).join(' · ');
+      onclick = ` onclick="openJobDetailModal('${jobs[0].id}', '${jobs.map(s => s.id).join(',')}')"`;
+    } else if (state.availability[`${userId}_${dateStr}`] === false) {
+      cls.push('off');
+      text = '불가';
+    }
+    cells.push(`
+      <div class="${cls.join(' ')}"${onclick}>
+        <span class="cc-num">${d}</span>
+        <span><span class="cc-hours">${text}</span>${sub ? `<span class="cc-sub">${sub}</span>` : ''}</span>
+      </div>`);
+  }
+
+  panel.innerHTML = `
+    <div class="cc-head">
+      <div class="cc-name">${escapeHtml(user ? user.name : userId)}</div>
+      <div class="cc-month">
+        <button class="calendar-nav-btn" onclick="changeCrewViewMonth(-1)">‹</button>
+        ${state.crewViewYear}년 ${state.crewViewMonth + 1}월
+        <button class="calendar-nav-btn" onclick="changeCrewViewMonth(1)">›</button>
+      </div>
+    </div>
+    <div class="cc-sum">
+      <span>승인<b>${formatHours(sum.confirmed)}</b></span>
+      <span>승인 대기<b>${formatHours(sum.pending)}</b></span>
+      <span>예정<b>${formatHours(sum.planned)}</b></span>
+      ${sum.missing ? `<span class="missing">미제출<b>${sum.missing}건</b></span>` : ''}
+    </div>
+    <div class="cc-grid">${cells.join('')}</div>
+    <div class="cc-legend">
+      <span><i class="c-g"></i>3시간 이하</span>
+      <span><i class="c-y"></i>3~6시간</span>
+      <span><i class="c-r"></i>6시간 이상</span>
+      <span><i class="planned"></i>예정</span>
+    </div>
+  `;
+}
+
+function selectCrewView(userId) {
+  state.crewViewUserId = userId;
+  renderAdminCrewTab();
+}
+
+function changeCrewViewMonth(delta) {
+  const d = new Date(state.crewViewYear, state.crewViewMonth + delta, 1);
+  state.crewViewYear = d.getFullYear();
+  state.crewViewMonth = d.getMonth();
+  renderAdminCrewTab();
+}
+
+function renderAdminCrewList() {
   const list = document.getElementById('admin-crew-list');
   if (CREW_USERS.length === 0) {
     list.innerHTML = '<div class="worklog-history-empty">등록된 크루가 없습니다. "+ 크루 초대"로 추가해 주세요.</div>';
@@ -2166,6 +3076,7 @@ async function handleSaveSchedule(e) {
   const notes = document.getElementById('f-notes').value.trim();
 
   const fieldsPayload = {
+    job_type: document.getElementById('f-job-type').value,
     quote_no: quoteNo,
     quote_price: quotePrice ? parseFloat(quotePrice) : null,
     customer_name: customerName,
@@ -2249,6 +3160,25 @@ async function addCrewToSchedule() {
   if (!userId || !scheduleId) return;
   const sch = state.schedules.find(s => s.id === scheduleId);
   if (!sch) return;
+
+  // 불가로 표시한 날이거나 같은 시간에 다른 작업이 있으면 한 번 더 묻는다
+  const user = CREW_USERS.find(u => u.id === userId);
+  const name = user ? user.name : userId;
+  const offDates = scheduleDates(sch).filter(d => state.availability[`${userId}_${d}`] === false);
+  const other = overlappingSchedule(userId, sch);
+  const warnings = [];
+  if (offDates.length) {
+    warnings.push(`${name}님은 ${offDates.map(d => `${monthDayLabel(d)}(${weekdayLabel(d)})`).join(', ')}을 '불가'로 표시했습니다.`);
+  }
+  if (other) {
+    const r = scheduleRange(other);
+    const type = other.jobType === 'delivery' ? '[배송] ' : '';
+    warnings.push(`${name}님은 같은 시간에 ${type}${other.customerName || '-'} 작업(${monthDayLabel(other.jobDate)} ${r.start}–${r.end})에 배정돼 있습니다.`);
+  }
+  if (warnings.length && !confirm(`${warnings.join('\n')}\n\n그래도 배정할까요?`)) {
+    select.value = '';
+    return;
+  }
 
   const assignments = [...(sch.assignments || [])];
   const defaultStartTime = sch.overallTimeRange.split('~')[0].trim() || '08:00';
