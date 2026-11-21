@@ -332,9 +332,7 @@ details[open] .more-link { display: none; }
 .docs-notice-inline strong { margin-bottom: 4px; font-size: var(--fs-small); font-weight: var(--fw-bold); }
 .docs-notice-inline li + li { margin-top: 4px; }
 .docs-notice-note { margin: 0; color: var(--muted); font-size: var(--fs-caption); }
-.doc-after-return { color: var(--text); font-weight: var(--fw-medium); }
-.doc-after-return a { color: var(--accent-dark); font-weight: var(--fw-bold); }
-.doc-badge { display: inline-block; margin-right: 4px; padding: 1px 8px; border-radius: 999px; background: var(--accent); color: var(--surface); font-size: var(--fs-caption); font-weight: var(--fw-bold); }
+.doc-link { color: var(--accent-dark); text-decoration: underline; text-underline-offset: 2px; }
 /* 배터리·의약품·위험물 의심 */
 .item-caution:empty { display: none; }
 .item-caution { margin-top: 8px; padding: 8px 10px; border-radius: 7px; background: var(--accent-light); color: var(--accent-dark); font-size: var(--fs-caption); line-height: 1.5; word-break: keep-all; }
