@@ -24,13 +24,13 @@
 <div id="login-screen" class="login-screen hidden">
   <div class="login-box">
     <div class="brand-logo" style="margin:0 auto 14px;">D</div>
-    <div style="font-weight:800; font-size: var(--fs-lead); text-align:center; margin-bottom:4px;">독고달이 스케줄</div>
+    <div style="font-weight:800; font-size: var(--fs-title); text-align:center; margin-bottom:4px;">독고달이 스케줄</div>
 
     <input type="email" id="login-email" class="form-control" placeholder="you@example.com" style="margin-bottom:10px;">
 
     <div id="login-code-step">
-      <div style="color:var(--muted); font-size: var(--fs-small); text-align:center; margin-bottom:10px;">6자리 코드를 입력하세요</div>
-      <input type="text" inputmode="numeric" maxlength="6" id="login-code" class="form-control" placeholder="123456" style="margin-bottom:10px; text-align:center; letter-spacing:4px; font-size: var(--fs-lead);">
+      <div style="color:var(--muted); font-size: var(--fs-caption); text-align:center; margin-bottom:10px;">6자리 코드를 입력하세요</div>
+      <input type="text" inputmode="numeric" maxlength="6" id="login-code" class="form-control" placeholder="123456" style="margin-bottom:10px; text-align:center; letter-spacing:4px; font-size: var(--fs-title);">
       <button class="btn btn-primary" style="width:100%;" onclick="verifyLoginCode()">확인</button>
       <div style="margin-top:14px; text-align:center; font-size: var(--fs-caption);">
         <a href="#" onclick="showRequestCodeStep(); return false;">처음이신가요? 이메일로 로그인 코드를 받으세요</a>
@@ -44,7 +44,7 @@
       </div>
     </div>
 
-    <div id="login-message" style="margin-top:12px; font-size: var(--fs-small); text-align:center;"></div>
+    <div id="login-message" style="margin-top:12px; font-size: var(--fs-body); text-align:center;"></div>
   </div>
 </div>
 
@@ -52,7 +52,6 @@
 <div class="role-switcher-bar">
   <span id="signed-in-as"></span>
   <div style="display: flex; gap: 10px; align-items: center;">
-    <span class="sync-status"><span class="sync-dot"></span> 실시간 연동됨</span>
     <button class="btn btn-secondary btn-sm" onclick="sb.auth.signOut()">로그아웃</button>
   </div>
 </div>
@@ -65,7 +64,7 @@
       <div class="brand-name">독고달이 스케줄</div>
     </div>
     <div style="display: flex; gap: 8px; align-items: center;">
-      <span id="current-user-badge" class="badge badge-navy">관리자</span>
+      <span id="current-user-badge" class="badge badge-navy hidden">관리자</span>
       <button id="btn-toggle-push" class="btn btn-secondary btn-sm" onclick="togglePushSubscription()">🔔 알림 켜기</button>
     </div>
   </div>
@@ -84,7 +83,7 @@
         </div>
         <div style="text-align: right;">
           <div id="crew-today-time" class="today-time-badge"></div>
-          <div id="crew-today-overall-time" style="font-size: var(--fs-micro); color: var(--faint);"></div>
+          <div id="crew-today-overall-time" style="font-size: var(--fs-caption); color: var(--faint);"></div>
         </div>
       </div>
 
@@ -111,11 +110,11 @@
         </div>
         <div class="sub-box">
           <div class="sub-box-title">현장 메모</div>
-          <div id="crew-notes-text" style="font-size: var(--fs-small); color: var(--muted);"></div>
+          <div id="crew-notes-text" style="font-size: var(--fs-caption); color: var(--muted);"></div>
         </div>
       </div>
     </div>
-    <div id="crew-today-empty" class="today-hero-card hidden" style="text-align: center; padding: 20px; color: var(--faint); font-size: var(--fs-small);">
+    <div id="crew-today-empty" class="today-hero-card hidden" style="text-align: center; padding: 20px; color: var(--faint); font-size: var(--fs-caption);">
       오늘 배정된 작업 일정이 없습니다.
     </div>
   </div>
@@ -222,17 +221,17 @@
     </div>
 
     <div id="admin-worklog-section" class="hidden">
-      <div class="card" style="margin-bottom:14px; padding:14px;">
+      <div class="card" style="margin-bottom:14px;">
         <div class="card-title">월별 근무시간 PDF</div>
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-          <select id="az-crew-select"></select>
-          <input type="month" id="az-month-input">
+          <select id="az-crew-select" class="form-control" style="width:auto;"></select>
+          <input type="month" id="az-month-input" class="form-control" style="width:auto;">
           <button class="btn btn-primary btn-sm" id="az-download-btn" onclick="generateAzDocPdf()">PDF 다운로드</button>
         </div>
         <div id="az-pdf-status" style="font-size: var(--fs-caption); color:var(--muted); margin-top:6px;"></div>
       </div>
       <div id="admin-worklog-pending-list"></div>
-      <div class="card" style="margin-top:14px; padding:14px;">
+      <div class="card" style="margin-top:14px;">
         <div class="card-title">근무시간 미제출 <span style="font-size: var(--fs-caption); font-weight:500; color:var(--faint);">최근 30일</span></div>
         <div id="admin-worklog-missing-list"></div>
       </div>
@@ -248,7 +247,7 @@
         <div class="crew-picker" id="admin-crew-picker"></div>
         <div class="dash-panel" id="admin-crew-month"></div>
       </div>
-      <div class="card" style="margin-top: 12px; padding: 14px;">
+      <div class="card" style="margin-top: 12px;">
         <div class="card-title">크루 목록</div>
         <div id="admin-crew-list"></div>
       </div>
@@ -394,10 +393,10 @@
           <input type="text" id="invite-phone" class="form-control" placeholder="+49 171 1234567">
         </div>
       </div>
-      <label style="display:flex; align-items:center; gap:8px; font-size: var(--fs-small); margin-top:4px;">
+      <label style="display:flex; align-items:center; gap:8px; font-size: var(--fs-body); margin-top:4px;">
         <input type="checkbox" id="invite-can-drive"> 운전 가능
       </label>
-      <div id="invite-crew-message" style="margin-top:10px; font-size: var(--fs-small);"></div>
+      <div id="invite-crew-message" style="margin-top:10px; font-size: var(--fs-body);"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary btn-sm" onclick="closeInviteCrewModal()">취소</button>
@@ -425,10 +424,10 @@
           <input type="text" id="edit-crew-phone" class="form-control">
         </div>
       </div>
-      <label style="display:flex; align-items:center; gap:8px; font-size: var(--fs-small); margin-top:4px;">
+      <label style="display:flex; align-items:center; gap:8px; font-size: var(--fs-body); margin-top:4px;">
         <input type="checkbox" id="edit-crew-can-drive"> 운전 가능
       </label>
-      <div id="edit-crew-message" style="margin-top:10px; font-size: var(--fs-small);"></div>
+      <div id="edit-crew-message" style="margin-top:10px; font-size: var(--fs-body);"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary btn-sm" onclick="closeEditCrewModal()">취소</button>
@@ -483,12 +482,12 @@
     <div class="modal-body">
       <div id="daydetail-job-info" style="margin-bottom: 14px;"></div>
       <div id="daydetail-worklog-section" class="hidden" style="margin-bottom: 14px; padding-top: 10px; border-top: 1px solid var(--border);">
-        <div style="font-size: var(--fs-small); font-weight: 700; margin-bottom: 8px;">근무시간 제출</div>
+        <div style="font-size: var(--fs-body); font-weight: 700; margin-bottom: 8px;">근무시간 제출</div>
         <div id="daydetail-worklog-body"></div>
       </div>
       <div id="daydetail-action-view">
         <button class="btn btn-primary" id="daydetail-toggle-btn" style="width:100%;"></button>
-        <div id="daydetail-past-note" class="hidden" style="font-size: var(--fs-small); color: var(--faint); text-align: center;">지난 날짜는 가능/불가 상태를 변경할 수 없습니다.</div>
+        <div id="daydetail-past-note" class="hidden" style="font-size: var(--fs-caption); color: var(--faint); text-align: center;">지난 날짜는 가능/불가 상태를 변경할 수 없습니다.</div>
       </div>
       <div id="daydetail-confirm-view" class="hidden">
         <div id="daydetail-confirm-text" style="font-size: var(--fs-body); font-weight: 600; margin-bottom: 10px; text-align: center;"></div>
@@ -740,7 +739,7 @@ function renderWorklogSection(myJob, currentUserId) {
   if (myJob.jobDate > TODAY_DATE) {
     formView.classList.add('hidden');
     statusView.classList.remove('hidden');
-    statusView.innerHTML = `<div style="font-size: var(--fs-small); color:var(--faint);">아직 진행되지 않은 작업입니다. 작업일 이후에 제출할 수 있습니다.</div>`;
+    statusView.innerHTML = `<div style="font-size: var(--fs-caption); color:var(--faint);">아직 진행되지 않은 작업입니다. 작업일 이후에 제출할 수 있습니다.</div>`;
     return;
   }
 
@@ -751,7 +750,7 @@ function renderWorklogSection(myJob, currentUserId) {
     const badgeText = existing.status === 'confirmed' ? '승인됨' : '제출 완료 · 승인 대기중';
     statusView.innerHTML = `
       <span class="worklog-status-badge ${badgeClass}">${badgeText}</span>
-      <div style="font-size: var(--fs-small);">${existing.actualStart} ~ ${existing.actualEnd} (휴게 ${existing.breakMinutes}분, 실근무 ${existing.workedHours}시간)</div>
+      <div style="font-size: var(--fs-body);">${existing.actualStart} ~ ${existing.actualEnd} (휴게 ${existing.breakMinutes}분, 실근무 ${existing.workedHours}시간)</div>
       <button class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="editWorklogSection('${myJob.id}', '${existing.actualStart}', '${existing.actualEnd}')">수정</button>
     `;
   } else {
@@ -1145,11 +1144,11 @@ function switchRole(roleKey) {
   const btnPush = document.getElementById('btn-toggle-push');
 
   if (roleKey === 'admin') {
-    badge.className = 'badge badge-navy';
+    badge.className = 'badge badge-navy hidden';
     badge.textContent = '관리자';
   } else {
     const crew = CREW_USERS.find(c => c.id === roleKey);
-    badge.className = 'badge badge-blue';
+    badge.className = 'badge badge-blue hidden';
     badge.textContent = crew ? `${crew.name} (${crew.canDrive ? '운전가능' : '면허없음'})` : '크루';
   }
 
@@ -1165,7 +1164,8 @@ function renderSignedInAs() {
   const el = document.getElementById('signed-in-as');
   const p = state.currentProfile;
   if (!el || !p) return;
-  el.textContent = `${p.name} (${p.role === 'admin' ? '관리자' : '크루'})로 로그인됨`;
+  const role = p.role === 'admin' ? '관리자' : '크루';
+  el.textContent = p.name === role ? role : `${p.name} · ${role}`;
 }
 
 function renderApp() {
@@ -1453,8 +1453,7 @@ function renderEditedRequestsSection() {
   if (!edited.length) return '';
   return `
   <div class="card request-edited-card">
-    <div class="card-title">수정된 요청 <span class="badge badge-warning">${edited.length}</span>
-      <span class="request-edited-sub">확정 후 고객이 수정 링크로 고친 요청입니다. 스케줄에 반영하거나 확인만 해 주세요.</span></div>
+    <div class="card-title">수정된 요청 <span class="badge badge-warning">${edited.length}</span></div>
     ${edited.map(r => `
       <div class="request-pending-item">
         <div class="request-pending-top">
@@ -1503,7 +1502,7 @@ function renderAdminRequestsTab() {
           ${r.quote_issued_at ? '<span class="badge badge-gray request-edit-badge">견적서 발행됨</span>' : ''}
           <span class="request-caret${isOpen ? ' open' : ''}">▾</span>
           <div style="font-size: var(--fs-caption); color:var(--muted); margin-top:3px;">${escapeHtml(r.summary)}</div>
-          <div style="font-size: var(--fs-caption); color:var(--faint); margin-top:2px;">${escapeHtml(r.customer_phone)} · ${shortDateTime(r.created_at)}</div>
+          <div style="font-size: var(--fs-caption); color:var(--faint); margin-top:2px;">${shortDateTime(r.created_at)}</div>
         </div>
         <div class="request-pending-actions" onclick="event.stopPropagation()">
           <button class="btn btn-primary btn-sm" onclick="confirmRequest(${jsArg(r.id)})">확정</button>
@@ -1577,8 +1576,8 @@ function renderRequestVersions(r) {
   }
   if (revs === 'loading') return { bar: '<div class="rv-bar rv-muted">수정 이력 불러오는 중…</div>', payload: r.payload, isCurrent: true };
   if (revs === 'error' || !revs.length) {
-    const msg = revs === 'error' ? '수정 이력을 불러오지 못했습니다.' : '이전 버전이 저장되기 전에 수정된 요청입니다.';
-    return { bar: `<div class="rv-bar rv-muted">${msg}</div>`, payload: r.payload, isCurrent: true };
+    const bar = revs === 'error' ? '<div class="rv-bar rv-muted">수정 이력을 불러오지 못했습니다.</div>' : '';
+    return { bar, payload: r.payload, isCurrent: true };
   }
   const versions = requestVersionList(r);
   const wanted = state.requestVersion.get(r.id);
@@ -1595,6 +1594,7 @@ function renderRequestVersions(r) {
     const now = String(f(chosen.payload || {}) || '');
     const before = prev ? String(f(prev || {}) || '') : now;
     const changed = prev && before !== now;
+    if (!now && !changed) return ''; // 비어 있고 바뀌지도 않은 항목은 숨긴다
     return `<div class="rv-row${changed ? ' changed' : ''}"><span class="rv-label">${escapeHtml(label)}</span><span class="rv-value">${escapeHtml(now) || '<em>없음</em>'}${changed ? `<span class="rv-before">이전: ${escapeHtml(before) || '없음'}</span>` : ''}</span></div>`;
   }).join('');
   const changedCount = prev ? REQUEST_DIFF_FIELDS.filter(([, f]) => String(f(prev || {}) || '') !== String(f(chosen.payload || {}) || '')).length : 0;
@@ -1674,7 +1674,7 @@ function renderRequestDetailBody(r) {
   const checkHtml = checks.length ? `<div class="rd-check"><b>확인</b> ${e(checks.join(', '))}</div>` : '';
 
   const diffRows = isEditUnreviewed(r) ? requestDiff(r.payload_before_edit, r.payload) : null;
-  const diffSection = diffRows
+  const diffSection = diffRows && diffRows.length
     ? foldSection(r, 'diff', '수정 내용', diffRows.length ? `${diffRows.length}개 항목` : '바뀐 항목 없음', renderRequestDiff(r))
     : '';
 
