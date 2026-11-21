@@ -1494,7 +1494,7 @@ function renderAdminRequestsTab() {
   list.innerHTML = editedSection + pending.map(r => {
     const isOpen = state.expandedRequestIds.has(r.id);
     return `
-    <div class="request-pending-item${isOpen ? ' open' : ''}" id="request-item-${escapeHtml(r.id)}">
+    <div class="request-pending-item request-card${isOpen ? ' open' : ''}" id="request-item-${escapeHtml(r.id)}">
       <div class="request-pending-top" onclick="toggleRequestDetail(${jsArg(r.id)})">
         <div>
           <span class="request-pending-type">${r.type === 'moving' ? '이사' : '배송'}</span>
