@@ -58,8 +58,8 @@
     <div style="display: flex; gap: 8px; align-items: center;">
       <span id="current-user-badge" class="badge badge-navy hidden">관리자</span>
       <span id="signed-in-as" class="header-user"></span>
-      <button id="btn-toggle-push" class="btn btn-secondary btn-sm" onclick="togglePushSubscription()">🔔 알림 켜기</button>
-      <button class="btn btn-secondary btn-sm" onclick="sb.auth.signOut()">로그아웃</button>
+      <button id="btn-toggle-push" class="btn btn-secondary btn-sm" onclick="togglePushSubscription()">알림 켜기</button>
+      <button class="btn btn-danger-outline btn-sm" onclick="if (confirm('로그아웃하시겠습니까?')) sb.auth.signOut()">로그아웃</button>
     </div>
   </div>
 </header>
@@ -809,13 +809,13 @@ async function refreshPushButtonLabel() {
   const btn = document.getElementById('btn-toggle-push');
   if (!btn || btn.classList.contains('hidden')) return;
   if (!pushSupported()) {
-    btn.textContent = '🔔 이 브라우저는 알림 미지원';
+    btn.textContent = '알림 미지원 브라우저';
     btn.disabled = true;
     return;
   }
   const reg = await navigator.serviceWorker.ready;
   const sub = await reg.pushManager.getSubscription();
-  btn.textContent = sub ? '🔕 알림 끄기' : '🔔 알림 켜기';
+  btn.textContent = sub ? '알림 끄기' : '알림 켜기';
 }
 
 async function togglePushSubscription() {

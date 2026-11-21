@@ -965,5 +965,6 @@
   html { scrollbar-gutter: stable; }
 
   /* 헤더 오른쪽: 로그인한 사람 이름 (예전 위쪽 남색 바를 헤더에 합침) */
-  .header-user { font-size: var(--fs-caption); color: var(--muted); white-space: nowrap; }
+  .header-user { font-size: var(--fs-caption); line-height: 28px; color: var(--muted); white-space: nowrap; }
+  .btn-danger-outline:hover { background: var(--red-light); }
   @media (max-width: 480px) { .header-user { display: none; } }
