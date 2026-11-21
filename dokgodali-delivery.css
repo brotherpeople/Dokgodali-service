@@ -25,6 +25,12 @@
 /* 단계 안내: 큰 카드 테두리를 빼고 페이지 배경 위에 둔다 (shared.css는 이사 견적 페이지와 같이 쓰므로 여기서만 덮어쓴다) */
 .steps { padding: 0; border: 0; background: none; }
 .step-icon { background: var(--border); color: var(--faint); }
+/* 페이지 배경은 흰색, 내용은 카드 없이 바로 놓고, 요약만 회색 카드로 둔다 (11/21 디자인 피드백) */
+body { background: var(--surface); }
+.card { padding: 0; border: 0; border-radius: 0; background: none; }
+.layout { gap: 48px; }
+.sidebar-card { border: 0; background: var(--surface-subtle); }
+.step:not(.active):not(.done) { background: none; }
 /* 입력칸은 흰색으로 통일해 회색 패널 안에서도 또렷하게 보이게 한다 */
 .text-input, .select-input, textarea { background: var(--surface); }
 
@@ -260,7 +266,7 @@ details[open] .more-link { display: none; }
   .step-icon svg { width: 20px; }
   .step > div:last-child { display: none; }
   .card, .sidebar-card { border-radius: 12px; }
-  .card { padding: 22px 18px; }
+  .card { padding: 0; }
   .section-box { padding: 16px; }
   .field-grid, .date-row, .option-list { grid-template-columns: 1fr; }
   .box-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
