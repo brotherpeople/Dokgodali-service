@@ -1,7 +1,7 @@
 // 실행: node --test tests/delivery-pricing.test.js
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const P = require('../dokgodali-delivery-pricing.js');
+const P = require('../public/dokgodali-delivery-pricing.js');
 
 const box = (length, width, height, weight, extra = {}) => ({ length, width, height, weight, ...extra });
 

@@ -1,7 +1,7 @@
 // 실행: node --test tests/delivery-caution.test.js
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const C = require('../dokgodali-delivery-caution.js');
+const C = require('../public/dokgodali-delivery-caution.js');
 
 test('배터리 의심 (영문·한글)', () => {
     assert.deepEqual(C.match('Used Laptop'), ['battery']);

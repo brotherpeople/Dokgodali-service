@@ -11,7 +11,7 @@ jsPDF / html2canvas 라이브러리는 이미 dokgodali-quote-flow.html 안에 �
 import base64
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent / "public"
 SRC = ROOT / "dokgodali-quote-flow.html"
 OUT = ROOT / "dokgodali-quote-flow.artifact.html"
 IMAGES = ROOT / "images"

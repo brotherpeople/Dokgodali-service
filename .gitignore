@@ -1,5 +1,5 @@
 # 빌드 산출물 (scripts/build-artifact.py로 재생성 가능, 이미지 base64가 인라인되어 diff가 무의미함)
-dokgodali-quote-flow.artifact.html
+public/dokgodali-quote-flow.artifact.html
 
 # OS 잡파일
 Thumbs.db
@@ -14,3 +14,7 @@ __pycache__/
 
 # Supabase 테이블 데이터 export (실제 고객/크루 개인정보 포함 — 커밋 금지)
 sql/*_rows.csv
+
+# 내부 문서 (설명서·미팅 안건·수정사항·클라이언트 자료·작업 계획·스냅샷) — GitHub에 올리지 않는다.
+# 클라이언트 고객 개인정보가 든 참고 파일(reference/*.xlsx)도 여기에 있다.
+internal/
