@@ -1552,7 +1552,7 @@
                     ${input("color", "색상", 'type="text"')}
                     ${input("size", "사이즈", 'type="text"')}
                     ${input("quantity", `수량<span class="required">*</span>`, 'type="number" inputmode="numeric" min="1" step="1"')}
-                    ${input("unitPrice", `단가 (€)<span class="required">*</span>`, 'type="number" inputmode="decimal" min="0" step="0.01"')}
+                    ${input("unitPrice", `단가 (€)<span class="required">*</span>`, 'type="number" inputmode="decimal" min="0" step="0.5"')}
                   </div>
                   <div class="item-grid item-grid-urls">
                     <label class="item-new"><input type="checkbox" data-item-field="isNew" ${item.isNew ? "checked" : ""} /><span>신상품입니다 (상품 URL 필요)</span></label>
@@ -1912,15 +1912,14 @@
                     $("#cargoError").classList.remove("visible");
                 render();
             });
+            // 가로·세로·높이·실중량과 물품 단가는 입력칸에서 0.5 단위로 올려 보여 준다.
+            // (30kg 초과 1kg 단위 올림 같은 청구 무게 규칙은 요금 계산(Pricing)에서만 적용한다)
             $("#boxList").addEventListener("change", (event) => {
-                const input = event.target.closest("[data-field]");
+                const input = event.target.closest('[data-field], [data-item-field="unitPrice"]');
                 if (!input || input.dataset.field === "carrier") return;
                 const value = Number(input.value);
                 if (!(value > 0)) return;
-                const rounded =
-                    input.dataset.field === "weight"
-                        ? Pricing.roundWeight(value)
-                        : Math.ceil(value * 2 - 1e-9) / 2;
+                const rounded = Math.ceil(value * 2 - 1e-9) / 2;
                 if (rounded === value) return;
                 input.value = rounded;
                 input.dispatchEvent(new Event("input", { bubbles: true }));
