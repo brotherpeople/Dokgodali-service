@@ -125,7 +125,7 @@
                             </div>
                             <div class="field-error" id="cargoError">
                                 모든 박스의 가로·세로·높이·실중량과 물품의
-                                영문명·수량·단가를 입력해 주세요. 신상품은
+                                영문명·수량·합계금액을 입력해 주세요. 신상품은
                                 상품 URL도 필요합니다. URL은
                                 https://로 시작해야 합니다.
                             </div>
@@ -339,7 +339,7 @@
                         <div class="method-schedule" id="methodSchedule">
                             <div class="date-row">
                                 <div>
-                                    <div class="field-title">희망 날짜<span class="required">*</span></div>
+                                    <div class="field-title">1순위 날짜<span class="required">*</span></div>
                                     <input
                                         class="text-input"
                                         id="pickupDate"
@@ -351,15 +351,35 @@
                                     ></div>
                                 </div>
                                 <div>
-                                    <div class="field-title">희망 시간<span class="required">*</span></div>
+                                    <div class="field-title">1순위 시간<span class="required">*</span></div>
                                     <select
                                         class="select-input"
                                         id="pickupTime"
                                     ></select>
                                 </div>
                             </div>
+                            <div class="date-row">
+                                <div>
+                                    <div class="field-title">2순위 날짜 (선택)</div>
+                                    <input class="text-input" id="pickupDate2" type="date" />
+                                </div>
+                                <div>
+                                    <div class="field-title">2순위 시간</div>
+                                    <select class="select-input" id="pickupTime2"></select>
+                                </div>
+                            </div>
+                            <div class="date-row">
+                                <div>
+                                    <div class="field-title">3순위 날짜 (선택)</div>
+                                    <input class="text-input" id="pickupDate3" type="date" />
+                                </div>
+                                <div>
+                                    <div class="field-title">3순위 시간</div>
+                                    <select class="select-input" id="pickupTime3"></select>
+                                </div>
+                            </div>
                             <div class="field-error" id="methodError">
-                                희망 날짜와 시간을 확인해 주세요. 고정 픽업은
+                                희망 날짜와 시간을 확인해 주세요. 1순위는 필수이고, 2·3순위는 날짜를 적었다면 시간도 골라 주세요. 고정 픽업은
                                 화요일, 접수처 방문은 일요일을 제외한 내일 이후
                                 날짜만 가능합니다. 타지역 픽업은 도시와 우편번호도
                                 필요합니다.
@@ -632,6 +652,20 @@
                                                 placeholder="서울특별시 강남구 테헤란로 231"
                                             />
                                         </div>
+                                        <div class="field-full">
+                                            <div class="field-title">
+                                                영문 주소
+                                                <span class="required"
+                                                    >*</span
+                                                >
+                                            </div>
+                                            <input
+                                                class="text-input address-required"
+                                                id="deliveryAddressEn"
+                                                type="text"
+                                                placeholder="231 Teheran-ro, Gangnam-gu, Seoul"
+                                            />
+                                        </div>
                                         <div>
                                             <div class="field-title">상세주소</div>
                                             <input
@@ -650,20 +684,6 @@
                                                 placeholder="H-701"
                                             />
                                             <div class="field-hint">동·호수는 영문자, 숫자, 하이픈(-)으로 적어 주세요.</div>
-                                        </div>
-                                        <div class="field-full">
-                                            <div class="field-title">
-                                                영문 주소
-                                                <span class="required"
-                                                    >*</span
-                                                >
-                                            </div>
-                                            <input
-                                                class="text-input address-required"
-                                                id="deliveryAddressEn"
-                                                type="text"
-                                                placeholder="231 Teheran-ro, Gangnam-gu, Seoul"
-                                            />
                                         </div>
                                         <div>
                                             <div class="field-title">
@@ -704,8 +724,10 @@
                                                 class="text-input address-required"
                                                 id="recipientPhone"
                                                 type="tel"
-                                                placeholder="010-1234-5678"
+                                                inputmode="numeric"
+                                                placeholder="01012345678"
                                             />
+                                            <div class="field-hint">하이픈(-)과 국가번호 없이 숫자만 적어 주세요.</div>
                                         </div>
                                         <div>
                                             <div class="field-title">
@@ -861,14 +883,14 @@
                                             ><input
                                                 type="radio"
                                                 name="customsType"
-                                                value="ecommerce"
-                                            /><span>전자상거래</span></label
+                                                value="general"
+                                            /><span>일반통관</span></label
                                         ><label class="choice"
                                             ><input
                                                 type="radio"
                                                 name="customsType"
-                                                value="general"
-                                            /><span>일반통관</span></label
+                                                value="ecommerce"
+                                            /><span>전자상거래</span></label
                                         >
                                     </div>
                                 </div>
@@ -1076,7 +1098,8 @@
                 formula: "분유",
                 alcohol: "주류",
             };
-            // 신고가액(단가)은 보상 기준이므로 영문명·수량·단가는 필수.
+            // 신고가액은 보상 기준이므로 영문명·수량·합계금액은 필수.
+            // unitPrice 칸은 이름과 달리 '합계금액(단가×수량)'을 받는다 (11/24 요청, 저장 키는 기존 데이터와 맞추려고 유지).
             // TODO(클라이언트 확인) #16: 브랜드·색상·사이즈·이미지 URL은 선택
             const ITEM_REQUIRED = ["nameEn", "quantity", "unitPrice"];
             const emptyItem = () => ({
@@ -1122,10 +1145,7 @@
                 box.items.every((item) => !itemMissing(item).length);
             const itemsValue = (box) =>
                 box.items.reduce(
-                    (sum, item) =>
-                        sum +
-                        (Number(item.quantity) || 0) *
-                            (Number(item.unitPrice) || 0),
+                    (sum, item) => sum + (Number(item.unitPrice) || 0),
                     0,
                 );
             const methodData = {
@@ -1394,11 +1414,19 @@
                 if (date.getDay() === 0) date.setDate(date.getDate() + 1);
                 return formatDateLocal(date);
             }
+            // 희망 일시 1·2·3순위 칸. 1순위는 필수, 2·3순위는 선택.
+            const SCHEDULE_SLOTS = [
+                ["#pickupDate", "#pickupTime"],
+                ["#pickupDate2", "#pickupTime2"],
+                ["#pickupDate3", "#pickupTime3"],
+            ];
             // 접수 방식별 희망 시간 범위에 맞춰 드롭다운 옵션을 다시 만든다.
             // render()가 자주 호출되므로, 범위가 실제로 바뀔 때만 옵션을 재생성해
             // (그 외엔 사용자가 고르는 도중 선택이 풀리는 일이 없도록) 멱등성을 지킨다.
             function ensureTimeOptions(startMin, endMin) {
-                const select = $("#pickupTime");
+                SCHEDULE_SLOTS.forEach(([, timeId]) => fillTimeOptions($(timeId), startMin, endMin));
+            }
+            function fillTimeOptions(select, startMin, endMin) {
                 const key = `${startMin}-${endMin}`;
                 if (select.dataset.range === key) return;
                 select.dataset.range = key;
@@ -1417,12 +1445,23 @@
             }
             // 카드 선택/날짜 변경 시 접수 방식별 날짜 제약(화요일만, 일요일 제외)을 강제한다.
             function enforceDateConstraint() {
-                const dateInput = $("#pickupDate");
-                if (state.method === "fixed") {
-                    dateInput.value = snapToTuesday(dateInput.value);
-                } else if (state.method === "dropoff") {
-                    dateInput.value = snapAwaySunday(dateInput.value);
-                }
+                SCHEDULE_SLOTS.forEach(([dateId]) => {
+                    const dateInput = $(dateId);
+                    if (state.method === "fixed") {
+                        dateInput.value = snapToTuesday(dateInput.value);
+                    } else if (state.method === "dropoff") {
+                        dateInput.value = snapAwaySunday(dateInput.value);
+                    }
+                });
+            }
+            // 2·3순위 중 날짜를 적은 것만 [{ date, time }]으로 돌려준다.
+            function scheduleAlternatives() {
+                return SCHEDULE_SLOTS.slice(1)
+                    .map(([dateId, timeId]) => ({
+                        date: $(dateId).value,
+                        time: state.method === "fixed" ? "" : $(timeId).value,
+                    }))
+                    .filter((slot) => slot.date);
             }
 
             function renderSummary() {
@@ -1452,6 +1491,9 @@
                       : scheduleTime
                         ? `${scheduleDateLabel} ${scheduleTime}`
                         : "미선택";
+                const altLabels = scheduleAlternatives()
+                    .map((slot, i) => `${i + 2}순위 ${formatDateWithWeekday(slot.date)}${slot.time ? " " + slot.time : ""}`)
+                    .join("<br>");
                 const cargoSummary = buildCargoSummary();
                 const quote = quoteBoxes();
                 const subtotal = quote.total;
@@ -1488,7 +1530,7 @@
         <div class="summary-divider"></div>
         <div class="summary-row"><span>물건 정보</span><strong>${cargoSummary}</strong></div>
         <div class="summary-row"><span>접수 방식</span><strong>${methodData[state.method].name}</strong></div>
-        <div class="summary-row"><span>희망 일시</span><strong>${scheduleLabel}</strong></div>
+        <div class="summary-row"><span>희망 일시</span><strong>${altLabels ? `1순위 ${scheduleLabel}<br>${altLabels}` : scheduleLabel}</strong></div>
         <div class="summary-breakdown">${breakdown}</div>
         <div class="summary-total"><div><div class="summary-total-label">예상 배송비${tipHtml("예상 배송비", "중량별 운임, 추가 운임, 픽업비를 더한 금액입니다. 입고 후 실측한 크기·무게로 확정되므로 달라질 수 있습니다.", "start")}</div></div><div class="summary-total-right"><div class="summary-total-price">${currency(estimatedTotal)}</div></div></div>
         ${dutyWarning}`;
@@ -1505,7 +1547,7 @@
             function renderBoxes() {
                 const canRemove = state.boxes.length > 1;
                 const field = (box, name, label) =>
-                    `<label class="box-field float-field"><span class="field-title">${label}<span class="required">*</span></span><input class="text-input" data-field="${name}" type="number" inputmode="decimal" min="0" step="0.5" placeholder=" " value="${escapeAttr(box[name])}" /></label>`;
+                    `<label class="box-field float-field"><span class="field-title">${label}<span class="required">*</span></span><input class="text-input" data-field="${name}" type="number" inputmode="decimal" min="0" step="${name === "weight" ? "0.5" : "1"}" placeholder=" " value="${escapeAttr(box[name])}" /></label>`;
                 $("#boxList").innerHTML = state.boxes
                     .map((box, index) => {
                         const n = index + 1;
@@ -1517,11 +1559,12 @@
                 ${canRemove ? `<button class="box-remove" type="button" aria-label="박스 ${n} 삭제">삭제</button>` : ""}
               </div>
               <div class="box-fields">${field(box, "length", "가로 (cm)")}${field(box, "width", "세로 (cm)")}${field(box, "height", "높이 (cm)")}${field(box, "weight", "실중량 (kg)")}</div>
-              <div class="box-hints"><div class="box-hint" data-hint="size">${SIZE_HINT}</div><div class="box-hint" data-hint="weight">${WEIGHT_HINT}</div></div>
+              <div class="box-hints"><div class="box-hint">가로·세로·높이는 소수점 이하를 올려 cm 단위로, 실중량은 0.5kg 단위로 올려 적용됩니다. (예: 33.4cm → 34cm, 19.4kg → 19.5kg)</div><div class="box-hint" data-hint="size">${SIZE_HINT}</div><div class="box-hint" data-hint="weight">${WEIGHT_HINT}</div></div>
               <div class="box-carrier-row"><label class="box-carrier"><input type="checkbox" data-field="carrier" ${box.carrier ? "checked" : ""} /><span>바퀴가 달린 가방(캐리어, 이민가방 등)으로 보냅니다</span></label><span class="box-carrier-fee">(<span class="tip tip-start"><button class="tip-btn tip-text" type="button" aria-label="핸들링 비용 설명">핸들링 비용</button><span class="tip-body" role="tooltip">바퀴는 운송 중 부러지거나 상하기 쉬워 따로 보호 포장과 취급이 필요합니다. 그래서 가방당 핸들링 비용이 붙습니다.</span></span> €${Pricing.RATES.carrierHandling})</span></div>
               <div class="box-warnings" data-warnings></div>
               <div class="item-section">
                 <div class="item-section-head"><span class="item-section-title">박스 ${n} 물품 목록</span><span class="item-section-value" data-items-value></span></div>
+                <div class="box-hint item-price-hint">합계금액은 단가 × 수량입니다 (예: €5짜리 2개 → €10). 0원은 세관에 등록되지 않아 최소 금액은 €1 이상이어야 하며, 0을 적으면 €1로 바뀝니다.</div>
                 ${box.items.map((item, i) => renderItem(item, i, n, box.items.length > 1)).join("")}
                 <button class="item-add" type="button">+ 물품 추가</button>
               </div>
@@ -1552,7 +1595,7 @@
                     ${input("color", "색상", 'type="text"')}
                     ${input("size", "사이즈", 'type="text"')}
                     ${input("quantity", `수량<span class="required">*</span>`, 'type="number" inputmode="numeric" min="1" step="1"')}
-                    ${input("unitPrice", `단가 (€)<span class="required">*</span>`, 'type="number" inputmode="decimal" min="0" step="0.5"')}
+                    ${input("unitPrice", `합계금액 (€)<span class="required">*</span>`, 'type="number" inputmode="decimal" min="1" step="0.5"')}
                   </div>
                   <div class="item-grid item-grid-urls">
                     <label class="item-new"><input type="checkbox" data-item-field="isNew" ${item.isNew ? "checked" : ""} /><span>신상품입니다 (상품 URL 필요)</span></label>
@@ -1665,8 +1708,10 @@
                     ? regionCondition()
                     : "";
                 const isFixed = state.method === "fixed";
-                $("#pickupTime").parentElement.classList.toggle("hidden", isFixed);
-                $("#pickupTime").disabled = isFixed;
+                SCHEDULE_SLOTS.forEach(([, timeId]) => {
+                    $(timeId).parentElement.classList.toggle("hidden", isFixed);
+                    $(timeId).disabled = isFixed;
+                });
                 if (state.method === "dropoff") {
                     ensureTimeOptions(10 * 60 + 30, 17 * 60);
                 } else if (state.method === "premium") {
@@ -1802,7 +1847,17 @@
                     });
                 }
                 const dateOk = isDateAllowed(dateInput.value);
-                const valid = dateOk && timeOk && regionOk;
+                let altOk = true;
+                SCHEDULE_SLOTS.slice(1).forEach(([dateId, timeId]) => {
+                    const altDate = $(dateId).value;
+                    const altTime = $(timeId).value;
+                    const altDateOk = altDate ? isDateAllowed(altDate) : !altTime || isFixed;
+                    const altTimeOk = isFixed || !altDate || !!altTime;
+                    $(dateId).classList.toggle("input-error", !altDateOk);
+                    $(timeId).classList.toggle("input-error", !altTimeOk);
+                    if (!altDateOk || !altTimeOk) altOk = false;
+                });
+                const valid = dateOk && timeOk && regionOk && altOk;
                 dateInput.classList.toggle("input-error", !dateOk);
                 timeInput.classList.toggle("input-error", !timeOk);
                 $("#methodError").classList.toggle("visible", !valid);
@@ -1912,14 +1967,22 @@
                     $("#cargoError").classList.remove("visible");
                 render();
             });
-            // 가로·세로·높이·실중량과 물품 단가는 입력칸에서 0.5 단위로 올려 보여 준다.
+            // 입력칸에서 바로 올려 보여 준다: 가로·세로·높이는 정수 cm, 실중량과 물품 합계금액은 0.5 단위.
+            // 합계금액에 0 이하를 적으면 세관 등록이 안 되므로 €1로 바꾼다.
             // (30kg 초과 1kg 단위 올림 같은 청구 무게 규칙은 요금 계산(Pricing)에서만 적용한다)
             $("#boxList").addEventListener("change", (event) => {
                 const input = event.target.closest('[data-field], [data-item-field="unitPrice"]');
                 if (!input || input.dataset.field === "carrier") return;
+                const isPrice = input.dataset.itemField === "unitPrice";
                 const value = Number(input.value);
+                if (isPrice && input.value.trim() && !(value > 0)) {
+                    input.value = 1;
+                    input.dispatchEvent(new Event("input", { bubbles: true }));
+                    return;
+                }
                 if (!(value > 0)) return;
-                const rounded = Math.ceil(value * 2 - 1e-9) / 2;
+                const step = ["length", "width", "height"].includes(input.dataset.field) ? 1 : 0.5;
+                const rounded = Math.ceil(value / step - 1e-9) * step;
                 if (rounded === value) return;
                 input.value = rounded;
                 input.dispatchEvent(new Event("input", { bubbles: true }));
@@ -2024,15 +2087,40 @@
                     }
                 });
             });
-            $("#pickupDate").addEventListener("change", () => {
-                enforceDateConstraint();
-                render();
-            });
+            SCHEDULE_SLOTS.forEach(([dateId]) =>
+                $(dateId).addEventListener("change", () => {
+                    enforceDateConstraint();
+                    render();
+                }),
+            );
             $(".map-link").addEventListener("click", (event) =>
                 event.stopPropagation(),
             );
             $$("input, select, textarea").forEach((input) =>
                 input.addEventListener("input", render),
+            );
+            const digitsOnly = (value) => value.replace(/\D/g, "");
+            $("#recipientPhone").addEventListener("input", (event) => {
+                const digits = digitsOnly(event.target.value);
+                if (digits !== event.target.value) event.target.value = digits;
+            });
+            $("#recipientPhone").addEventListener("change", (event) => {
+                const digits = digitsOnly(event.target.value);
+                event.target.value = /^82[1-9]/.test(digits) ? "0" + digits.slice(2) : digits;
+                render();
+            });
+            // KIM SEONYOUNG, kim seon-young → Kim Seonyoung, Kim Seon-Young
+            const nameCase = (value) =>
+                value
+                    .trim()
+                    .replace(/\s+/g, " ")
+                    .toLowerCase()
+                    .replace(/(^|[\s-])(\p{L})/gu, (m, sep, ch) => sep + ch.toUpperCase());
+            ["#customerNameEn", "#recipientNameEn"].forEach((id) =>
+                $(id).addEventListener("change", (event) => {
+                    event.target.value = nameCase(event.target.value);
+                    render();
+                }),
             );
             // 신청인 주소 자동완성 (오기입 방지).
             // TODO(클라이언트 확인) #9: Photon(OpenStreetMap, 무료·키 없음) 사용
@@ -2469,6 +2557,7 @@
                     // 고정 픽업은 시간을 받지 않으므로, 다른 방식에서 골랐던 시간이 남지 않게 비운다.
                     scheduleTime:
                         state.method === "fixed" ? "" : $("#pickupTime").value,
+                    scheduleAlternatives: scheduleAlternatives(),
                     estimatedTotal: subtotal + calcMethodFee(subtotal),
                     methodFee: calcMethodFee(subtotal),
                     quoteTotals: quoteBoxes().totals,
@@ -2503,7 +2592,7 @@
                     deliveryAddressDetailEn: deliveryValue("#deliveryAddressDetailEn"),
                     recipientNameKo: deliveryValue("#recipientNameKo"),
                     recipientNameEn: deliveryValue("#recipientNameEn"),
-                    recipientPhone: deliveryValue("#recipientPhone"),
+                    recipientPhone: deliveryValue("#recipientPhone").replace(/\D/g, ""),
                     recipientEmail: deliveryValue("#recipientEmail"),
                     customsCode: deliveryValue("#customsCode"),
                     payment: "계좌이체",
@@ -2551,6 +2640,8 @@
                 setVal("#regionZip", region && region.zip);
                 setVal("#regionCity", region && !region.hub ? region.city : "");
                 setVal("#pickupDate", p.scheduleDate);
+                const alts = Array.isArray(p.scheduleAlternatives) ? p.scheduleAlternatives : [];
+                SCHEDULE_SLOTS.slice(1).forEach(([dateId], i) => setVal(dateId, alts[i] && alts[i].date));
 
                 const parts = (prefix, v) =>
                     ["Street", "HouseNo", "Zip", "City"].forEach((name) =>
@@ -2586,6 +2677,7 @@
                 renderBoxes();
                 render(); // 접수 방식에 맞는 시간 목록을 먼저 만든 뒤 시간을 넣는다
                 setVal("#pickupTime", p.scheduleTime);
+                SCHEDULE_SLOTS.slice(1).forEach(([, timeId], i) => setVal(timeId, alts[i] && alts[i].time));
                 render();
             }
 
@@ -2649,7 +2741,7 @@
             const tomorrow = new Date();
             tomorrow.setDate(tomorrow.getDate() + 1);
             const tomorrowStr = formatDateLocal(tomorrow);
-            $("#pickupDate").min = tomorrowStr;
+            SCHEDULE_SLOTS.forEach(([dateId]) => ($(dateId).min = tomorrowStr));
             $("#pickupDate").value = tomorrowStr;
             enforceDateConstraint();
             linkTips();

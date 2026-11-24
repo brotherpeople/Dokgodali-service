@@ -1318,7 +1318,7 @@ const REQUEST_DIFF_FIELDS = [
   ['물건', p => (p.boxes ? `${p.boxes.length}박스 · ${p.chargeableKg ?? '-'}kg / ${p.boxes.flatMap(b => b.items || []).map(it => `${it.nameEn} ×${it.quantity}`).join(', ')}` : '')],
   ['예상 배송비', p => (p.estimatedTotal != null ? `€${Number(p.estimatedTotal).toFixed(2)}` : '')],
   ['접수 방식', p => p.methodName || ''],
-  ['일시', p => [p.scheduleDate, p.scheduleTime].filter(Boolean).join(' ')],
+  ['일시', p => [[p.scheduleDate, p.scheduleTime].filter(Boolean).join(' '), ...(p.scheduleAlternatives || []).map((a, i) => `${i + 2}순위 ${[a.date, a.time].filter(Boolean).join(' ')}`)].filter(Boolean).join(' / ')],
   ['타지역 픽업', p => (p.pickupRegion ? `${p.pickupRegion.zip || ''} ${p.pickupRegion.city || ''}`.trim() : '')],
   ['신청인', p => [p.customerName, p.customerNameEn].filter(Boolean).join(' / ')],
   ['연락처', p => [p.customerPhone, p.customerEmail, p.kakaoId && `카톡 ${p.kakaoId}`].filter(Boolean).join(' · ')],
@@ -1694,7 +1694,7 @@ function renderRequestDetailBody(r) {
   const customsLabel = { ecommerce: '전자상거래', general: '일반통관' }[p.customsType] || p.customsType || '-';
   const stat = (label, value, sub) => `<div><dt>${label}</dt><dd>${value}${sub ? `<small>${sub}</small>` : ''}</dd></div>`;
   const summary = `<dl class="rd-summary">
-    ${stat('접수', e([day(p.scheduleDate), p.methodName].filter(Boolean).join(' ') || '-'), e([p.scheduleTime, p.method === 'region' && region].filter(Boolean).join(' · ')))}
+    ${stat('접수', e([day(p.scheduleDate), p.methodName].filter(Boolean).join(' ') || '-'), [e([p.scheduleTime, p.method === 'region' && region].filter(Boolean).join(' · ')), ...(p.scheduleAlternatives || []).map((a, i) => e(`${i + 2}순위 ${[day(a.date), a.time].filter(Boolean).join(' ')}`))].filter(Boolean).join('<br>'))}
     ${stat('예상 배송비', euro(p.estimatedTotal))}
     ${stat('화물', boxes.length ? `${boxes.length}박스 · ${e(p.chargeableKg)}kg` : e(cargoText || '-'), boxes.length ? `신고가 ${euro(p.declaredTotal)}` : '')}
     ${stat('통관', e(customsLabel), p.deliveryUndecided ? '' : e(p.customsCode || '고유부호 없음'))}
