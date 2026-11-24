@@ -120,7 +120,7 @@ body { background: var(--surface); }
 .item-section-title { font-size: var(--fs-small); font-weight: var(--fw-bold); }
 .item-section-value { color: var(--muted); font-size: var(--fs-caption); font-weight: var(--fw-bold); }
 .item-row { padding: 12px 0; border-bottom: 1px solid var(--border); }
-.item-grid { display: grid; grid-template-columns: 1.5fr 2fr 1.2fr 1fr 0.9fr 0.8fr 1fr; gap: 8px; }
+.item-grid { display: grid; grid-template-columns: 1.4fr 1.9fr 1.1fr 1fr 0.9fr 0.7fr 1.4fr; gap: 8px; }
 .item-grid-urls { grid-template-columns: auto 1fr 1fr auto; align-items: start; gap: 12px; margin-top: 12px; }
 .item-grid-urls .item-new { padding: 16px 0 0; }
 .item-grid-urls .item-remove { margin-top: 16px; }
