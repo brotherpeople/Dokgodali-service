@@ -1373,7 +1373,7 @@ const editedLabel = r => (r.edit_count ? `고객 수정 ${r.edit_count}회${r.ed
 function renderQuoteControl(r) {
   if (!r || r.type !== 'delivery') return '';
   const pdf = r.angebot && r.angebot.number
-    ? `<button class="btn btn-secondary btn-sm" onclick="downloadAngebot(${jsArg(r.id)})">견적서 PDF</button>`
+    ? `<button class="btn btn-secondary btn-sm" onclick="downloadAngebot(${jsArg(r.id)})">견적서 PDF</button><button class="btn btn-secondary btn-sm" onclick="openAngebotEditor(${jsArg(r.id)})">수정 후 재발행</button>`
     : '';
   const quote = r.quote_issued_at
     ? `${pdf}<button class="btn btn-secondary btn-sm" onclick="setQuoteIssued(${jsArg(r.id)}, false)">발행 취소</button><span class="request-actions-note">견적서 ${r.angebot_no ? escapeHtml(r.angebot_no) + ' ' : ''}발행됨 ${shortDateTime(r.quote_issued_at)}</span>`
