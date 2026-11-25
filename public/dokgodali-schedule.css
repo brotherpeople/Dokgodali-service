@@ -981,6 +981,7 @@
 
   /* 배송 견적서 편집 창: 넓은 팝업, 구역마다 작은 제목, 항목은 이름·설명 | 수량 | 단가 | 삭제 */
   .angebot-dialog { max-width: 760px; }
+  #angebot-modal { z-index: 150; } /* 작업 팝업(같은 100) 위에 뜨도록 */
   .ab-hint { margin: 0 0 16px; font-size: var(--fs-caption); color: var(--muted); }
   .ab-section { padding: 16px 0; border-top: 1px solid var(--border); }
   .ab-section:first-of-type { border-top: 0; padding-top: 0; }
