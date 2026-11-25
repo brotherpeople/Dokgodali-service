@@ -368,3 +368,8 @@ details[open] .more-link { display: none; }
 .item-field.float-field:has(select) > .field-title { font-size: var(--fs-caption); }
 .float-field .image-upload-btn { height: 50px; }
 .date-row .float-field + .schedule-hint, .date-row > div > .schedule-hint { margin-top: 8px; }
+
+/* 11/25 안내 문구를 점 목록으로: 줄마다 앞에 점, 두 번째 줄부터는 글자 위치에 맞춰 들여쓴다 */
+.box-hint { position: relative; padding-left: 12px; }
+.box-hint::before { content: "•"; position: absolute; left: 2px; }
+.item-price-hint { margin: 0 0 8px; }

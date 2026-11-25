@@ -1337,7 +1337,7 @@ const REQUEST_DIFF_FIELDS = [
   ['예상 배송비', p => (p.estimatedTotal != null ? `€${Number(p.estimatedTotal).toFixed(2)}` : '')],
   ['접수 방식', p => p.methodName || ''],
   ['일시', p => [[p.scheduleDate, p.scheduleTime].filter(Boolean).join(' '), ...(p.scheduleAlternatives || []).map((a, i) => `${i + 2}순위 ${[a.date, a.time].filter(Boolean).join(' ')}`)].filter(Boolean).join(' / ')],
-  ['타지역 픽업', p => (p.pickupRegion ? `${p.pickupRegion.zip || ''} ${p.pickupRegion.city || ''}`.trim() : '')],
+  ['픽업 지역', p => (p.pickupRegion ? `${p.pickupRegion.zip || ''} ${p.pickupRegion.city || ''}`.trim() : '')],
   ['신청인', p => [p.customerName, p.customerNameEn].filter(Boolean).join(' / ')],
   ['연락처', p => [p.customerPhone, p.customerEmail, p.kakaoId && `카톡 ${p.kakaoId}`].filter(Boolean).join(' · ')],
   ['신청인 주소', p => p.customerAddress || ''],
@@ -1927,7 +1927,7 @@ function renderRequestDetailBody(r) {
   const pickup = p.method === 'dropoff'
     ? line('접수처 방문', false)
     : line(e(p.pickupAddress || region || '-'), false)
-      + (p.method === 'region' && region && p.pickupAddress ? line(`타지역 ${e(region)}`) : '')
+      + (p.method === 'region' && region && p.pickupAddress ? line(`픽업 지역 ${e(region)}`) : '')
       + line(p.pickupKlingel && `초인종 ${e(p.pickupKlingel)}`);
   const recipientName = [p.recipientNameKo, p.recipientNameEn && `(${p.recipientNameEn})`].filter(Boolean).join(' ');
   const destination = p.deliveryUndecided

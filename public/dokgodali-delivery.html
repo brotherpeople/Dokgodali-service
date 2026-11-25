@@ -105,7 +105,7 @@
                                 박스 정보
                                 <span class="tip"><button class="tip-btn" type="button" aria-label="운임 계산 방식 설명"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.5h.01"/></svg></button><span class="tip-body" role="tooltip">운임은 부피 무게(가로×세로×높이÷6000)와 실중량 중 큰 값으로 계산됩니다.</span></span>
                             </div>
-                            <div class="section-hint">품명은 '옷' 대신 '바지', '티셔츠'처럼 구체적으로 적어 주세요.</div>
+                            <div class="section-hint">품명은 영문으로, 'clothes' 대신 'pants', 'T-shirts'처럼 구체적으로 적어 주세요.</div>
                             <div class="caution" role="note">
                                 <div class="caution-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>주의사항</div>
                                 <ul>
@@ -268,12 +268,10 @@
                                         <span class="method-radio"></span>
                                         <div>
                                             <div class="method-name">
-                                                타지역 픽업
-                                                <span class="method-area"
-                                                    >베를린 외</span
-                                                >
+                                                타지역 및 고정시간 이외의 픽업
+                                                <span class="tip tip-start"><button class="tip-btn" type="button" aria-label="무료 픽업 조건 설명"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.5h.01"/></svg></button><span class="tip-body" role="tooltip">프랑크푸르트로 가는 배송일에 지나가는 도시(라이프치히, 할레, 하노버, 에어푸르트 등 베를린과 프랑크푸르트 사이)는 일정을 맞추면 무료로 픽업합니다. 중간 경유지는 €350 이상, 프랑크푸르트와 인근은 €70 이상 주문 시.</span></span>
                                             </div>
-                                            <div class="method-note">베를린 외 지역 방문 픽업</div>
+                                            <div class="method-note">베를린 외 지역, 또는 화요일 고정 픽업 시간 외 방문 픽업</div>
                                         </div>
                                         <div class="method-price">
                                             창고 기준 직선거리 1km당 €1<br />(견적 시
@@ -378,12 +376,7 @@
                                     <select class="select-input" id="pickupTime3"></select>
                                 </div>
                             </div>
-                            <div class="field-error" id="methodError">
-                                희망 날짜와 시간을 확인해 주세요. 1순위는 필수이고, 2·3순위는 날짜를 적었다면 시간도 골라 주세요. 고정 픽업은
-                                화요일, 접수처 방문은 일요일을 제외한 내일 이후
-                                날짜만 가능합니다. 타지역 픽업은 도시와 우편번호도
-                                필요합니다.
-                            </div>
+                            <div class="field-error" id="methodError" aria-live="polite"></div>
                         </div>
                         <div class="actions">
                             <button
@@ -1156,7 +1149,7 @@
                     name: "고정 픽업",
                 },
                 region: {
-                    name: "타지역 픽업",
+                    name: "타지역 및 고정시간 이외의 픽업",
                     condition: "창고 기준 직선거리 1km당 €1 (견적 시 산정)",
                 },
                 dropoff: {
@@ -1564,7 +1557,7 @@
               <div class="box-warnings" data-warnings></div>
               <div class="item-section">
                 <div class="item-section-head"><span class="item-section-title">박스 ${n} 물품 목록</span><span class="item-section-value" data-items-value></span></div>
-                <div class="box-hint item-price-hint">합계금액은 단가 × 수량입니다 (예: €5짜리 2개 → €10). 0원은 세관에 등록되지 않아 최소 금액은 €1 이상이어야 하며, 0을 적으면 €1로 바뀝니다.</div>
+                <div class="box-hints item-price-hint"><div class="box-hint">합계금액은 단가 × 수량입니다 (예: €5짜리 2개 → €10).</div><div class="box-hint">0원은 세관에 등록되지 않아 최소 금액은 €1 이상이어야 하며, 0을 적으면 €1로 바뀝니다.</div></div>
                 ${box.items.map((item, i) => renderItem(item, i, n, box.items.length > 1)).join("")}
                 <button class="item-add" type="button">+ 물품 추가</button>
               </div>
@@ -1858,6 +1851,16 @@
                     if (!altDateOk || !altTimeOk) altOk = false;
                 });
                 const valid = dateOk && timeOk && regionOk && altOk;
+                const DATE_RULE = {
+                    fixed: "고정 픽업은 화요일만 가능합니다. 1순위 날짜를 화요일로 골라 주세요.",
+                    dropoff: "접수처는 일요일에 쉽니다. 1순위 날짜를 내일 이후 월~토요일로 골라 주세요.",
+                };
+                $("#methodError").textContent = [
+                    !regionOk && "픽업 도시와 우편번호를 입력해 주세요.",
+                    !dateOk && (DATE_RULE[state.method] || "1순위 날짜를 내일 이후로 골라 주세요."),
+                    !timeOk && "1순위 시간을 골라 주세요.",
+                    !altOk && (isFixed ? "2·3순위 날짜를 확인해 주세요." : "2·3순위는 날짜를 골랐다면 시간도 골라 주세요. (비워 두셔도 됩니다)"),
+                ].filter(Boolean).join(" ");
                 dateInput.classList.toggle("input-error", !dateOk);
                 timeInput.classList.toggle("input-error", !timeOk);
                 $("#methodError").classList.toggle("visible", !valid);
