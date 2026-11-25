@@ -17,15 +17,22 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # 올리기와 배포를 두 작업으로 나눈다. 한 작업 안에서 바로 배포하면 방금 올린 묶음(artifact)을
+  # 아직 못 찾아 "No artifacts named github-pages" 오류가 가끔 난다 (11/24·11/25 실패).
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: public
   deploy:
+    needs: build
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/upload-pages-artifact@v4
-        with:
-          path: public
       - id: deployment
         uses: actions/deploy-pages@v4
