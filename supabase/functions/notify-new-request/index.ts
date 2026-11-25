@@ -11,6 +11,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
 import nodemailer from "npm:nodemailer@6.9.16";
+import { requestMailHtml, requestMailText } from "./mail-template.ts";
 
 // 신청인 메일 설정 (Edge Function Secrets):
 //   SMTP_HOST, SMTP_PORT(465), SMTP_USER, SMTP_PASS(Gmail 앱 비밀번호), MAIL_FROM, SITE_URL
@@ -179,10 +180,7 @@ async function worklogAdminBody(sb: ReturnType<typeof createClient>, record: any
   return `${name} · ${record.job_date || ""} ${record.actual_start || ""}~${record.actual_end || ""}`;
 }
 
-// ---------- 신청인 메일: 접수 확인 + 수정 링크 (배송 요청만)
-const escapeHtml = (v: unknown) =>
-  String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
-
+// ---------- 신청인 메일: 접수 확인 + 수정 링크 (배송 요청만). 내용·디자인은 mail-template.ts
 // deno-lint-ignore no-explicit-any
 async function sendRequestMail(record: any) {
   if (record.type !== "delivery" || !record.edit_key || !record.customer_email) return;
@@ -191,42 +189,10 @@ async function sendRequestMail(record: any) {
     console.warn("request mail skipped: SMTP_* or SITE_URL secret missing");
     return;
   }
-  const p = record.payload || {};
-  const link = `${env("SITE_URL")}/dokgodali-delivery.html?edit=${encodeURIComponent(record.id)}&key=${encodeURIComponent(record.edit_key)}`;
-  const rows: [string, string][] = [
-    ["요청 번호", record.id],
-    ["물건", record.summary || ""],
-    ["접수 방식", [p.methodName, p.scheduleDate, p.scheduleTime].filter(Boolean).join(" · ")],
-    ...((p.scheduleAlternatives || []) as { date: string; time: string }[]).map((a, i): [string, string] =>
-      [`${i + 2}순위 희망 일시`, [a.date, a.time].filter(Boolean).join(" ")]),
-    ["픽업지", p.method === "dropoff" ? "접수처 방문" : p.pickupAddress || ""],
-    ["배송지", p.deliveryUndecided ? "미정" : `${p.deliveryZip || ""} ${p.deliveryAddress || ""} ${p.deliveryAddressDetail || ""}`.trim()],
-    ["예상 배송비", p.estimatedTotal != null ? `€${Number(p.estimatedTotal).toFixed(2)}` : ""],
-  ];
-  const name = record.customer_name || "고객";
-  const text = [
-    `${name}님, 독고달이 한국 배송 신청이 접수되었습니다.`,
-    "",
-    ...rows.map(([k, v]) => `${k}: ${v}`),
-    "",
-    "신청 내용을 고치려면 아래 링크를 여세요. 견적서가 발행되기 전까지 수정할 수 있습니다.",
-    link,
-    "",
-    "이 링크를 가진 사람은 신청 내용을 고칠 수 있으니 다른 사람과 공유하지 마세요.",
-    "담당자가 내용을 확인한 뒤 견적과 픽업 시간을 안내해 드립니다.",
-    "",
-    "독고달이 · info@dokgodali.de",
-  ].join("\n");
-  const html = `<div style="font-family:sans-serif;font-size:14px;line-height:1.6;color:#1f2333;max-width:560px">
-<p><strong>${escapeHtml(name)}</strong>님, 독고달이 한국 배송 신청이 접수되었습니다.</p>
-<table style="border-collapse:collapse;font-size:13px">${rows
-    .map(([k, v]) => `<tr><td style="padding:3px 14px 3px 0;color:#6b7280;white-space:nowrap">${escapeHtml(k)}</td><td style="padding:3px 0">${escapeHtml(v)}</td></tr>`)
-    .join("")}</table>
-<p style="margin-top:18px">신청 내용을 고치려면 아래 버튼을 눌러 주세요. 견적서가 발행되기 전까지 수정할 수 있습니다.</p>
-<p><a href="${escapeHtml(link)}" style="display:inline-block;padding:10px 16px;border-radius:8px;background:#e66a18;color:#fff;text-decoration:none;font-weight:700">신청 내용 수정하기</a></p>
-<p style="font-size:12px;color:#6b7280">버튼이 열리지 않으면 이 주소를 복사해 여세요:<br>${escapeHtml(link)}</p>
-<p style="font-size:12px;color:#6b7280">이 링크를 가진 사람은 신청 내용을 고칠 수 있으니 다른 사람과 공유하지 마세요.<br>담당자가 내용을 확인한 뒤 견적과 픽업 시간을 안내해 드립니다.</p>
-<p style="font-size:12px;color:#6b7280">독고달이 · info@dokgodali.de</p></div>`;
+  // SITE_URL 끝에 /가 있어도 링크에 //가 생기지 않게 뗀다.
+  const link = `${env("SITE_URL").replace(/\/+$/, "")}/dokgodali-delivery.html?edit=${encodeURIComponent(record.id)}&key=${encodeURIComponent(record.edit_key)}`;
+  const text = requestMailText(record, link);
+  const html = requestMailHtml(record, link);
 
   const transporter = nodemailer.createTransport({
     host: env("SMTP_HOST"),

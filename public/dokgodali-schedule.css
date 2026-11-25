@@ -978,3 +978,31 @@
   header .btn-secondary:hover { background: rgba(255, 255, 255, .08); }
   header .btn-danger-outline { background: transparent; border-color: rgba(254, 202, 202, .45); color: var(--red-border); }
   header .btn-danger-outline:hover { background: rgba(220, 38, 38, .18); }
+
+  /* 배송 견적서 편집 창: 넓은 팝업, 구역마다 작은 제목, 항목은 이름·설명 | 수량 | 단가 | 삭제 */
+  .angebot-dialog { max-width: 760px; }
+  .ab-hint { margin: 0 0 16px; font-size: var(--fs-caption); color: var(--muted); }
+  .ab-section { padding: 16px 0; border-top: 1px solid var(--border); }
+  .ab-section:first-of-type { border-top: 0; padding-top: 0; }
+  .ab-title { margin-bottom: 8px; font-size: var(--fs-body); font-weight: var(--fw-bold); }
+  .ab-note { margin-left: 6px; font-size: var(--fs-caption); font-weight: var(--fw-regular); color: var(--faint); }
+  .ab-fact { display: grid; grid-template-columns: 112px 1fr; align-items: center; gap: 8px; margin-top: 6px; font-size: var(--fs-caption); color: var(--muted); }
+  .ab-vat { margin-top: 12px; max-width: 260px; }
+  .ab-item { display: grid; grid-template-columns: 20px 1fr 72px 96px auto; gap: 8px; align-items: start; padding: 10px 0; border-bottom: 1px dashed var(--border); }
+  .ab-item:last-of-type { margin-bottom: 10px; }
+  .ab-pos { padding-top: 8px; font-size: var(--fs-caption); color: var(--muted); }
+  .ab-item-main { display: grid; gap: 6px; }
+  .ab-item-title { font-weight: var(--fw-medium); }
+  .ab-item textarea, .ab-section textarea { resize: vertical; font-family: inherit; line-height: 1.5; }
+  .ab-num { display: grid; gap: 2px; font-size: var(--fs-caption); color: var(--muted); }
+  .ab-remove { margin-top: 18px; }
+  .angebot-footer { position: sticky; bottom: 0; align-items: center; }
+  .angebot-sum { margin-right: auto; font-size: var(--fs-body); }
+  .angebot-sum span { margin-left: 6px; font-size: var(--fs-caption); color: var(--muted); }
+  @media (max-width: 600px) {
+    .ab-item { grid-template-columns: 20px 1fr 1fr; }
+    .ab-item-main { grid-column: 2 / -1; }
+    .ab-num:first-of-type { grid-column: 2; }
+    .ab-remove { grid-column: 2 / -1; margin-top: 0; justify-self: start; }
+    .ab-fact { grid-template-columns: 1fr; gap: 2px; }
+  }
