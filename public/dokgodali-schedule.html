@@ -10,6 +10,8 @@
 <script src="dokgodali-config.js"></script>
 <script src="dokgodali-delivery-caution.js"></script>
 <script src="dokgodali-export.js"></script>
+<script src="dokgodali-delivery-pricing.js"></script>
+<script src="dokgodali-angebot.js"></script>
 <link rel="stylesheet" href="dokgodali-schedule.css">
 <!-- 아이폰에서 "홈 화면에 추가"로 설치해야 웹 푸시가 동작하기 때문에 PWA로 설치 가능하게 만든다 -->
 <link rel="manifest" href="manifest.json">
@@ -374,6 +376,22 @@
         <button type="submit" class="btn btn-primary btn-sm">저장</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- MODAL: 배송 견적서(Angebot) 편집·발행 -->
+<div id="angebot-modal" class="modal-overlay hidden">
+  <div class="modal-dialog angebot-dialog">
+    <div class="modal-header">
+      <div class="card-title" id="angebot-modal-title">견적서 발행</div>
+      <button class="btn btn-secondary btn-sm" onclick="closeAngebotModal()">닫기</button>
+    </div>
+    <div class="modal-body" id="angebot-body"></div>
+    <div class="modal-footer angebot-footer">
+      <div class="angebot-sum" id="angebot-sum"></div>
+      <button class="btn btn-secondary btn-sm" onclick="previewAngebot()">미리보기</button>
+      <button class="btn btn-primary btn-sm" id="angebot-issue-btn" onclick="issueAngebot()">발행하고 PDF 받기</button>
+    </div>
   </div>
 </div>
 
@@ -1354,9 +1372,12 @@ const editedLabel = r => (r.edit_count ? `고객 수정 ${r.edit_count}회${r.ed
 // 요청 상세·작업 팝업 아래 버튼 줄: 엑셀 내보내기 · 견적서 발행 표시(발행 후에는 발행 취소 + 발행 시각)
 function renderQuoteControl(r) {
   if (!r || r.type !== 'delivery') return '';
+  const pdf = r.angebot && r.angebot.number
+    ? `<button class="btn btn-secondary btn-sm" onclick="downloadAngebot(${jsArg(r.id)})">견적서 PDF</button>`
+    : '';
   const quote = r.quote_issued_at
-    ? `<button class="btn btn-secondary btn-sm" onclick="setQuoteIssued(${jsArg(r.id)}, false)">발행 취소</button><span class="request-actions-note">견적서 발행됨 ${shortDateTime(r.quote_issued_at)}</span>`
-    : `<button class="btn btn-primary btn-sm" onclick="setQuoteIssued(${jsArg(r.id)}, true)">견적서 발행 표시</button>`;
+    ? `${pdf}<button class="btn btn-secondary btn-sm" onclick="setQuoteIssued(${jsArg(r.id)}, false)">발행 취소</button><span class="request-actions-note">견적서 ${r.angebot_no ? escapeHtml(r.angebot_no) + ' ' : ''}발행됨 ${shortDateTime(r.quote_issued_at)}</span>`
+    : `<button class="btn btn-primary btn-sm" onclick="openAngebotEditor(${jsArg(r.id)})">견적서 발행</button>`;
   return `<div class="request-actions">
     <button class="btn btn-secondary btn-sm" onclick="exportRequestXlsx(${jsArg(r.id)})">엑셀 내보내기</button>${quote}
   </div>`;
@@ -1420,6 +1441,184 @@ async function setQuoteIssued(id, issued) {
   if (state.jobDetail) renderJobDetailModal();
   showToast(issued ? '견적서 발행을 표시했습니다.' : '견적서 발행 표시를 취소했습니다.');
 }
+// ---------- 배송 견적서(Angebot) 발행 (dokgodali-angebot.js)
+// 편집 창에서 항목·금액·문구를 고친 뒤 발행하면: 번호를 받고(assign_angebot_numbers) →
+// 내용을 requests.angebot에 저장(고객 수정 잠김) → PDF를 내려받는다.
+// 회사 주소·은행 정보는 공개 코드에 두지 않고 company_settings(관리자만 읽기)에서 읽는다.
+let angebotDraft = null; // { id, data, settings }
+let angebotAssets = null;
+function loadAngebotAssets() {
+  angebotAssets ??= (async () => {
+    if (!window.DokgodaliAngebotFonts) {
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'fonts/roboto-condensed.js';
+        script.onload = resolve;
+        script.onerror = () => reject(new Error('견적서 글꼴을 불러오지 못했습니다.'));
+        document.head.append(script);
+      });
+    }
+    const res = await fetch('images/logo-angebot.png');
+    if (!res.ok) throw new Error('견적서 로고를 불러오지 못했습니다.');
+    const logo = { data: new Uint8Array(await res.arrayBuffer()), w: 100, h: 100 * 447 / 744 };
+    return { fonts: window.DokgodaliAngebotFonts, logo };
+  })().catch(error => { angebotAssets = null; throw error; });
+  return angebotAssets;
+}
+async function loadCompanySettings() {
+  const { data, error } = await sb.from('company_settings').select('data').eq('id', 1).maybeSingle();
+  if (error) throw new Error('회사 설정을 불러오지 못했습니다: ' + error.message);
+  return (data && data.data) || {};
+}
+async function renderAngebotPdf(data, settings) {
+  const { fonts, logo } = await loadAngebotAssets();
+  return window.DokgodaliAngebot.render(jspdf.jsPDF, data, settings, logo, fonts);
+}
+function angebotFileName(data, r) {
+  const name = String((r && r.payload && r.payload.customerNameEn) || (r && r.customer_name) || '').replace(/[\\/:*?"<>|\s]+/g, '_');
+  return `Angebot_${data.number || 'Entwurf'}${name ? '_' + name : ''}.pdf`;
+}
+async function openAngebotEditor(id) {
+  const r = state.requests.find(x => x.id === id);
+  if (!r) return;
+  let settings;
+  try {
+    settings = await loadCompanySettings();
+  } catch (error) {
+    return uiAlert(error.message);
+  }
+  if (!settings.companyName || !Array.isArray(settings.footer)) {
+    return uiAlert('견적서 아래쪽에 들어갈 회사 주소·연락처·은행 정보가 아직 없습니다. 관리자 설정에서 먼저 넣어 주세요.', { title: '회사 정보가 필요합니다' });
+  }
+  // 발행을 취소했다가 다시 여는 경우엔 저장해 둔 내용을, 처음이면 신청서에서 만든 내용을 쓴다.
+  const data = r.angebot
+    ? JSON.parse(JSON.stringify(r.angebot))
+    : window.DokgodaliAngebot.fromDeliveryRequest(r, settings, { number: r.angebot_no || '', customerNo: r.customer_no || '' });
+  delete data.settings;
+  angebotDraft = { id, data, settings };
+  document.getElementById('angebot-modal-title').textContent = r.angebot_no ? `견적서 발행 · ${r.angebot_no}` : '견적서 발행';
+  renderAngebotEditor();
+  document.getElementById('angebot-modal').classList.remove('hidden');
+}
+function closeAngebotModal() {
+  document.getElementById('angebot-modal').classList.add('hidden');
+  angebotDraft = null;
+}
+function renderAngebotEditor() {
+  const d = angebotDraft.data;
+  const e = escapeHtml;
+  const items = d.items.map((it, i) => `
+    <div class="ab-item">
+      <span class="ab-pos">${i + 1}.</span>
+      <div class="ab-item-main">
+        <input class="form-control ab-item-title" value="${e(it.title)}" oninput="angebotItem(${i}, 'title', this.value)" aria-label="항목 ${i + 1} 이름">
+        <textarea class="form-control" rows="2" oninput="angebotItem(${i}, 'text', this.value)" aria-label="항목 ${i + 1} 설명">${e(it.text || '')}</textarea>
+      </div>
+      <label class="ab-num"><span>수량</span><input class="form-control" type="number" min="0" step="1" value="${e(it.qty)}" oninput="angebotItem(${i}, 'qty', this.value)"></label>
+      <label class="ab-num"><span>단가 (€)</span><input class="form-control" type="number" min="0" step="0.01" value="${e(it.unitPrice)}" oninput="angebotItem(${i}, 'unitPrice', this.value)"></label>
+      <button class="btn btn-secondary btn-sm ab-remove" onclick="angebotRemoveItem(${i})" aria-label="항목 ${i + 1} 삭제">삭제</button>
+    </div>`).join('');
+  document.getElementById('angebot-body').innerHTML = `
+    <p class="ab-hint">PDF는 독일어로 나옵니다. 신청서 내용으로 미리 채웠으니 확인하고 고쳐 주세요.</p>
+    <div class="ab-section">
+      <div class="ab-title">받는 사람</div>
+      <textarea class="form-control" rows="4" oninput="angebotDraft.data.recipient = this.value.split('\\n').filter(Boolean)">${e(d.recipient.join('\n'))}</textarea>
+    </div>
+    <div class="ab-section">
+      <div class="ab-title">견적 정보</div>
+      ${d.facts.map(([label, value], i) => `<label class="ab-fact"><span>${e(label.replace(/:$/, ''))}</span><input class="form-control" value="${e(value)}" oninput="angebotDraft.data.facts[${i}][1] = this.value"></label>`).join('')}
+    </div>
+    <div class="ab-section">
+      <div class="ab-title">항목 <span class="ab-note">금액은 부가세 포함</span></div>
+      ${items}
+      <button class="btn btn-secondary btn-sm" onclick="angebotAddItem()">+ 항목 추가</button>
+      <label class="ab-fact ab-vat"><span>부가세율 (%)</span><input class="form-control" type="number" min="0" step="0.1" value="${e(Math.round((Number(d.vatRate) || 0) * 1000) / 10)}" oninput="angebotDraft.data.vatRate = (Number(this.value) || 0) / 100; updateAngebotSum()"></label>
+    </div>
+    <div class="ab-section">
+      <div class="ab-title">Vereinbarung <span class="ab-note">한 줄에 한 항목 · {Nr} = 견적서 번호, {Betrag} = 총액</span></div>
+      <textarea class="form-control" rows="9" oninput="angebotDraft.data.terms = this.value.split('\\n').filter(Boolean)">${e(d.terms.join('\n'))}</textarea>
+    </div>
+    <div class="ab-section">
+      <div class="ab-title">Bezahlung</div>
+      <textarea class="form-control" rows="2" oninput="angebotDraft.data.payment = this.value.split('\\n').filter(Boolean)">${e(d.payment.join('\n'))}</textarea>
+    </div>`;
+  updateAngebotSum();
+}
+function angebotItem(i, key, value) {
+  angebotDraft.data.items[i][key] = key === 'qty' || key === 'unitPrice' ? Number(value) || 0 : value;
+  updateAngebotSum();
+}
+function angebotAddItem() {
+  angebotDraft.data.items.push({ title: '', text: '', qty: 1, unitPrice: 0 });
+  renderAngebotEditor();
+}
+function angebotRemoveItem(i) {
+  angebotDraft.data.items.splice(i, 1);
+  renderAngebotEditor();
+}
+function updateAngebotSum() {
+  const t = window.DokgodaliAngebot.totals(angebotDraft.data.items, Number(angebotDraft.data.vatRate) || 0);
+  const eur = n => '€' + n.toFixed(2).replace('.', ',');
+  document.getElementById('angebot-sum').innerHTML = `합계 <b>${eur(t.gross)}</b> <span>netto ${eur(t.net)} · USt ${eur(t.vat)}</span>`;
+}
+async function previewAngebot() {
+  const d = angebotDraft;
+  if (!d) return;
+  const preview = window.open('', '_blank'); // 클릭 직후 열어야 팝업 차단에 안 걸린다
+  try {
+    const doc = await renderAngebotPdf({ ...d.data, number: d.data.number || 'Entwurf', date: new Date().toISOString() }, d.settings);
+    const url = doc.output('bloburl');
+    if (preview) preview.location.href = url; else doc.save('Angebot_Entwurf.pdf');
+  } catch (error) {
+    if (preview) preview.close();
+    uiAlert('미리보기 오류: ' + error.message);
+  }
+}
+async function issueAngebot() {
+  const d = angebotDraft;
+  if (!d) return;
+  const r = state.requests.find(x => x.id === d.id);
+  if (!d.data.items.length) return uiAlert('항목이 하나 이상 있어야 합니다.');
+  const ok = await uiConfirm(
+    `${r && r.angebot_no ? `${r.angebot_no} 번호로 다시 발행합니다.` : '새 견적서 번호를 받아 발행합니다.'}\n발행하면 고객은 수정 링크로 신청 내용을 고칠 수 없습니다.`,
+    { title: '견적서를 발행할까요?', okText: '발행' });
+  if (!ok) return;
+  const btn = document.getElementById('angebot-issue-btn');
+  btn.disabled = true;
+  try {
+    const { data: nums, error } = await sb.rpc('assign_angebot_numbers', { p_id: d.id });
+    if (error) throw new Error(error.message);
+    const data = { ...d.data, number: nums.angebot_no, customerNo: nums.customer_no, date: new Date().toISOString() };
+    const doc = await renderAngebotPdf(data, d.settings);
+    // 나중에 같은 PDF를 다시 받을 수 있게 그때의 회사 정보도 함께 저장한다.
+    const { error: saveError } = await sb.from('requests')
+      .update({ angebot: { ...data, settings: d.settings }, quote_issued_at: new Date().toISOString() })
+      .eq('id', d.id);
+    if (saveError) throw new Error(saveError.message);
+    doc.save(angebotFileName(data, r));
+    closeAngebotModal();
+    await loadDataFromSupabase();
+    renderApp();
+    if (state.jobDetail) renderJobDetailModal();
+    showToast(`견적서 ${data.number}를 발행했습니다.`);
+  } catch (error) {
+    uiAlert('견적서 발행 오류: ' + error.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+async function downloadAngebot(id) {
+  const r = state.requests.find(x => x.id === id);
+  if (!r || !r.angebot) return;
+  try {
+    const settings = r.angebot.settings || await loadCompanySettings();
+    const doc = await renderAngebotPdf(r.angebot, settings);
+    doc.save(angebotFileName(r.angebot, r));
+  } catch (error) {
+    uiAlert('견적서 PDF 오류: ' + error.message);
+  }
+}
+
 async function acknowledgeRequestEdit(id) {
   const { error } = await sb.from('requests').update({ payload_before_edit: null }).eq('id', id);
   if (error) return uiAlert('확인 처리 오류: ' + error.message);
