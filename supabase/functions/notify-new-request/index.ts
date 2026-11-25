@@ -197,6 +197,8 @@ async function sendRequestMail(record: any) {
     ["요청 번호", record.id],
     ["물건", record.summary || ""],
     ["접수 방식", [p.methodName, p.scheduleDate, p.scheduleTime].filter(Boolean).join(" · ")],
+    ...((p.scheduleAlternatives || []) as { date: string; time: string }[]).map((a, i): [string, string] =>
+      [`${i + 2}순위 희망 일시`, [a.date, a.time].filter(Boolean).join(" ")]),
     ["픽업지", p.method === "dropoff" ? "접수처 방문" : p.pickupAddress || ""],
     ["배송지", p.deliveryUndecided ? "미정" : `${p.deliveryZip || ""} ${p.deliveryAddress || ""} ${p.deliveryAddressDetail || ""}`.trim()],
     ["예상 배송비", p.estimatedTotal != null ? `€${Number(p.estimatedTotal).toFixed(2)}` : ""],

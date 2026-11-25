@@ -18,7 +18,7 @@ const req = {
         customsCode: 'P210027455731',
         movingStatus: 'moving',
         boxes: [
-            { items: [item('Used Sandals', { brand: 'Zara', color: 'Black', size: '38', quantity: '2', unitPrice: '12.5' }), item('Used Boots', { imageUrl: 'https://x/item-images/a.jpg' })] },
+            { items: [item('Used Sandals', { brand: 'Zara', color: 'Black', size: '38', quantity: '2', unitPrice: '25' }), item('Used Boots', { imageUrl: 'https://x/item-images/a.jpg' })] },
             { items: [item('Used Scarf')] },
         ],
     },
@@ -60,7 +60,7 @@ test('품목 열과 빈칸 규칙', () => {
     assert.deepEqual(a.slice(13, 17), ['', '', '', '']); // N 국내택배 요청, O 통관품목번호(Q3), P·Q 쇼핑몰
     assert.deepEqual(a.slice(17, 21), ['Used Sandals', 'Zara', 'Black', '38']);
     assert.equal(a[21], 2);
-    assert.equal(a[22], 25); // W 합계 = 수량×단가 (Q4 기본값)
+    assert.equal(a[22], 25); // W 합계 = 신청서 합계금액 그대로 (수량을 다시 곱하지 않는다)
     assert.deepEqual(a.slice(23, 26), ['.', '.', '']);
     assert.deepEqual(b.slice(18, 21), ['-', '-', '-']);
     assert.equal(b[23], 'https://x/item-images/a.jpg');

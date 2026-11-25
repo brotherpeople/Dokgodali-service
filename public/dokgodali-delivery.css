@@ -120,7 +120,7 @@ body { background: var(--surface); }
 .item-section-title { font-size: var(--fs-small); font-weight: var(--fw-bold); }
 .item-section-value { color: var(--muted); font-size: var(--fs-caption); font-weight: var(--fw-bold); }
 .item-row { padding: 12px 0; border-bottom: 1px solid var(--border); }
-.item-grid { display: grid; grid-template-columns: 1.5fr 2fr 1.2fr 1fr 0.9fr 0.8fr 1fr; gap: 8px; }
+.item-grid { display: grid; grid-template-columns: 1.4fr 1.9fr 1.1fr 1fr 0.9fr 0.7fr 1.4fr; gap: 8px; }
 .item-grid-urls { grid-template-columns: auto 1fr 1fr auto; align-items: start; gap: 12px; margin-top: 12px; }
 .item-grid-urls .item-new { padding: 16px 0 0; }
 .item-grid-urls .item-remove { margin-top: 16px; }
@@ -258,16 +258,17 @@ details[open] .more-link { display: none; }
 
 /* 사이드바 요약 */
 .summary-heading { font-size: var(--fs-title); font-weight: var(--fw-bold); }
-.summary-route { display: grid; grid-template-columns: 8px 1fr; gap: 12px; margin: 20px 0; }
+.summary-route { display: grid; grid-template-columns: 8px minmax(0, 1fr); gap: 12px; margin: 20px 0; }
 .route-line { position: relative; width: 2px; background: var(--border-strong); margin: 7px auto; }
 .route-line::before, .route-line::after { content: ""; position: absolute; left: 50%; width: 8px; height: 8px; border: 2px solid var(--accent); border-radius: 50%; background: var(--surface); transform: translateX(-50%); }
 .route-line::before { top: -7px; }
 .route-line::after { bottom: -7px; background: var(--accent); }
 .route-label { color: var(--muted); font-size: var(--fs-caption); font-weight: var(--fw-medium); }
-.route-value { overflow: hidden; margin-top: 4px; font-size: var(--fs-small); font-weight: var(--fw-bold); text-overflow: ellipsis; white-space: nowrap; }
+/* 긴 주소는 잘라 숨기지 않고 줄을 바꿔 다 보여 준다 (띄어쓰기 없는 긴 단어도 칸 안에서 끊는다) */
+.route-value { margin-top: 4px; font-size: var(--fs-small); font-weight: var(--fw-bold); line-height: 1.45; overflow-wrap: anywhere; }
 .summary-divider { height: 1px; background: var(--border); margin: 20px 0; }
 .summary-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; color: var(--muted); font-size: var(--fs-small); }
-.summary-row strong { max-width: 195px; color: var(--text); font-weight: var(--fw-medium); text-align: right; }
+.summary-row strong { min-width: 0; max-width: 195px; overflow-wrap: anywhere; color: var(--text); font-weight: var(--fw-medium); text-align: right; }
 .summary-breakdown { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); }
 .summary-line { display: flex; justify-content: space-between; gap: 12px; margin-top: 6px; color: var(--muted); font-size: var(--fs-small); font-variant-numeric: tabular-nums; }
 .summary-line > span:last-child { color: var(--text); font-weight: var(--fw-medium); }

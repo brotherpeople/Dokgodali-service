@@ -11,7 +11,7 @@
         name: 'prod',
         supabaseUrl: 'https://aahmugqchglqqavvotjm.supabase.co',
         supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhaG11Z3FjaGdscXFhdnZvdGptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIzMjI2NTQsImV4cCI6MjEwNzg5ODY1NH0.2zaMFKwf9L36oRMuABeYJai4nVczbiPeY9dibGeGiy0',
-        vapidPublicKey: 'BNzbI-1yJdx1SwPs2Yts8Jv2U1GMkzL09OXK7i1JHJkfUGr4k4AOxzQ1P7fMLCUXewGQw_AAwlAN2QKm4KopUL0',
+        vapidPublicKey: 'BKp7cckXkARJDvVdNR2MfFP26LptK9a9pu_9lBApm2NEQDuDZcrdYoVuM1eQK0evuCH_OmV63cMT_g2O53gkRCU',
       }
     : {
         name: 'test',

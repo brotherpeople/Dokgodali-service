@@ -1,7 +1,7 @@
 /* 배송 요청 → 대량등록 엑셀 행 (reference/1-2. 대량등록_엑셀업로드_김선영_261005.xlsx 형식).
    품목 1개가 1행이고, 박스마다 묶음번호가 하나씩 붙는다. 열 순서와 헤더 문구는 샘플과 똑같이 둔다.
    클라이언트 확인 전 기본값: 묶음번호 = 요청번호-박스번호(Q1), 자동결제 2·통관구분 1(Q2),
-   통관품목 번호 빈칸(Q3), 합계 = 수량×단가(Q4).
+   통관품목 번호 빈칸(Q3), 합계 = 신청서의 합계금액 칸(단가×수량을 고객이 적은 값, 11/24부터) 그대로.
    서식(글꼴·색·너비·높이·틀 고정)은 참고 엑셀과 같게 하려고 템플릿 파일에 값만 채운다 (fillTemplate).
    브라우저에서는 window.DokgodaliExport, Node(테스트)에서는 module.exports로 쓴다. */
 (function (root) {
@@ -78,7 +78,7 @@
                     orDash(it.color),
                     orDash(it.size),
                     qty,
-                    round2(qty * (Number(it.unitPrice) || 0)),
+                    round2(Number(it.unitPrice) || 0),
                     orDot(it.imageUrl),
                     orDot(it.productUrl),
                     '',
