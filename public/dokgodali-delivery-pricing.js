@@ -1,6 +1,6 @@
 /* 배송 운임 계산 (dokgodali-delivery.html 전용).
    요율 출처: https://www.dokgodali.de/one-stop-delivery (2026-11-04 확인)
-   클라이언트 확인 전 임의로 정한 값은 TODO(클라이언트 확인) 주석과 클라이언트_확인사항.md에 정리되어 있다.
+   클라이언트 확인 전 임의로 정한 값은 TODO(클라이언트 확인) 주석과 확인사항-1104.md에 정리되어 있다.
    브라우저에서는 window.DokgodaliPricing, Node(테스트)에서는 module.exports로 쓴다. */
 (function (root) {
     const RATES = {
